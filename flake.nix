@@ -24,5 +24,11 @@
           nix-secrets = pkgs.callPackage ./package.nix { };
         }
       );
+
+      devShells = eachSystem (
+        _system: pkgs: {
+          default = import ./shell.nix { inherit pkgs; };
+        }
+      );
     };
 }
