@@ -11,7 +11,7 @@
     package = lib.mkOption {
       description = "TODO";
       type = lib.types.package;
-      default = pkgs.callPackage ../../package/default.nix { };
+      default = pkgs.callPackage ../../package.nix { };
     };
   };
 }

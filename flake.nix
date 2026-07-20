@@ -21,7 +21,7 @@
       packages = eachSystem (
         system: pkgs: {
           default = self.packages.${system}.nix-secrets;
-          nix-secrets = pkgs.callPackage ./package/default.nix { };
+          nix-secrets = pkgs.callPackage ./package.nix { };
         }
       );
     };
