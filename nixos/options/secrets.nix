@@ -1,5 +1,7 @@
-{ lib, ... }:
+{ lib, config, ... }:
 let
+  cfg = config.security.nix-secrets;
+
   secretSubmodule = lib.types.submodule (
     { name, config, ... }:
     {
