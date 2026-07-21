@@ -13,5 +13,11 @@
       type = lib.types.package;
       default = pkgs.callPackage ../../package.nix { };
     };
+
+    nixEvalCommand = lib.mkOption {
+      description = "TODO";
+      type = lib.types.string;
+      default = "${lib.getExe config.nix.package} --extra-experimental-features \"nix-command flakes\" eval --raw";
+    };
   };
 }
