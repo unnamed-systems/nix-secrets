@@ -12,6 +12,13 @@ let
           # example = TODO;
         };
 
+        recipients = lib.mkOption {
+          description = "TODO";
+          type = lib.types.listOf lib.types.str;
+          default = [];
+          # example = TODO;
+        };
+
         # Mounting
         path = lib.mkOption {
           description = "TODO";
