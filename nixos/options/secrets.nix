@@ -16,6 +16,7 @@ let
           description = "TODO";
           type = lib.types.listOf lib.types.str;
           default = [];
+          apply = builtins.concatMap (value: cfg.recipientAliases.${value} or [value]);
           # example = TODO;
         };
 
