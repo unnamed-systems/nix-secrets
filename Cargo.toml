@@ -4,3 +4,29 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
+argh = "0.1.19"
+argh_complete = "0.1.19"
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+eyre = { version = "0.6.12", default-features = false }
+nix = { version = "0.31.3", features = ["user", "hostname", "fs"] }
+serde = { version = "1.0.229", features = [ "derive" ] }
+serde_json = "1.0.151"
+shlex = { version = "2.0.1", default-features = false }
+simple-eyre = "0.3.1"
+sys-mount = "3.1.0"
+tempfile = { version = "3.27.0", default-features = false }
+tracing = { version = "0.1.44", features = ["max_level_trace", "release_max_level_info"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+[profile.dev]
+opt-level = 0
+debug = 0
+panic = "unwind"
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
