@@ -22,7 +22,7 @@ let
 
         mode = lib.mkOption {
           description = "TODO";
-          type = lib.types.path;
+          type = lib.types.str;
           # default = TODO;
           # example = TODO;
         };
