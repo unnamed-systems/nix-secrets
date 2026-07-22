@@ -11,7 +11,7 @@ in
     description = "TODO";
     type = lib.types.str;
     default = builtins.toJSON {
-      directory = cfg.directory;
+      storage = cfg.storage;
       secrets = builtins.attrValues cfg.secrets;
     };
     readOnly = true;

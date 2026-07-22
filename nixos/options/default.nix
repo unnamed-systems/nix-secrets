@@ -13,7 +13,7 @@
   options.security.nix-secrets = {
     enable = lib.mkEnableOption "TODO";
 
-    directory = lib.mkOption {
+    storage = lib.mkOption {
       description = "TODO";
       type = lib.types.path;
       # example = TODO;
