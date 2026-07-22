@@ -27,8 +27,8 @@ let
         # Mounting
         path = lib.mkOption {
           description = "TODO";
-          type = lib.types.str;
-          # default = TODO;
+          type = lib.types.nullOr lib.types.str;
+          default = null;
           # example = TODO;
         };
 
