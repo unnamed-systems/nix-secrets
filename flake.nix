@@ -1,5 +1,5 @@
 {
-  description = "TODO";
+  description = "A postmodern secrets manager for NixOS";
 
   inputs = {
     nixpkgs.url = "https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz";
