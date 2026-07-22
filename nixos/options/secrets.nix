@@ -7,10 +7,10 @@ let
     {
       options = {
 
-        file = lib.mkOption {
+        name = lib.mkOption {
           description = "TODO";
-          type = lib.types.path;
-          # default = TODO;
+          type = lib.types.str;
+          default = name;
           # example = TODO;
         };
 
