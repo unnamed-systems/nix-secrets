@@ -37,6 +37,22 @@
         in
         lib.types.attrsOf (lib.types.coercedTo inputType transformFunction outputType);
       default = { };
+      apply =
+        aliases:
+        let
+          func =
+            visited:
+            builtins.concatMap (
+              value:
+              if visited ? ${value} then
+                throw "Cyclic recipient alias: ${value}"
+              else if aliases ? ${value} then
+                func (visited // { ${value} = true; }) aliases.${value}
+              else
+                [ value ]
+            );
+        in
+        builtins.mapAttrs (name: value: lib.uniqueStrings (func { ${name} = true; } value)) aliases;
       # example = TODO;
     };
   };
