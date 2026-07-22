@@ -29,14 +29,14 @@
 
     recipientAliases = lib.mkOption {
       description = "TODO";
-      type = lib.types.attrsOf (
-        lib.types.oneOf [
-          (lib.types.listOf lib.types.str)
-          lib.types.str
-        ]
-      );
+      type =
+        let
+          inputType = lib.types.either lib.types.str (lib.types.listOf lib.types.str);
+          transformFunction = lib.toList;
+          outputType = lib.types.listOf lib.types.str;
+        in
+        lib.types.attrsOf (lib.types.coercedTo inputType transformFunction outputType);
       default = { };
-      apply = builtins.mapAttrs (_name: value: lib.toList value);
       # example = TODO;
     };
   };
