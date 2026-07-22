@@ -35,7 +35,7 @@ let
         mode = lib.mkOption {
           description = "TODO";
           type = lib.types.str;
-          # default = TODO;
+          default = "0400";
           # example = TODO;
         };
 
