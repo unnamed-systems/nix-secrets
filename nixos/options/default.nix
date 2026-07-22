@@ -45,8 +45,9 @@
       type =
         let
           inputType = lib.types.either lib.types.str (lib.types.listOf lib.types.str);
-          transformFunction = lib.toList;
           outputType = lib.types.listOf lib.types.str;
+
+          transformFunction = lib.toList;
         in
         lib.types.attrsOf (lib.types.coercedTo inputType transformFunction outputType);
       default = { };
