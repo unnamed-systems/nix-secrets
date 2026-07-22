@@ -17,8 +17,10 @@ let
         recipients = lib.mkOption {
           description = "TODO";
           type = lib.types.listOf lib.types.str;
-          default = [];
-          apply = builtins.concatMap (value: cfg.recipientAliases.${value} or [value]);
+          default = [ ];
+          apply =
+            values:
+            lib.uniqueStrings (builtins.concatMap (value: cfg.recipientAliases.${value} or [ value ]) values);
           # example = TODO;
         };
 
