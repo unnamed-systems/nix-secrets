@@ -19,6 +19,13 @@
       # example = TODO;
     };
 
+    identityPaths = lib.mkOption {
+      description = "TODO";
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      # example = TODO;
+    };
+
     package = lib.mkOption {
       description = "TODO";
       type = lib.types.package;
