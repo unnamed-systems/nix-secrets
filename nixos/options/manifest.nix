@@ -11,7 +11,7 @@ in
     description = "TODO";
     type = lib.types.str;
     default = builtins.toJSON {
-      inherit (cfg) secrets;
+      secrets = builtins.attrValues cfg.secrets;
     };
     readOnly = true;
     internal = true;
