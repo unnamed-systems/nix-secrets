@@ -24,6 +24,26 @@ let
           # example = TODO;
         };
 
+        placeholder = lib.mkOption {
+          description = "TODO";
+          type =
+            let
+              inputType = lib.types.either lib.types.str lib.types.path;
+              outputType = lib.types.path;
+
+              transformFunction =
+                value:
+                if builtins.isPath value then
+                  value
+                else
+                  # Deduplicates placeholder files automatically.
+                  builtins.toFile "nix-secrets-placeholder" value;
+            in
+            lib.types.coercedTo inputType transformFunction outputType;
+          default = "REPLACE WITH YOUR SECRET"; # TODO: generator
+          # example = TODO;
+        };
+
         # Mounting
         path = lib.mkOption {
           description = "TODO";
