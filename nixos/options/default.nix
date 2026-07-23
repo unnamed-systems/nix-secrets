@@ -21,8 +21,13 @@
 
     identityPaths = lib.mkOption {
       description = "TODO";
-      type = lib.types.listOf lib.types.str;
-      default = [];
+      type = lib.types.listOf (
+        lib.types.pathWith {
+          inStore = false;
+          absolute = null;
+        }
+      );
+      default = [ ];
       # example = TODO;
     };
 
