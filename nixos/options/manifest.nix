@@ -12,7 +12,18 @@ in
     type = lib.types.str;
     default = builtins.toJSON {
       inherit (cfg) storage identityPaths;
-      secrets = builtins.attrValues cfg.secrets;
+
+      secrets = lib.mapAttrsToList (_name: value: {
+        inherit (value)
+          name
+          recipients
+          placeholder
+          path
+          owner
+          group
+          mode
+          ;
+      }) cfg.secrets;
     };
     readOnly = true;
     internal = true;
