@@ -1,8 +1,8 @@
 { lib, ... }:
 {
   imports = [
+    ./activate
     ./options
-    ./activate.nix
     ./env.nix
   ];
 }
