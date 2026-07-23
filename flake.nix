@@ -21,9 +21,18 @@
       };
 
       packages = eachSystem (
-        system: pkgs: {
+        system: pkgs:
+        {
           default = self.packages.${system}.nix-secrets;
           nix-secrets = pkgs.callPackage ./package.nix { };
+        }
+        // import ./tests {
+          inherit
+            system
+            pkgs
+            lib
+            self
+            ;
         }
       );
 
