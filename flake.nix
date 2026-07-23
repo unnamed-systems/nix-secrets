@@ -8,9 +8,11 @@
   outputs =
     { nixpkgs, self, ... }:
     let
-      systems = nixpkgs.lib.systems.flakeExposed;
+      lib = nixpkgs.lib;
 
-      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
+      systems = lib.systems.flakeExposed;
+
+      eachSystem = f: lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
     in
     {
       nixosModules = {
