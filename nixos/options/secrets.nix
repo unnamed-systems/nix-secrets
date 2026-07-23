@@ -54,8 +54,10 @@ let
         # Mounting
         path = lib.mkOption {
           description = "TODO";
-          type = lib.types.nullOr lib.types.str;
-          default = null;
+          type = lib.types.str;
+          # Use separate directories because activation scripts with
+          # `beforeUsers = true` and `beforeUsers = false` run independently.
+          default = "/run/nix-secrets${lib.optionalString cfg.neededForUsers "-for-users"}/${cfg.name}";
           # example = TODO;
         };
 
