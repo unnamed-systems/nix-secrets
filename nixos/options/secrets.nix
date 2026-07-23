@@ -57,7 +57,7 @@ let
           type = lib.types.str;
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
-          default = "/run/nix-secrets${lib.optionalString cfg.neededForUsers "-for-users"}/${cfg.name}";
+          default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/${config.name}";
           # example = TODO;
         };
 
