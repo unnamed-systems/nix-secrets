@@ -2,7 +2,8 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.security.nix-secrets;
 in
 {
@@ -15,7 +16,9 @@ in
     command = lib.mkOption {
       description = "TODO";
       type = lib.types.functionTo lib.types.str;
-      default = neededForUsers: "${lib.getExe cfg.package} activate ${manifestFile} --neededForUsers ${lib.boolToString neededForUsers}";
+      default =
+        neededForUsers:
+        "${lib.getExe cfg.package} activate ${builtins.toFile "nix-secrets-manifest.json" cfg.manifest} --neededForUsers ${lib.boolToString neededForUsers}";
       # example = TODO;
     };
 
