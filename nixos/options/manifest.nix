@@ -18,6 +18,7 @@ in
           name
           recipients
           placeholder
+          neededForUsers
           path
           owner
           group

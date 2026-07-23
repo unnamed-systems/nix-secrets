@@ -44,6 +44,13 @@ let
           # example = TODO;
         };
 
+        neededForUsers = lib.mkOption {
+          description = "TODO";
+          type = lib.types.bool;
+          default = false;
+          example = true;
+        };
+
         # Mounting
         path = lib.mkOption {
           description = "TODO";
