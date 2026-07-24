@@ -176,9 +176,15 @@ impl CommandTrait for ActivateCommand {
 
                 trace!("Creating a temporary directory for secret `{}`", s.name);
                 let parent = dst.parent().ok_or_eyre("Path to secret is a directory")?;
-                let temp_dir = tempfile::tempdir_in(parent)?; // TODO: unnecessary syscall
-                let temp_path = temp_dir.path().to_path_buf();
-                temp_dir.close()?;
+                let temp_name = format!(
+                    ".tmp_symlink_{}_{}",
+                    std::process::id(),
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos()
+                );
+                let temp_path = parent.join(temp_name);
 
                 trace!("Symlinking {generation_dst_location:?} -> {dst:?} ({temp_path:?})");
                 unix_fs::symlink(&generation_dst_location, &temp_path)?;

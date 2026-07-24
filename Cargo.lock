@@ -1228,7 +1228,6 @@ dependencies = [
  "shlex 2.0.1",
  "simple-eyre",
  "sys-mount",
- "tempfile",
  "tracing",
  "tracing-subscriber",
 ]

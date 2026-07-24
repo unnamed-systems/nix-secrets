@@ -78,8 +78,16 @@ impl CommandTrait for EditCommand {
         let manifest = utils::eval_manifest(&flake, &hostname)?;
 
         let resulting_path = self.directory.join(&self.name).with_extension("enc");
-        let dir = tempfile::tempdir()?;
-        let input_path = dir.path().join("input");
+        let dir = env::temp_dir();
+        let input_path = dir.join(format!(
+            "secret_input_{}_{}_{}",
+            self.name,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
 
         let secret = manifest
             .secrets
@@ -103,6 +111,7 @@ impl CommandTrait for EditCommand {
                     "{} wasn't changed, skipping re-encryption.",
                     resulting_path.display()
                 );
+                fs::remove_file(input_path)?;
                 return Ok(());
             }
         } else {
@@ -113,7 +122,8 @@ impl CommandTrait for EditCommand {
             editor_hook(&input_path, &editor)?;
         }
 
-        utils::encrypt(input_path, resulting_path, &secret.recipients)?;
+        utils::encrypt(&input_path, &resulting_path, &secret.recipients)?;
+        fs::remove_file(input_path)?;
 
         Ok(())
     }

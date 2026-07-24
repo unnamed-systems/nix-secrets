@@ -15,7 +15,6 @@ serde_json = "1.0.151"
 shlex = { version = "2.0.1", default-features = false }
 simple-eyre = "0.3.1"
 sys-mount = "3.1.0"
-tempfile = { version = "3.27.0", default-features = false }
 tracing = { version = "0.1.44", features = ["max_level_trace", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
