@@ -112,6 +112,13 @@ impl CommandTrait for ActivateCommand {
                     .wrap_err_with(|| eyre!("Decrypted content not found"))?;
 
                 let generation_dst_location = generation_dir.join(&s.name);
+                let generation_dst_parent = generation_dst_location.parent().ok_or_eyre("Path to secret is a directory")?;
+                
+                trace!("Ensuring secret directory {generation_dst_parent:?} inside generation directory exists");
+                fs::create_dir_all(generation_dst_parent)
+                .wrap_err_with(|| {
+                    eyre!("Failed to create secret generation directory ({generation_dst_parent:?})")
+                })?;
 
                 let dst = if s.path == resulting_dir.join(&s.name) {
                     trace!("Using default path for secret `{}`", s.name);
@@ -123,15 +130,6 @@ impl CommandTrait for ActivateCommand {
                     trace!("Using specified path for secret `{}` ({})", s.name, s.path.display());
                     &s.path
                 };
-
-                fs::create_dir_all(
-                    generation_dst_location
-                        .parent()
-                        .ok_or_eyre("The secret path is a directory")?,
-                )
-                .wrap_err_with(|| {
-                    eyre!("Failed to create secret parent directory ({generation_dst_location:?})")
-                })?;
 
                 info!("Secret `{}` -> {}", s.name, generation_dst_location.display());
 
@@ -185,6 +183,12 @@ impl CommandTrait for ActivateCommand {
                         .as_nanos()
                 );
                 let temp_path = parent.join(temp_name);
+
+                trace!("Ensuring parent directory {parent:?} exists");
+                fs::create_dir_all(parent)
+                .wrap_err_with(|| {
+                    eyre!("Failed to create secret parent directory ({parent:?})")
+                })?;
 
                 trace!("Symlinking {generation_dst_location:?} -> {dst:?} ({temp_path:?})");
                 unix_fs::symlink(&generation_dst_location, &temp_path)?;
