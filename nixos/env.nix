@@ -4,6 +4,6 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND = cfg.nixEvalComand;
+    environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND = cfg.nixEvalCommand;
   };
 }
