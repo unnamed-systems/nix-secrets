@@ -14,6 +14,11 @@ in
       default = false;
     };
 
+    usePlaceholders = lib.mkOption {
+      description = "TODO";
+      type = lib.types.bool;
+      default = false;
+    };
     storePathIdentities = lib.mkOption {
       description = "TODO";
       type = lib.types.bool;
