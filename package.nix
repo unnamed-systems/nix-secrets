@@ -1,6 +1,7 @@
 {
   lib,
   rustPlatform,
+  debugBuild ? false,
 }:
 let
   cargoFile = (builtins.fromTOML (builtins.readFile ./Cargo.toml));
@@ -12,6 +13,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
   src = ./.;
 
   cargoLock.lockFile = ./Cargo.lock;
+
+  buildType = if debugBuild then "debug" else "release";
+
+  nativeBuildInputs = [
+    rustPlatform.bindgenHook
+  ];
 
   meta = {
     description = "TODO";
