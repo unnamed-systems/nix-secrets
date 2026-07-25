@@ -13,7 +13,7 @@ in
     default = builtins.toJSON {
       inherit (cfg) storage identityPaths;
 
-      inherit (cfg.ciMode) usePlaceholders;
+      usePlaceholders = cfg.ciMode.enableDangerously && cfg.ciMode.usePlaceholders;
 
       secrets = lib.mapAttrsToList (_name: value: {
         inherit (value)
