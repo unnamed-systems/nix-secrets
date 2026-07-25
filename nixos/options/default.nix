@@ -4,6 +4,9 @@
   pkgs,
   ...
 }:
+let
+  cfg = config.security.nix-secrets;
+in
 {
   imports = [
     ./manifest.nix
@@ -23,7 +26,7 @@
       description = "TODO";
       type = lib.types.listOf (
         lib.types.pathWith {
-          inStore = false;
+          inStore = if cfg.ciMode.enableDangerously && cfg.ciMode.storePathIdentities then null else false;
           absolute = null;
         }
       );
