@@ -1,7 +1,10 @@
-use std::process::{Command, Stdio};
+use std::{
+    env,
+    process::{Command, Stdio},
+};
 
 use crate::{Result, manifest};
-use eyre::bail;
+use eyre::{OptionExt, bail};
 use nix::unistd::gethostname;
 
 use crate::manifest::Manifest;
@@ -27,39 +30,23 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
     Some((path.to_owned(), attr.to_owned()))
 }
 
-fn test_flake_support() -> Result<bool> {
-    debug!("Checking for flake support");
-
-    Ok(Command::new("nix")
-        .arg("eval")
-        .arg("--expr")
-        .arg("builtins.getFlake")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()?
-        .success())
-}
-
 pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
-    let supports_flakes = test_flake_support()?;
-    trace!("Supports flakes: {}", supports_flakes);
+    let env_cmd_str = env::var("NIX_SECRETS_NIX_EVAL_COMMAND").unwrap_or(
+        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_string(),
+    );
+    trace!("Parsed base eval command: {env_cmd_str:?}");
 
-    let mut eval_command = if supports_flakes {
-        Command::new("nix")
-    } else {
-        Command::new("nix-instantiate") // TOOD: support nix-instantiate
-    };
+    let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
+    let program = &cmd[0];
+    let args = &cmd[1..];
+
+    let mut eval_command = Command::new(program);
 
     trace!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
 
-    eval_command
-        .arg("--extra-experimental-features")
-        .arg("nix-command flakes")
-        .arg("eval")
-        .arg("--raw")
-        .arg(format!(
-            "{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"
-        ));
+    eval_command.args(args).arg(format!(
+        "{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"
+    ));
 
     eval_command.stdout(Stdio::piped());
 
