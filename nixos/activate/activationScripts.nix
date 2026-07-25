@@ -12,13 +12,13 @@ in
             "users"
             "groups"
           ];
-          text = cfg.activate.command true;
+          text = cfg.activate.command false;
           supportsDryActivation = true;
         };
 
         nixSecretsActivateBeforeUsers = {
           deps = [ "specialfs" ];
-          text = cfg.activate.command false;
+          text = cfg.activate.command true;
           supportsDryActivation = true;
         };
 
