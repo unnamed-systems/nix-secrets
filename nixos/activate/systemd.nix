@@ -17,7 +17,7 @@ in
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = cfg.activate.command true;
+        ExecStart = cfg.activate.command false;
         RemainAfterExit = true;
       };
       # unitConfig.RequiresMountsFor
@@ -30,7 +30,7 @@ in
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = cfg.activate.command false;
+        ExecStart = cfg.activate.command true;
         RemainAfterExit = true;
       };
       # unitConfig.RequiresMountsFor
