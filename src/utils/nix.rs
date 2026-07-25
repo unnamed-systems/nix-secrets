@@ -2,11 +2,12 @@ use std::process::{Command, Stdio};
 
 use crate::{Result, manifest};
 use eyre::bail;
+use nix::unistd::gethostname;
 
 use crate::manifest::Manifest;
 
-pub(crate) fn parse_flake(flake: &str) -> Option<(String, String)> {
-    let hostname = nix::unistd::gethostname().ok();
+pub fn parse_flake(flake: &str) -> Option<(String, String)> {
+    let hostname = gethostname().ok();
     let fallback = hostname
         .as_ref()
         .and_then(|os| os.to_str())
@@ -23,7 +24,7 @@ pub(crate) fn parse_flake(flake: &str) -> Option<(String, String)> {
         None => (flake, fallback),
     };
 
-    Some((path.to_string(), attr.to_string()))
+    Some((path.to_owned(), attr.to_owned()))
 }
 
 fn test_flake_support() -> Result<bool> {
@@ -39,7 +40,7 @@ fn test_flake_support() -> Result<bool> {
         .success())
 }
 
-pub(crate) fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
+pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     let supports_flakes = test_flake_support()?;
     trace!("Supports flakes: {}", supports_flakes);
 
@@ -67,7 +68,7 @@ pub(crate) fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     let build_output = build_child.wait_with_output()?;
 
     match build_output.status.code() {
-        Some(0) => (),
+        Some(0_i32) => (),
         _exit_code => {
             bail!("Failed to retrieve manifest");
         }

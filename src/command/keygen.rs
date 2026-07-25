@@ -1,13 +1,13 @@
 use crate::command::{Args, CommandTrait};
-use age::{cli_common::file_io, secrecy::ExposeSecret};
+use age::{cli_common::file_io, secrecy::ExposeSecret as _, x25519};
 use argh::{ArgsInfo, FromArgs};
 use eyre::Ok;
-use std::io::Write;
+use std::io::Write as _;
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
+#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
 /// Generate an age keypair
 #[argh(subcommand, name = "keygen")]
-pub(crate) struct KeygenCommand {
+pub struct KeygenCommand {
     /// path to the input file
     #[argh(positional)]
     input: Option<String>,
@@ -43,7 +43,7 @@ impl CommandTrait for KeygenCommand {
 
 fn generate(mut output: file_io::OutputWriter) -> eyre::Result<()> {
     trace!("Generating a new keypair");
-    let sk = age::x25519::Identity::generate();
+    let sk = x25519::Identity::generate();
     let pk = sk.to_public();
 
     writeln!(

@@ -2,15 +2,17 @@ use std::{
     env,
     fs::{self, OpenOptions},
     io,
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    os::unix::fs::{OpenOptionsExt as _, PermissionsExt},
     path::{Path, PathBuf},
     process,
+    time::SystemTime,
 };
 
 use argh::{ArgsInfo, FromArgs};
-use eyre::{Context, Ok, OptionExt, bail, eyre};
+use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
+    Result,
     command::{Args, CommandTrait},
     utils::{self},
 };
@@ -26,34 +28,34 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
             .open(path)?;
         io::copy(&mut src, &mut dst)?;
     } else {
-        let (editor, args) = utils::split_editor(editor)?;
-        let cmd = process::Command::new(&editor)
+        let (editor_bin, args) = utils::split_editor(editor)?;
+        let cmd = process::Command::new(&editor_bin)
             .args(args.unwrap_or_default())
             .arg(path)
             .stdin(process::Stdio::inherit())
             .stdout(process::Stdio::inherit())
             .stderr(process::Stdio::piped())
             .output()
-            .wrap_err_with(|| format!("Failed to spawn editor '{editor}'"))?;
+            .wrap_err_with(|| format!("Failed to spawn editor '{editor_bin}'"))?;
 
         if !cmd.status.success() {
             let stderr = String::from_utf8_lossy(&cmd.stderr);
 
             return Err(eyre!(
                 "Editor '{}' exited with non-zero status code",
-                &editor
+                &editor_bin
             ))
-            .with_context(|| stderr.trim().to_string());
+            .with_context(|| stderr.trim().to_owned());
         }
     }
 
     Ok(())
 }
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
+#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
 /// Edit an encrypted secret
 #[argh(subcommand, name = "edit")]
-pub(crate) struct EditCommand {
+pub struct EditCommand {
     /// path to the secrets directory
     #[argh(option)]
     directory: PathBuf,
@@ -64,17 +66,19 @@ pub(crate) struct EditCommand {
 }
 
 impl CommandTrait for EditCommand {
-    fn execute(&self, root: &Args) -> eyre::Result<()> {
+    fn execute(&self, root: &Args) -> Result<()> {
         if !self.directory.is_dir() {
             bail!("Invalid directory path");
         }
 
         let (flake, hostname) =
-            utils::parse_flake(&root.flake).ok_or(eyre!("Failed to parse flake"))?;
+            utils::parse_flake(&root.flake).ok_or_eyre("Failed to parse flake")?;
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
         let editor = env::var("EDITOR").wrap_err(eyre!("$EDITOR is not set"))?;
+        trace!("Using editor: {}", editor);
+
         let manifest = utils::eval_manifest(&flake, &hostname)?;
 
         let resulting_path = self.directory.join(&self.name).with_extension("enc");
@@ -82,10 +86,9 @@ impl CommandTrait for EditCommand {
         let input_path = dir.join(format!(
             "secret_input_{}_{}_{}",
             self.name,
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+            process::id(),
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)?
                 .as_nanos()
         ));
 
@@ -117,7 +120,6 @@ impl CommandTrait for EditCommand {
         } else {
             fs::set_permissions(&dir, PermissionsExt::from_mode(0o700))?;
 
-            println!("Secret data: {}", secret.name);
             fs::File::create(&input_path)?;
             editor_hook(&input_path, &editor)?;
         }

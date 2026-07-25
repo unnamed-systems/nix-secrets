@@ -2,11 +2,12 @@ use crate::Result;
 
 use eyre::eyre;
 
-pub(crate) fn is_stdin(editor: &str) -> bool {
+#[must_use]
+pub fn is_stdin(editor: &str) -> bool {
     split_editor(editor).is_ok_and(|(program, args)| program == "-" && args.is_none())
 }
 
-pub(crate) fn split_editor(editor: &str) -> Result<(String, Option<Vec<String>>)> {
+pub fn split_editor(editor: &str) -> Result<(String, Option<Vec<String>>)> {
     let mut splitted: Vec<String> =
         shlex::split(editor).ok_or_else(|| eyre!("Could not parse editor"))?;
 

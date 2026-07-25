@@ -3,7 +3,7 @@ mod editor;
 mod file;
 mod nix;
 
-pub(crate) use age::*;
-pub(crate) use editor::*;
-pub(crate) use file::*;
-pub(crate) use nix::*;
+pub use age::*;
+pub use editor::*;
+pub use file::*;
+pub use nix::*;

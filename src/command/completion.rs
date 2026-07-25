@@ -1,5 +1,7 @@
+use std::{env, path};
+
 use argh::{ArgsInfo, FromArgValue, FromArgs};
-use argh_complete::Generator;
+use argh_complete::{Generator as _, bash, fish, nushell, zsh};
 use eyre::Ok;
 
 use crate::command::{Args, CommandTrait};
@@ -12,53 +14,38 @@ enum Shell {
     Nushell,
 }
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
+#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
 /// Generate shell completions
 #[argh(subcommand, name = "completion")]
-pub(crate) struct CompletionCommand {
+pub struct CompletionCommand {
     /// shell to generate completions for
     #[argh(positional)]
     shell: Shell,
 }
 
 impl CommandTrait for CompletionCommand {
+    #[expect(clippy::print_stdout, reason = "We write completions code to stdout")]
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
         let cmd_info = Args::get_args_info();
-        let mut command_name = String::new();
-        if let Some(arg0) = std::env::args().next() {
-            command_name = std::path::Path::new(&arg0)
+        let command_name = env::args().next().map_or_else(String::new, |arg0| {
+            path::Path::new(&arg0)
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
-                .to_string();
-        }
-        if command_name.is_empty() {
-            command_name = cmd_info.name.to_string();
-        }
+                .to_string()
+        });
         match self.shell {
             Shell::Bash => {
-                println!(
-                    "{}",
-                    argh_complete::bash::Bash::generate(&command_name, &cmd_info)
-                );
+                println!("{}", bash::Bash::generate(&command_name, &cmd_info));
             }
             Shell::Zsh => {
-                println!(
-                    "{}",
-                    argh_complete::zsh::Zsh::generate(&command_name, &cmd_info)
-                );
+                println!("{}", zsh::Zsh::generate(&command_name, &cmd_info));
             }
             Shell::Fish => {
-                println!(
-                    "{}",
-                    argh_complete::fish::Fish::generate(&command_name, &cmd_info)
-                );
+                println!("{}", fish::Fish::generate(&command_name, &cmd_info));
             }
             Shell::Nushell => {
-                println!(
-                    "{}",
-                    argh_complete::nushell::Nushell::generate(&command_name, &cmd_info)
-                );
+                println!("{}", nushell::Nushell::generate(&command_name, &cmd_info));
             }
         }
 

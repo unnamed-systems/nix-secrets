@@ -2,18 +2,18 @@ use eyre::Result;
 use nix::unistd::chown;
 use std::collections::hash_map::DefaultHasher;
 use std::fs::File;
-use std::hash::Hasher;
-use std::io::{self, Read};
+use std::hash::Hasher as _;
+use std::io::{self, Read as _};
 use std::path::{Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
-pub(crate) fn hash_file<P: AsRef<Path>>(path: P) -> io::Result<u64> {
+pub fn hash_file<P>(path: P) -> io::Result<u64> where P: AsRef<Path> {
     let mut file = File::open(path)?;
     let mut hasher = DefaultHasher::new();
 
     // 8 KB is the standard buffer size (_G_BUFSIZE)
-    let mut buffer = [0u8; 8192];
+    let mut buffer = [0_u8; 8192];
 
     while let io::Result::Ok(bytes_read) = file.read(&mut buffer) {
         if bytes_read == 0 {
@@ -25,20 +25,20 @@ pub(crate) fn hash_file<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     Ok(hasher.finish())
 }
 
-pub(crate) fn set_owner_and_group(
+pub fn set_owner_and_group(
     path: &PathBuf,
     owner: &OwnerOrGroup,
     group: &OwnerOrGroup,
 ) -> Result<()> {
-    let user = owner.get_uid()?;
-    let group = group.get_gid()?;
+    let uid = owner.get_uid()?;
+    let gid = group.get_gid()?;
 
-    chown(path, Some(user), Some(group))?;
+    chown(path, Some(uid), Some(gid))?;
 
     Ok(())
 }
 
-pub(crate) fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
+pub fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
     let trimmed = input.strip_prefix('0').unwrap_or(input);
 
     if trimmed.is_empty() || !trimmed.chars().all(|c| c.is_ascii_digit()) {

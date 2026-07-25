@@ -14,7 +14,7 @@ mod keygen;
 #[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
 #[argh(help_triggers("-h", "--help", "help"))]
 /// A postmodern secret manager for NixOS.
-pub(crate) struct Args {
+pub struct Args {
     #[argh(subcommand)]
     command: Command,
 
@@ -35,10 +35,10 @@ enum Command {
 impl CommandTrait for Command {
     fn execute(&self, root: &Args) -> eyre::Result<()> {
         match &self {
-            Command::Activate(cmd) => cmd.execute(root)?,
-            Command::Generate(cmd) => cmd.execute(root)?,
-            Command::Completion(cmd) => cmd.execute(root)?,
-            Command::Edit(cmd) => cmd.execute(root)?,
+            Self::Activate(cmd) => cmd.execute(root)?,
+            Self::Generate(cmd) => cmd.execute(root)?,
+            Self::Completion(cmd) => cmd.execute(root)?,
+            Self::Edit(cmd) => cmd.execute(root)?,
         }
         Ok(())
     }
