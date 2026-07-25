@@ -1223,6 +1223,7 @@ dependencies = [
  "chrono",
  "eyre",
  "nix",
+ "scopeguard",
  "serde",
  "serde_json",
  "shlex 2.0.1",

@@ -2,14 +2,14 @@ use std::{
     env,
     fs::{self, OpenOptions},
     io,
-    os::unix::fs::{OpenOptionsExt as _, PermissionsExt},
+    os::unix::fs::OpenOptionsExt as _,
     path::{Path, PathBuf},
     process,
-    time::SystemTime,
 };
 
 use argh::{ArgsInfo, FromArgs};
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
+use scopeguard::defer;
 
 use crate::{
     Result, SECRETS_EXTENSION,
@@ -82,30 +82,44 @@ impl CommandTrait for EditCommand {
 
         let manifest = utils::eval_manifest(&flake, &hostname)?;
 
-        let resulting_path = self
-            .directory
-            .join(&self.name)
-            .with_extension(SECRETS_EXTENSION);
-        let dir = env::temp_dir();
-        let input_path = dir.join(format!(
-            "secret_input_{}_{}_{}",
-            self.name,
-            process::id(),
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)?
-                .as_nanos()
-        ));
-
         let secret = manifest
             .secrets
             .iter()
             .find(|s| s.name.eq(&self.name))
             .ok_or_eyre("Secret not present in nix config.")?;
 
+        let resulting_path = self
+            .directory
+            .join(&self.name)
+            .with_extension(SECRETS_EXTENSION);
+        let dir = env::temp_dir().join(".nix-secrets");
+
+        trace!("Ensuring temporary directory {dir:?} exists");
+        fs::create_dir_all(&dir)
+            .wrap_err_with(|| eyre!("Failed to create temporary directory ({dir:?})"))?;
+
+        let input_path = dir.join(format!("secret_input_{}", self.name.replace('/', "_")));
+        trace!("Calculated the input file path: {input_path:?}");
+
+        if input_path.exists() {
+            bail!("The secret `{}` is already being edited", secret.name);
+        }
+
+        defer! {
+            #[expect(clippy::let_underscore_must_use, reason = "Cleanup")]
+            let _: io::Result<()> = fs::remove_file(&input_path);
+        }
+
         if resulting_path.exists() {
+            trace!("Secret already exists, editing");
             let identities =
                 utils::get_identities(manifest.identity_paths.iter().map(PathBuf::from).collect())?;
+            trace!(
+                "Decrypting the secret at {resulting_path:?} with {} identities",
+                identities.len()
+            );
             utils::decrypt(&resulting_path, &input_path, &identities)?;
+            trace!("Decrypted secret successfully");
 
             let pre_edit_hash = utils::hash_file(&input_path)?;
 
@@ -118,19 +132,23 @@ impl CommandTrait for EditCommand {
                     "{} wasn't changed, skipping re-encryption.",
                     resulting_path.display()
                 );
-                fs::remove_file(input_path)?;
+                fs::remove_file(&input_path)?;
                 return Ok(());
             }
         } else {
-            // We should be able to write and read
-            fs::set_permissions(&dir, PermissionsExt::from_mode(0o600))?;
-
+            trace!("Secret does not exist, creating");
             fs::File::create(&input_path)?;
+
             editor_hook(&input_path, &editor)?;
         }
 
+        let final_parent = resulting_path.parent().ok_or_eyre("Secret has no parent")?;
+        trace!("Ensuring parent directory {final_parent:?} exists");
+        fs::create_dir_all(final_parent).wrap_err_with(|| {
+            eyre!("Failed to create secret parent directory ({final_parent:?})")
+        })?;
+
         utils::encrypt(&input_path, &resulting_path, &secret.recipients)?;
-        fs::remove_file(input_path)?;
 
         Ok(())
     }
