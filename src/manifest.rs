@@ -3,7 +3,7 @@ use nix::unistd::{Gid, Group, Uid, User};
 use serde::Deserialize;
 use std::{fmt, path::PathBuf};
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub identity_paths: Vec<String>,
@@ -11,7 +11,7 @@ pub struct Manifest {
     pub storage: PathBuf,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(untagged)]
 pub enum OwnerOrGroup {
     Left(String),
@@ -48,7 +48,7 @@ impl OwnerOrGroup {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct Secret {
     pub owner: OwnerOrGroup,

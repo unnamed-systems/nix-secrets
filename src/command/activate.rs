@@ -40,8 +40,9 @@ impl CommandTrait for ActivateCommand {
             .collect();
         trace!("Filtered secrets ({})", secrets.len());
 
+        let identity_paths: Vec<PathBuf> = manifest.identity_paths.iter().map(PathBuf::from).collect();
         let identities =
-            utils::get_identities(manifest.identity_paths.iter().map(PathBuf::from).collect())?;
+            utils::get_identities(&identity_paths)?;
         trace!("Found identities ({})", identities.len());
 
         let plain: HashMap<&str, String> = secrets

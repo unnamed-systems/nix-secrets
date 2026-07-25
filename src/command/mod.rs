@@ -5,11 +5,13 @@ use activate::ActivateCommand;
 use completion::CompletionCommand;
 use edit::EditCommand;
 use keygen::KeygenCommand;
+use rekey::RekeyCommand;
 
 mod activate;
 mod completion;
 mod edit;
 mod keygen;
+mod rekey;
 
 #[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
 #[argh(help_triggers("-h", "--help", "help"))]
@@ -29,6 +31,7 @@ enum Command {
     Activate(ActivateCommand),
     Completion(CompletionCommand),
     Edit(EditCommand),
+    Rekey(RekeyCommand),
     Generate(KeygenCommand),
 }
 
@@ -39,6 +42,7 @@ impl CommandTrait for Command {
             Self::Generate(cmd) => cmd.execute(root)?,
             Self::Completion(cmd) => cmd.execute(root)?,
             Self::Edit(cmd) => cmd.execute(root)?,
+            Self::Rekey(cmd) => cmd.execute(root)?,
         }
         Ok(())
     }

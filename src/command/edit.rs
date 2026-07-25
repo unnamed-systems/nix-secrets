@@ -112,8 +112,9 @@ impl CommandTrait for EditCommand {
 
         if resulting_path.exists() {
             trace!("Secret already exists, editing");
-            let identities =
-                utils::get_identities(manifest.identity_paths.iter().map(PathBuf::from).collect())?;
+            let identity_paths: Vec<PathBuf> =
+                manifest.identity_paths.iter().map(PathBuf::from).collect();
+            let identities = utils::get_identities(&identity_paths)?;
             trace!(
                 "Decrypting the secret at {resulting_path:?} with {} identities",
                 identities.len()

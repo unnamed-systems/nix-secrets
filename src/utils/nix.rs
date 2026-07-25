@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{Result, manifest};
-use eyre::{OptionExt, bail};
+use eyre::{OptionExt as _, bail};
 use nix::unistd::gethostname;
 
 use crate::manifest::Manifest;
@@ -31,9 +31,9 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
 }
 
 pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
-    let env_cmd_str = env::var("NIX_SECRETS_NIX_EVAL_COMMAND").unwrap_or(
-        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_string(),
-    );
+    let env_cmd_str = env::var("NIX_SECRETS_NIX_EVAL_COMMAND").unwrap_or_else(|_| {
+        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_owned()
+    });
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
