@@ -28,17 +28,18 @@ impl CommandTrait for ActivateCommand {
         let manifest = manifest::parse_manifest(&contents)?;
         let is_dry = env::var("NIXOS_ACTION").is_ok_and(|val| val == "dry-activate");
 
-        if manifest.secrets.is_empty() {
-            info!("Nothing to deploy");
-            return Ok(());
-        }
-
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
             .filter(|i| i.needed_for_users == self.needed_for_users)
             .collect();
+        
         trace!("Filtered secrets ({})", secrets.len());
+
+        if secrets.is_empty() {
+            info!("Nothing to deploy");
+            return Ok(());
+        }
 
         let identity_paths: Vec<PathBuf> = manifest.identity_paths.iter().map(PathBuf::from).collect();
         let identities =
@@ -72,7 +73,7 @@ impl CommandTrait for ActivateCommand {
             })
             .collect::<eyre::Result<_>>()?;
 
-        let generation_dir = init_generation_dir(self.needed_for_users, is_dry)?;
+        let (generation_dir, cleanup) = init_generation_dir(self.needed_for_users, is_dry)?;
         trace!("Initialized generation directory {generation_dir:?}");
 
         let resulting_dir = PathBuf::from(if self.needed_for_users {
@@ -180,13 +181,18 @@ impl CommandTrait for ActivateCommand {
                 }
             });
 
-        info!("Finished secrets deployment");
+        info!("Finished secrets deployment, cleaning up");
+
+        for directory in cleanup {
+            trace!("Removing old directory: {directory:?}");
+            fs::remove_dir_all(directory)?;
+        }
 
         Ok(())
     }
 }
 
-pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result<PathBuf> {
+pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
     let gen_dir = PathBuf::from(if needed_for_users {
@@ -194,6 +200,8 @@ pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result
     } else {
         SECRETS_DIR_D
     });
+
+    let mut cleanup: Vec<PathBuf> = Vec::new();
 
     trace!("Base generation directory: `{}`", gen_dir.display());
 
@@ -250,7 +258,7 @@ pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result
                                                                         if is_dry { " (dry)" } else { "" }
                                                                     );
                                                                     if !is_dry {
-                                                                        fs::remove_dir_all(d.path())?;
+                                                                        cleanup.push(d.path());
                                                                     }
                                                                 }
                                                                 Ok(())
@@ -261,8 +269,9 @@ pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result
         }
     };
     trace!("Calculated new generation id: {}", max);
+    trace!("{} old generation directories to remove", cleanup.len());
 
     res.map(|()| {
-        gen_dir.join(max.to_string())
+        (gen_dir.join(max.to_string()), cleanup)
     })
 }
