@@ -48,7 +48,6 @@ pub fn decrypt<P>(
 where
     P: AsRef<Path>,
 {
-    let output_file_mode: u32 = 0o600;
     #[expect(
         clippy::as_conversions,
         reason = "dyn Recipient + Send -> dyn Recipient"
@@ -57,7 +56,8 @@ where
         .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))?;
     let output = output_file.as_ref().to_str().map(str::to_owned);
     let mut ciphertext_writer =
-        OutputWriter::new(output, true, OutputFormat::Unknown, output_file_mode, false)?;
+        // We should be able to write and read
+        OutputWriter::new(output, true, OutputFormat::Unknown, 0o600, false)?;
     io::copy(&mut plaintext_reader, &mut ciphertext_writer)?;
     Ok(())
 }

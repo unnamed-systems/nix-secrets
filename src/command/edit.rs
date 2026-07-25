@@ -12,7 +12,7 @@ use argh::{ArgsInfo, FromArgs};
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
-    Result,
+    Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     utils::{self},
 };
@@ -21,6 +21,7 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
     if utils::is_stdin(editor) {
         let mut src = io::stdin();
         let mut dst = OpenOptions::new()
+            // Stdin should be able to write and read
             .mode(0o600)
             .create(true)
             .truncate(true)
@@ -81,7 +82,10 @@ impl CommandTrait for EditCommand {
 
         let manifest = utils::eval_manifest(&flake, &hostname)?;
 
-        let resulting_path = self.directory.join(&self.name).with_extension("enc");
+        let resulting_path = self
+            .directory
+            .join(&self.name)
+            .with_extension(SECRETS_EXTENSION);
         let dir = env::temp_dir();
         let input_path = dir.join(format!(
             "secret_input_{}_{}_{}",
@@ -118,7 +122,8 @@ impl CommandTrait for EditCommand {
                 return Ok(());
             }
         } else {
-            fs::set_permissions(&dir, PermissionsExt::from_mode(0o700))?;
+            // We should be able to write and read
+            fs::set_permissions(&dir, PermissionsExt::from_mode(0o600))?;
 
             fs::File::create(&input_path)?;
             editor_hook(&input_path, &editor)?;

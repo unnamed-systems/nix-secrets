@@ -3,20 +3,12 @@ use std::{
 };
 
 use crate::{
-    command::{Args, CommandTrait},
-    manifest::{self, Secret},
-    utils,
+    SECRETS_DIR, SECRETS_DIR_D, SECRETS_EXTENSION, SECRETS_FOR_USERS_DIR, SECRETS_FOR_USERS_DIR_D, command::{Args, CommandTrait}, manifest::{self, Secret}, utils,
 };
 use age::{Decryptor, armor::ArmoredReader, cli_common::file_io::InputReader};
 use argh::{ArgsInfo, FromArgs};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 use sys_mount::{Mount, MountFlags, SupportedFilesystems};
-
-static SECRETS_DIR_D: &str = "/run/nix-secrets.d";
-static SECRETS_FOR_USERS_DIR_D: &str = "/run/nix-secrets-for-users.d";
-
-static SECRETS_DIR: &str = "/run/nix-secrets";
-static SECRETS_FOR_USERS_DIR: &str = "/run/nix-secrets-for-users";
 
 #[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
 /// Activate secrets for host
@@ -58,7 +50,7 @@ impl CommandTrait for ActivateCommand {
                 let path_str = manifest
                     .storage
                     .join(&s.name)
-                    .with_extension("enc")
+                    .with_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
                     .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
@@ -80,18 +72,7 @@ impl CommandTrait for ActivateCommand {
             .collect::<eyre::Result<_>>()?;
 
         let generation_dir = init_generation_dir(self.needed_for_users, is_dry)?;
-        trace!(
-            "Initialized generation directory `{}`",
-            &generation_dir.display()
-        );
-
-        fs::create_dir_all(&generation_dir)
-            .wrap_err_with(|| eyre!("Failed to create generation directory `{generation_dir:?}`"))
-            .and_then(|()| {
-                fs::set_permissions(&generation_dir, Permissions::from_mode(0o751))
-                    .wrap_err_with(|| eyre!("Failed to set generation directory permissions"))
-            })?;
-        trace!("Extracted target generation directory: {generation_dir:?}");
+        trace!("Initialized generation directory {generation_dir:?}");
 
         let resulting_dir = PathBuf::from(if self.needed_for_users {
             SECRETS_FOR_USERS_DIR

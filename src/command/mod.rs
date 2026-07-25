@@ -13,7 +13,7 @@ mod keygen;
 
 #[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
 #[argh(help_triggers("-h", "--help", "help"))]
-/// A postmodern secret manager for NixOS.
+/// A postmodern secrets manager for NixOS.
 pub struct Args {
     #[argh(subcommand)]
     command: Command,

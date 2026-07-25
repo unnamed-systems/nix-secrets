@@ -28,6 +28,7 @@ impl CommandTrait for KeygenCommand {
             self.output.clone(),
             false,
             file_io::OutputFormat::Text,
+            // We should be able to write and read
             0o600,
             false,
         )?;
