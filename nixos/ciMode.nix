@@ -19,6 +19,11 @@ in
       type = lib.types.bool;
       default = false;
     };
+    debugPackage = lib.mkOption {
+      description = "TODO";
+      type = lib.types.bool;
+      default = false;
+    };
   };
 
   config.security.nix-secrets.ciMode.enableDangerously = false;

@@ -37,7 +37,7 @@ in
     package = lib.mkOption {
       description = "TODO";
       type = lib.types.package;
-      default = pkgs.callPackage ../../package.nix { };
+      default = pkgs.callPackage ../../package.nix { debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage; };
     };
 
     nixEvalCommand = lib.mkOption {
