@@ -24,8 +24,8 @@ pub struct KeygenCommand {
 impl CommandTrait for KeygenCommand {
     // TODO: zerocopy
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
-        let output = file_io::OutputWriter::new(
-            self.output.clone(),
+        let mut output = file_io::OutputWriter::new(
+            self.output.to_owned(),
             false,
             file_io::OutputFormat::Text,
             // We should be able to write and read
@@ -34,38 +34,29 @@ impl CommandTrait for KeygenCommand {
         )?;
 
         if self.convert {
-            convert(self.input.clone(), output)?;
+            trace!("Converting an existing identity");
+            let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(
+                self.output.to_owned(),
+            )?)?;
+
+            file.write_recipients_file(output)?;
         } else {
-            generate(output)?;
+            trace!("Generating a new keypair");
+            let sk = x25519::Identity::generate();
+            let pk = sk.to_public();
+
+            writeln!(
+                output,
+                "# created: {}",
+                chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+            )?;
+            writeln!(output, "# public key: {pk}")?;
+            writeln!(output, "{}", sk.to_string().expose_secret())?;
+
+            if !output.is_terminal() {
+                eprintln!("Public key: {pk}");
+            }
         }
         Ok(())
     }
-}
-
-fn generate(mut output: file_io::OutputWriter) -> eyre::Result<()> {
-    trace!("Generating a new keypair");
-    let sk = x25519::Identity::generate();
-    let pk = sk.to_public();
-
-    writeln!(
-        output,
-        "# created: {}",
-        chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
-    )?;
-    writeln!(output, "# public key: {pk}")?;
-    writeln!(output, "{}", sk.to_string().expose_secret())?;
-
-    if !output.is_terminal() {
-        eprintln!("Public key: {pk}");
-    }
-
-    Ok(())
-}
-
-fn convert(filename: Option<String>, output: file_io::OutputWriter) -> eyre::Result<()> {
-    trace!("Converting an existing identity");
-    let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(filename)?)?;
-
-    file.write_recipients_file(output)?;
-    Ok(())
 }
