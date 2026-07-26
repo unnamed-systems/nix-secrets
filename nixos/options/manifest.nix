@@ -20,6 +20,7 @@ in
           name
           recipients
           placeholder
+          generator
           neededForUsers
           path
           owner

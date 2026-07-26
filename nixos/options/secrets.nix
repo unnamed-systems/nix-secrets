@@ -44,6 +44,13 @@ let
           # example = TODO;
         };
 
+        generator = lib.mkOption {
+          description = "TODO";
+          type = lib.types.nullOr lib.types.package;
+          default = null;
+          # example = TODO;
+        };
+
         neededForUsers = lib.mkOption {
           description = "TODO";
           type = lib.types.bool;
