@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     env,
     fs::{self, OpenOptions, Permissions},
-    io::{ErrorKind, Read as _, Write as _},
+    io::{ErrorKind, Write as _},
     os::unix::fs::{self as unix_fs, PermissionsExt as _},
     path::PathBuf,
     process, time,
@@ -14,7 +14,7 @@ use crate::{
     manifest::{self, Secret},
     utils,
 };
-use age::{Decryptor, armor::ArmoredReader, cli_common::file_io::InputReader};
+use age::cli_common::file_io::InputReader;
 use argh::{ArgsInfo, FromArgs};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 use sys_mount::{Mount, MountFlags, SupportedFilesystems};
@@ -85,7 +85,7 @@ impl CommandTrait for ActivateCommand {
             })
             .collect::<eyre::Result<_>>()?;
 
-        let (generation_dir, cleanup) = init_generation_dir(self.needed_for_users, is_dry)?;
+        let (generation_dir, cleanup) = init_generation_dir(self.needed_for_users)?;
         trace!("Initialized generation directory {generation_dir:?}");
 
         let resulting_dir = PathBuf::from(if self.needed_for_users {
@@ -141,15 +141,17 @@ impl CommandTrait for ActivateCommand {
                         .open(&generation_dst_location)?;
                     file.set_permissions(permissions)?;
 
-                    trace!(
-                        "Applying ownership for secret `{}`: {}:{}",
-                        s.name, s.owner, s.group
-                    );
-                    utils::set_owner_and_group(
-                        &generation_dst_location,
-                        &s.owner,
-                        &s.group,
-                    )?;
+                    if !s.needed_for_users {
+                        trace!(
+                            "Applying ownership for secret `{}`: {}:{}",
+                            s.name, s.owner, s.group
+                        );
+                        utils::set_owner_and_group(
+                            &generation_dst_location,
+                            &s.owner,
+                            &s.group,
+                        )?;
+                    }
 
                     file
                 };
@@ -212,10 +214,7 @@ impl CommandTrait for ActivateCommand {
     }
 }
 
-pub fn init_generation_dir(
-    needed_for_users: bool,
-    is_dry: bool,
-) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
+pub fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
     let gen_dir = PathBuf::from(if needed_for_users {
