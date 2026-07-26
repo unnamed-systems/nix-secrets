@@ -1,9 +1,18 @@
 use std::{
-    collections::HashMap, env, fs::{self, OpenOptions, Permissions}, io::{ErrorKind, Read as _, Write as _}, os::unix::fs::{self as unix_fs, PermissionsExt as _}, path::PathBuf, process, time,
+    collections::HashMap,
+    env,
+    fs::{self, OpenOptions, Permissions},
+    io::{ErrorKind, Read as _, Write as _},
+    os::unix::fs::{self as unix_fs, PermissionsExt as _},
+    path::PathBuf,
+    process, time,
 };
 
 use crate::{
-    SECRETS_DIR, SECRETS_DIR_D, SECRETS_EXTENSION, SECRETS_FOR_USERS_DIR, SECRETS_FOR_USERS_DIR_D, command::{Args, CommandTrait}, manifest::{self, Secret}, utils,
+    SECRETS_DIR, SECRETS_DIR_D, SECRETS_EXTENSION, SECRETS_FOR_USERS_DIR, SECRETS_FOR_USERS_DIR_D,
+    command::{Args, CommandTrait},
+    manifest::{self, Secret},
+    utils,
 };
 use age::{Decryptor, armor::ArmoredReader, cli_common::file_io::InputReader};
 use argh::{ArgsInfo, FromArgs};
@@ -33,7 +42,7 @@ impl CommandTrait for ActivateCommand {
             .into_iter()
             .filter(|i| i.needed_for_users == self.needed_for_users)
             .collect();
-        
+
         trace!("Filtered secrets ({})", secrets.len());
 
         if secrets.is_empty() {
@@ -41,14 +50,23 @@ impl CommandTrait for ActivateCommand {
             return Ok(());
         }
 
-        let identity_paths: Vec<PathBuf> = manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities =
-            utils::get_identities(&identity_paths)?;
+        let identity_paths: Vec<PathBuf> =
+            manifest.identity_paths.iter().map(PathBuf::from).collect();
+        let identities = utils::get_identities(&identity_paths)?;
         trace!("Found identities ({})", identities.len());
 
         let plain: HashMap<&str, String> = secrets
             .iter()
             .map(|s| {
+                if manifest.use_placeholders {
+                    trace!(
+                        "Using placeholder for secret `{}` ({:?})",
+                        s.name, s.placeholder
+                    );
+                    let placeholder = fs::read_to_string(&s.placeholder)?;
+                    return Ok((s.name.as_str(), placeholder));
+                }
+
                 let path_str = manifest
                     .storage
                     .join(&s.name)
@@ -56,20 +74,14 @@ impl CommandTrait for ActivateCommand {
                     .into_os_string()
                     .into_string()
                     .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
-
                 trace!("Reading secret `{}` ({})", &s.name, path_str);
 
                 let input_reader = InputReader::new(Some(path_str))?;
-                let decryptor = Decryptor::new(ArmoredReader::new(input_reader))?;
-                let mut decrypted_string = String::new();
-
-                #[expect(clippy::as_conversions, reason = "dyn Identity + Send -> dyn Identity")]
-                decryptor
-                    .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))?
-                    .read_to_string(&mut decrypted_string)?;
-
+                let mut decrypted = Vec::new();
+                utils::decrypt_stream(input_reader, &mut decrypted, &identities)?;
                 trace!("Successfully decrypted secret `{}`", &s.name);
-                Ok((s.name.as_str(), decrypted_string))
+
+                Ok((s.name.as_str(), String::from_utf8(decrypted)?))
             })
             .collect::<eyre::Result<_>>()?;
 
@@ -92,7 +104,7 @@ impl CommandTrait for ActivateCommand {
 
                 let generation_dst_location = generation_dir.join(&s.name);
                 let generation_dst_parent = generation_dst_location.parent().ok_or_eyre("Path to secret is a directory")?;
-                
+
                 trace!("Ensuring secret directory {generation_dst_parent:?} inside generation directory exists");
                 fs::create_dir_all(generation_dst_parent)
                 .wrap_err_with(|| {
@@ -104,14 +116,13 @@ impl CommandTrait for ActivateCommand {
                     &resulting_dir.join(&s.name)
                 } else {
                     if s.path.starts_with(&resulting_dir) {
-                        warn!("Extraction inside the decrypted directory detected. It is recommend to specify `name` instead of `path`.");
+                        warn!("Extraction inside the decrypted directory detected. It is recommend to specify `name` instead of `path`");
                     }
                     trace!("Using specified path for secret `{}` ({})", s.name, s.path.display());
                     &s.path
                 };
 
                 info!("Secret `{}` -> {}", s.name, generation_dst_location.display());
-
                 let mut the_file = {
                     let mode = utils::parse_permissions_str(&s.mode)
                         .map_err(|e| eyre!("Failed to parse permissions: {}", e))?;
@@ -184,15 +195,27 @@ impl CommandTrait for ActivateCommand {
         info!("Finished secrets deployment, cleaning up");
 
         for directory in cleanup {
-            trace!("Removing old directory: {directory:?}");
-            fs::remove_dir_all(directory)?;
+            trace!(
+                "{} old generation ({directory:?})",
+                if is_dry {
+                    "Would delete (dry)"
+                } else {
+                    "Deleting"
+                }
+            );
+            if !is_dry {
+                fs::remove_dir_all(directory)?;
+            }
         }
 
         Ok(())
     }
 }
 
-pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
+pub fn init_generation_dir(
+    needed_for_users: bool,
+    is_dry: bool,
+) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
     let gen_dir = PathBuf::from(if needed_for_users {
@@ -240,30 +263,25 @@ pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result
                 .wrap_err_with(|| eyre!("Failed to read base generation directory: {gen_dir:?}"))
                 .and_then(|mut o| {
                     o.try_for_each(|en| {
-                        let d = en.wrap_err_with(|| eyre!("Failed to enter generation directory subdir."))?;
+                        let d = en.wrap_err_with(|| {
+                            eyre!("Failed to enter generation directory subdir.")
+                        })?;
                         match str::parse::<usize>(
-                                                            d.file_name().to_string_lossy().to_string().as_str(),
-                                                        ) {
-                                                            Err(e) => Err(eyre!("Failed to parse generation: {e}")),
-                                                            Result::Ok(res) => {
-                                                                trace!("Found existing generation {res} in {gen_dir:?}");
-                                                                if res >= max {
-                                                                    max = res + 1;
-                                                                }
+                            d.file_name().to_string_lossy().to_string().as_str(),
+                        ) {
+                            Err(e) => Err(eyre!("Failed to parse generation: {e}")),
+                            Result::Ok(res) => {
+                                trace!("Found existing generation {res} in {gen_dir:?}");
+                                if res >= max {
+                                    max = res + 1;
+                                }
 
-                                                                if max - res > 1 {
-                                                                    trace!(
-                                                                        "Found old generation ({}). Deleting{}.",
-                                                                        res,
-                                                                        if is_dry { " (dry)" } else { "" }
-                                                                    );
-                                                                    if !is_dry {
-                                                                        cleanup.push(d.path());
-                                                                    }
-                                                                }
-                                                                Ok(())
-                                                            }
-                                                        }
+                                if max - res > 1 {
+                                    cleanup.push(d.path());
+                                }
+                                Ok(())
+                            }
+                        }
                     })
                 })
         }
@@ -271,7 +289,5 @@ pub fn init_generation_dir(needed_for_users: bool, is_dry: bool) -> eyre::Result
     trace!("Calculated new generation id: {}", max);
     trace!("{} old generation directories to remove", cleanup.len());
 
-    res.map(|()| {
-        (gen_dir.join(max.to_string()), cleanup)
-    })
+    res.map(|()| (gen_dir.join(max.to_string()), cleanup))
 }

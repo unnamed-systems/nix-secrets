@@ -9,6 +9,7 @@ pub struct Manifest {
     pub identity_paths: Vec<String>,
     pub secrets: Vec<Secret>,
     pub storage: PathBuf,
+    pub use_placeholders: bool,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -55,6 +56,7 @@ pub struct Secret {
     pub group: OwnerOrGroup,
     pub mode: String,
     pub name: String,
+    pub placeholder: PathBuf,
     pub path: PathBuf,
     pub recipients: Vec<String>,
     pub needed_for_users: bool,

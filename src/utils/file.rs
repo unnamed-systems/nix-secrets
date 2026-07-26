@@ -8,7 +8,10 @@ use std::path::{Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
-pub fn hash_file<P>(path: P) -> io::Result<u64> where P: AsRef<Path> {
+pub fn hash_file<P>(path: P) -> io::Result<u64>
+where
+    P: AsRef<Path>,
+{
     let mut file = File::open(path)?;
     let mut hasher = DefaultHasher::new();
 
