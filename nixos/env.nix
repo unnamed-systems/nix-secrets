@@ -7,8 +7,8 @@ in
     nixEvalCommand = lib.mkOption {
       description = "TODO";
       type = lib.types.str;
-      default = "${lib.getExe config.nix.package} --extra-experimental-features \"nix-command flakes\" eval --raw";
-      defaultText = lib.literalExpression ''''${lib.getExe config.nix.package} --extra-experimental-features "nix-command flakes" eval --raw'';
+      default = "${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw";
+      defaultText = lib.literalExpression "\${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw";
       # example = TODO;
     };
   };
