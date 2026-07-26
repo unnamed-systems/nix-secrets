@@ -14,10 +14,12 @@ in
 
     storagePath = lib.mkOption {
       description = "TODO";
-      type = lib.types.nullOr (lib.types.pathWith {
-        inStore = false;
-        absolute = true;
-      });
+      type = lib.types.nullOr (
+        lib.types.pathWith {
+          inStore = false;
+          absolute = true;
+        }
+      );
       default = null;
       example = "/etc/nixos/secrets";
     };
