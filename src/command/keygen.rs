@@ -25,7 +25,7 @@ impl CommandTrait for KeygenCommand {
     // TODO: zerocopy
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
         let mut output = file_io::OutputWriter::new(
-            self.output.to_owned(),
+            self.output.clone(),
             false,
             file_io::OutputFormat::Text,
             // We should be able to write and read
@@ -36,7 +36,7 @@ impl CommandTrait for KeygenCommand {
         if self.convert {
             trace!("Converting an existing identity");
             let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(
-                self.output.to_owned(),
+                self.output.clone(),
             )?)?;
 
             file.write_recipients_file(output)?;

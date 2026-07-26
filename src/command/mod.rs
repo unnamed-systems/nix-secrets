@@ -5,12 +5,14 @@ use activate::ActivateCommand;
 use completion::CompletionCommand;
 use edit::EditCommand;
 use keygen::KeygenCommand;
+use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
 
 mod activate;
 mod completion;
 mod edit;
 mod keygen;
+mod regenerate;
 mod rekey;
 
 #[derive(FromArgs, ArgsInfo, PartialEq, Debug)]
@@ -33,6 +35,7 @@ enum Command {
     Edit(EditCommand),
     Rekey(RekeyCommand),
     Generate(KeygenCommand),
+    Regenerate(RegenerateCommand),
 }
 
 impl CommandTrait for Command {
@@ -43,6 +46,7 @@ impl CommandTrait for Command {
             Self::Completion(cmd) => cmd.execute(root)?,
             Self::Edit(cmd) => cmd.execute(root)?,
             Self::Rekey(cmd) => cmd.execute(root)?,
+            Self::Regenerate(cmd) => cmd.execute(root)?,
         }
         Ok(())
     }

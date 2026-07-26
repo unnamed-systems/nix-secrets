@@ -57,6 +57,7 @@ pub struct Secret {
     pub mode: String,
     pub name: String,
     pub placeholder: PathBuf,
+    pub generator: Option<String>,
     pub path: PathBuf,
     pub recipients: Vec<String>,
     pub needed_for_users: bool,
