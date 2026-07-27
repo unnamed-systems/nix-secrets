@@ -10,7 +10,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   pname = cargoFile.package.name;
   version = cargoFile.package.version;
 
-  src = ./.;
+  src = lib.fileset.toSource {
+    root = ./.;
+    fileset = lib.fileset.unions [
+      ./src
+      ./Cargo.toml
+      ./Cargo.lock
+    ];
+  };
 
   cargoLock.lockFile = ./Cargo.lock;
 
