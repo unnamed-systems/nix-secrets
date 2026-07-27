@@ -14,9 +14,9 @@ pkgs.testers.runNixOSTest (
     };
 
     testScript = { nodes, ... }: ''
-      env_var = machine.succeed("echo -n $NIX_SECRETS_NIX_EVAL_COMMAND")
+      env_var = machine.succeed("printenv NIX_SECRETS_NIX_EVAL_COMMAND").strip()
 
-      assert ${lib.strings.escapeNixString nodes.machine.security.nix-secrets.nixEvalCommand} == env_var
+      assert env_var == ${lib.strings.escapeNixString nodes.machine.security.nix-secrets.nixEvalCommand}
     '';
   }
 )
