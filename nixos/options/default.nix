@@ -11,6 +11,7 @@ in
   imports = [
     ./manifest.nix
     ./secrets.nix
+    ./templates.nix
   ];
 
   options.security.nix-secrets = {
