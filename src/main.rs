@@ -1,11 +1,8 @@
 #[macro_use]
 extern crate tracing;
 
-use std::str::FromStr as _;
-
-use clap::Parser;
-
 use crate::command::Args;
+use std::str::FromStr as _;
 
 pub(crate) mod command;
 pub(crate) mod manifest;

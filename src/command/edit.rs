@@ -57,8 +57,8 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
 /// Edit an encrypted secret
 pub struct EditCommand {
     /// Path to the secrets directory
-    #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE")]
-    directory: PathBuf,
+    #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
+    storage: PathBuf,
 
     /// Secret name
     name: String,
@@ -66,7 +66,7 @@ pub struct EditCommand {
 
 impl CommandTrait for EditCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if !self.directory.is_dir() {
+        if !self.storage.is_dir() {
             bail!("Invalid directory path");
         }
 
@@ -87,7 +87,7 @@ impl CommandTrait for EditCommand {
             .ok_or_eyre("Secret not present in nix config.")?;
 
         let resulting_path = self
-            .directory
+            .storage
             .join(&self.name)
             .with_extension(SECRETS_EXTENSION);
         let dir = env::temp_dir().join(".nix-secrets");

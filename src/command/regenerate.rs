@@ -16,8 +16,8 @@ use crate::{
 pub struct RegenerateCommand {
     /// path to the secrets directory
     #[arg(short, long)]
-    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE")]
-    directory: PathBuf,
+    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
+    storage: PathBuf,
 
     /// secrets to regenerate
     secrets: Vec<String>,
@@ -29,7 +29,7 @@ pub struct RegenerateCommand {
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if !self.directory.is_dir() {
+        if !self.storage.is_dir() {
             bail!("Invalid directory path");
         }
 
@@ -76,7 +76,7 @@ impl CommandTrait for RegenerateCommand {
         #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
         for (secret, rekey) in regenerated {
             let resulting_path = self
-                .directory
+                .storage
                 .join(&secret.name)
                 .with_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
