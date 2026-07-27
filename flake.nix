@@ -36,6 +36,10 @@
         }
       );
 
+      checks = eachSystem (
+        system: _pkgs: self.packages.${system}
+      );
+
       devShells = eachSystem (
         _system: pkgs: {
           default = import ./shell.nix { inherit pkgs; };
