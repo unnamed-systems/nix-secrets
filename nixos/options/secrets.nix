@@ -95,6 +95,28 @@ let
           # example = TODO;
         };
 
+        # Templating
+        templateKey = lib.mkOption {
+          description = "TODO";
+          type = lib.types.str;
+          readOnly = true;
+          default = "{{NIX_SECRETS-${builtins.hashString "sha256" "${config.name}"}}}";
+          defaultText = lib.literalExpression "{{NIX_SECRETS-\${builtins.hashString "sha256" "${config.name}"}}}";
+          # SHA-256 hash of the string "secret"
+          example = "{{NIX_SECRETS-2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b}}";
+        };
+
+        __toString = lib.mkOption {
+          description = "TODO";
+          type = lib.types.functionTo lib.types.str;
+          readOnly = true;
+          internal = true;
+          default = self: self.templateKey;
+          defaultText = lib.literalExpression "self: self.templateKey";
+          # SHA-256 hash of the string "secret"
+          example = "{{NIX_SECRETS-2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b}}";
+        };
+
       };
     }
   );
