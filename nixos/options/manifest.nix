@@ -28,6 +28,17 @@ in
           mode
           ;
       }) cfg.secrets;
+
+      templates = lib.mapAttrsToList (_name: value: {
+        inherit (value)
+          name
+          neededForUsers
+          path
+          owner
+          group
+          mode
+          ;
+      }) cfg.templates;
     };
     readOnly = true;
     internal = true;
