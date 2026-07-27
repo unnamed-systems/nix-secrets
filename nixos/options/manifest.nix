@@ -26,6 +26,7 @@ in
           owner
           group
           mode
+          templateKey
           ;
       }) cfg.secrets;
 
