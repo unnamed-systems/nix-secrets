@@ -7,7 +7,7 @@ use std::{
     process,
 };
 
-use argh::{ArgsInfo, FromArgs};
+use clap::Parser;
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 use scopeguard::defer;
 
@@ -53,16 +53,14 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
+#[derive(Parser, PartialEq, Eq, Debug)]
 /// Edit an encrypted secret
-#[argh(subcommand, name = "edit")]
 pub struct EditCommand {
-    /// path to the secrets directory
-    #[argh(option)]
+    /// Path to the secrets directory
+    #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE")]
     directory: PathBuf,
 
-    /// secret name
-    #[argh(positional)]
+    /// Secret name
     name: String,
 }
 

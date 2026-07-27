@@ -1,7 +1,6 @@
 use std::{collections::HashMap, io::Write as _, path::PathBuf};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
-use argh::{ArgsInfo, FromArgs};
 use eyre::{Ok, OptionExt as _, bail};
 
 use crate::{
@@ -10,17 +9,17 @@ use crate::{
     manifest::Secret,
     utils::{self, rekey_stream},
 };
+use clap::{Parser, ValueHint};
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
+#[derive(Parser, PartialEq, Eq, Debug)]
 /// Rekey all or selected encrypted secrets
-#[argh(subcommand, name = "rekey")]
 pub struct RekeyCommand {
     /// path to the secrets directory
-    #[argh(option)]
+    #[arg(short, long)]
+    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE")]
     directory: PathBuf,
 
     /// secrets to rekey. All if empty
-    #[argh(positional, greedy)]
     secrets: Vec<String>,
 }
 

@@ -15,19 +15,19 @@ use crate::{
     utils,
 };
 use age::cli_common::file_io::InputReader;
-use argh::{ArgsInfo, FromArgs};
+use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 use sys_mount::{Mount, MountFlags, SupportedFilesystems};
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
+#[derive(Parser, PartialEq, Eq, Debug)]
 /// Activate secrets for host
-#[argh(subcommand, name = "activate")]
 pub struct ActivateCommand {
-    #[argh(positional)]
+    /// Path to the manifest file
+    #[arg(value_hint = ValueHint::FilePath)]
     pub manifest: PathBuf,
 
-    /// whether or not to setup secrets before the users are created
-    #[argh(option)]
+    /// Whether or not to setup secrets before the users are created
+    #[arg(long, action = clap::ArgAction::Set, value_parser = clap::value_parser!(bool))]
     pub needed_for_users: bool,
 }
 

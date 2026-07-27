@@ -3,6 +3,8 @@ extern crate tracing;
 
 use std::str::FromStr as _;
 
+use clap::Parser;
+
 use crate::command::Args;
 
 pub(crate) mod command;
@@ -34,6 +36,5 @@ fn main() -> Result<()> {
 
     simple_eyre::install()?;
 
-    let args: Args = argh::from_env();
-    args.parse()
+    Args::run()
 }

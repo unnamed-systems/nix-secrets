@@ -1,23 +1,23 @@
 use crate::command::{Args, CommandTrait};
 use age::{cli_common::file_io, secrecy::ExposeSecret as _, x25519};
-use argh::{ArgsInfo, FromArgs};
+use clap::{Parser, ValueHint};
 use eyre::Ok;
 use std::io::Write as _;
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
+#[derive(Parser, PartialEq, Eq, Debug)]
 /// Generate an age keypair
-#[argh(subcommand, name = "keygen")]
 pub struct KeygenCommand {
-    /// path to the input file
-    #[argh(positional)]
+    /// Path to the input file
+    #[arg(value_hint = ValueHint::FilePath)]
     input: Option<String>,
 
-    /// path to the output directory
-    #[argh(option, short = 'o')]
+    /// Path to the output directory
+    #[arg(short, long)]
+    #[arg(value_hint = ValueHint::DirPath)]
     output: Option<String>,
 
-    /// convert an identity file to a recipient
-    #[argh(switch, short = 'y')]
+    /// Convert an identity file to a recipient
+    #[arg(short = 'y')]
     convert: bool,
 }
 

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command};
 
 use age::cli_common::file_io::{OutputFormat, OutputWriter};
-use argh::{ArgsInfo, FromArgs};
+use clap::{Parser, ValueHint};
 use eyre::{Ok, OptionExt as _, bail};
 
 use crate::{
@@ -11,20 +11,19 @@ use crate::{
     utils::{self},
 };
 
-#[derive(FromArgs, ArgsInfo, PartialEq, Eq, Debug)]
+#[derive(Parser, PartialEq, Eq, Debug)]
 /// Regenerate all or selected encrypted secrets with generators
-#[argh(subcommand, name = "regenerate")]
 pub struct RegenerateCommand {
     /// path to the secrets directory
-    #[argh(option)]
+    #[arg(short, long)]
+    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE")]
     directory: PathBuf,
 
     /// secrets to regenerate
-    #[argh(positional)]
     secrets: Vec<String>,
 
     /// regenerate all secrets
-    #[argh(switch)]
+    #[arg(short, long)]
     all: bool,
 }
 
