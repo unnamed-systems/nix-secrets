@@ -10,7 +10,10 @@ pkgs.testers.runNixOSTest (
     name = "nixEvalCommandEnv";
 
     nodes.machine = {
-      imports = [ nixosModule shared.minimal ];
+      imports = [
+        nixosModule
+        shared.minimal
+      ];
     };
 
     testScript = { nodes, ... }: ''
