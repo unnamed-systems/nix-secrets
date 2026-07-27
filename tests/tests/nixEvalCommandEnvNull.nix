@@ -10,7 +10,10 @@ pkgs.testers.runNixOSTest (
     name = "nixEvalCommandEnvNull";
 
     nodes.machine = {
-      imports = [ nixosModule shared.minimal ];
+      imports = [
+        nixosModule
+        shared.minimal
+      ];
 
       security.nix-secrets.nixEvalCommand = null;
     };
