@@ -37,7 +37,6 @@ pedantic = { level = "warn", priority = -1 }
 blanket_clippy_restriction_lints = "allow"
 restriction = { level = "warn", priority = -1 }
 
-too_many_lines = "allow"
 arbitrary-source-item-ordering = "allow"
 arithmetic_side_effects = "allow"
 exhaustive-enums = "allow"
@@ -59,5 +58,8 @@ std_instead_of_alloc = "allow"
 std_instead_of_core = "allow"
 pub_use = "allow"
 pub_with_shorthand = "allow"
+# Generally not useful
+cognitive_complexity = "allow"
+too_many_lines = "allow"
 
 doc_paragraphs_missing_punctuation = "allow"

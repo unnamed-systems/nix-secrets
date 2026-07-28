@@ -134,7 +134,7 @@ impl CommandTrait for ActivateCommand {
                 &secret.mode,
                 &secret.owner,
                 &secret.group,
-                &secret.needed_for_users,
+                secret.needed_for_users,
             )?;
 
             trace!("Writing secret content `{}`", secret.name);
@@ -149,7 +149,7 @@ impl CommandTrait for ActivateCommand {
         let templates_generation_dir = generation_dir.join("templates");
         trace!("Initialized generation directory {generation_dir:?}");
 
-        let hashes: std::collections::HashMap<&String, String> = plain
+        let hashes: HashMap<&String, String> = plain
             .into_iter()
             .map(|(k, v)| (&k.template_key, v))
             .collect();
@@ -193,7 +193,7 @@ impl CommandTrait for ActivateCommand {
                 &template.mode,
                 &template.owner,
                 &template.group,
-                &template.needed_for_users,
+                template.needed_for_users,
             )?;
 
             trace!("Writing template content `{}`", template.name);
@@ -207,6 +207,7 @@ impl CommandTrait for ActivateCommand {
 
         info!("Finished linkable creation, linking");
 
+        #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
         for (from, to) in links {
             if is_dry {
                 trace!("Dry, skipping linking ({from:?} -> {to:?})");
@@ -249,7 +250,7 @@ fn get_linkable_directory(base: &PathBuf, name: &String, path: &PathBuf) -> Resu
             name,
             path.display()
         );
-        Ok(path.to_path_buf())
+        Ok(path.clone()) // TODO: attempt zerocopy
     }
 }
 
@@ -270,7 +271,7 @@ fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
         .wrap_err_with(|| eyre!("Failed to create secret parent directory ({parent:?})"))?;
 
     trace!("Symlinking {from:?} -> {to:?} ({temp_path:?})");
-    unix_fs::symlink(&from, &temp_path)?;
+    unix_fs::symlink(from, &temp_path)?;
     fs::rename(&temp_path, to)?;
 
     trace!("Successfully deployed linkable");
@@ -280,15 +281,15 @@ fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
 
 fn get_linkable_file(
     dst: &PathBuf,
-    name: &String,
-    mode: &String,
+    name: &str,
+    mode: &str,
     owner: &OwnerOrGroup,
     group: &OwnerOrGroup,
-    needed_for_users: &bool,
+    needed_for_users: bool,
 ) -> Result<File> {
-    let mode = utils::parse_permissions_str(&mode)
+    let parsed_mode = utils::parse_permissions_str(mode)
         .map_err(|e| eyre!("Failed to parse permissions: {}", e))?;
-    let permissions = Permissions::from_mode(mode);
+    let permissions = Permissions::from_mode(parsed_mode);
 
     trace!(
         "Applying file permissions for linkable `{}`: {:o} ({})",
@@ -300,7 +301,7 @@ fn get_linkable_file(
         .create(true)
         .truncate(true)
         .write(true)
-        .open(&dst)?;
+        .open(dst)?;
     file.set_permissions(permissions)?;
 
     if !needed_for_users {
@@ -308,7 +309,7 @@ fn get_linkable_file(
             "Applying ownership for linkable `{}`: {}:{}",
             name, owner, group
         );
-        utils::set_owner_and_group(&dst, &owner, &group)?;
+        utils::set_owner_and_group(dst, owner, group)?;
     }
 
     Ok(file)
