@@ -14,6 +14,23 @@ let
           # example = TODO;
         };
 
+        content = lib.mkOption {
+          description = "TODO";
+          type =
+            let
+              inputType = lib.types.either lib.types.str outputType; # TODO: inputType = lib.types.str;
+              outputType = lib.types.pathWith {
+                absolute = true;
+                inStore = true;
+              };
+
+              transformFunction =
+                value: if builtins.isPath value then value else builtins.toFile "nix-secrets-template" value;
+            in
+            lib.types.coercedTo inputType transformFunction outputType;
+          # example = TODO;
+        };
+
         neededForUsers = lib.mkOption {
           description = "TODO";
           type = lib.types.bool;
