@@ -33,6 +33,7 @@ in
       templates = lib.mapAttrsToList (_name: value: {
         inherit (value)
           name
+          content
           neededForUsers
           path
           owner
