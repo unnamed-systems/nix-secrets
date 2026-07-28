@@ -166,9 +166,9 @@ impl CommandTrait for ActivateCommand {
             trace!("Reading template content from {:?}", template.content);
             let content = fs::read_to_string(template.content)?;
             trace!("Replacing secret hashes");
-            let raw_content = &hashes
-                .iter()
-                .fold(content, |c, (key, value)| c.replace(*key, value));
+            let raw_content = &hashes.iter().fold(content, |c, (key, value)| {
+                c.replace(*key, value.trim_end_matches('\n')) // TODO: find a better, customizable way
+            });
 
             let generation_dst_location = templates_generation_dir.join(&template.name);
             let generation_dst_parent = generation_dst_location
