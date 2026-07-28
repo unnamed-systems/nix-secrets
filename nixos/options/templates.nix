@@ -25,7 +25,7 @@ let
               };
 
               transformFunction =
-                value: if builtins.isPath value then value else builtins.toFile "nix-secrets-template" value;
+                value: if outputType.check value then value else builtins.toFile "nix-secrets-template" value;
             in
             lib.types.coercedTo inputType transformFunction outputType;
           # example = TODO;
