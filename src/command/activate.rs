@@ -208,6 +208,10 @@ impl CommandTrait for ActivateCommand {
         info!("Finished linkable creation, linking");
 
         for (from, to) in links {
+            if is_dry {
+                trace!("Dry, skipping linking ({from:?} -> {to:?})");
+                continue;
+            }
             deploy_linkable(&from, &to)?;
         }
         info!("Linked everything, cleaning up");
