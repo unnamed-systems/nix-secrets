@@ -19,6 +19,32 @@
 
     secrets = {
       password.recipients = [ "first" ];
+      passwordForUsers = {
+        recipients = [ "first" ];
+        neededForUsers = true;
+      };
+    };
+
+    templates = {
+      text.content = ''
+        password = ${config.security.nix-secrets.secrets.password}
+      '';
+      textForUsers = {
+        content = ''
+          password = ${config.security.nix-secrets.secrets.passwordForUsers}
+        '';
+        neededForUsers = true;
+      };
+
+      file.content = builtins.toFile "file-template" ''
+        password = ${config.security.nix-secrets.secrets.password}
+      '';
+      fileForUsers = {
+        content = builtins.toFile "file-template" ''
+          password = ${config.security.nix-secrets.secrets.passwordForUsers}
+        '';
+        neededForUsers = true;
+      };
     };
   };
 }
