@@ -8,6 +8,7 @@ use std::{fmt, path::PathBuf};
 pub struct Manifest {
     pub identity_paths: Vec<String>,
     pub secrets: Vec<Secret>,
+    pub templates: Vec<Template>,
     pub storage: PathBuf,
     pub use_placeholders: bool,
 }
@@ -60,7 +61,20 @@ pub struct Secret {
     pub generator: Option<String>,
     pub path: PathBuf,
     pub recipients: Vec<String>,
+    pub template_key: String,
     pub needed_for_users: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct Template {
+    pub owner: OwnerOrGroup,
+    pub group: OwnerOrGroup,
+    pub mode: String,
+    pub name: String,
+    pub path: PathBuf,
+    pub needed_for_users: bool,
+    pub content: PathBuf,
 }
 
 pub fn parse_manifest(input: &str) -> eyre::Result<Manifest> {
