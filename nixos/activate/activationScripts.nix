@@ -1,6 +1,16 @@
 { lib, config, ... }:
 let
   cfg = config.security.nix-secrets;
+  getActivationCommand = finalCommand: ''
+    (
+    ${lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (n: v: "  export ${n}='${v}'") {
+        PATH = lib.makeBinPath cfg.extraPackages;
+      }
+    )}
+      ${finalCommand}
+    )
+  '';
 in
 {
   config.system.activationScripts =
@@ -12,13 +22,13 @@ in
             "users"
             "groups"
           ];
-          text = cfg.activate.command false;
+          text = getActivationCommand (cfg.activate.command false);
           supportsDryActivation = true;
         };
 
         nixSecretsActivateBeforeUsers = {
           deps = [ "specialfs" ];
-          text = cfg.activate.command true;
+          text = getActivationCommand (cfg.activate.command true);
           supportsDryActivation = true;
         };
 

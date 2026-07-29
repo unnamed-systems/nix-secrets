@@ -38,7 +38,18 @@ in
     package = lib.mkOption {
       description = "TODO";
       type = lib.types.package;
-      default = pkgs.callPackage ../../package.nix { debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage; };
+      default = pkgs.callPackage ../../package.nix {
+        debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
+      };
+    };
+
+    extraPackages = lib.mkOption {
+      description = ''
+        List of extra packages like age plugins to make available to nix-secrets.
+      '';
+      type = lib.types.listOf lib.types.package;
+      default = [ ];
+      example = lib.literalExpression "[ pkgs.age-plugin-yubikey ]";
     };
 
     recipientAliases = lib.mkOption {
