@@ -14,7 +14,7 @@ in
       requiredBy = [ "sysinit-reactivation.target" ];
       before = [ "sysinit-reactivation.target" ];
       unitConfig.DefaultDependencies = "no";
-      environment.PATH = lib.makeBinPath cfg.extraPackages;
+      path = cfg.extraPackages;
 
       serviceConfig = {
         Type = "oneshot";
@@ -28,7 +28,7 @@ in
       wantedBy = [ "systemd-sysusers.service" ];
       before = [ "systemd-sysusers.service" ];
       unitConfig.DefaultDependencies = "no";
-      environment.PATH = lib.makeBinPath cfg.extraPackages;
+      path = cfg.extraPackages;
 
       serviceConfig = {
         Type = "oneshot";
