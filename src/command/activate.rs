@@ -21,6 +21,7 @@ use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 use sys_mount::{Mount, MountFlags, SupportedFilesystems};
 
 #[derive(Parser, PartialEq, Eq, Debug)]
+#[command(hide = true, hide_possible_values = true)]
 /// Activate secrets for host
 pub struct ActivateCommand {
     /// Path to the manifest file

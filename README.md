@@ -6,6 +6,8 @@
 ![Powered by Nix](./.assets/images/nixos.png)
 ![Licensed under GPL 3.0](./.assets/images/gpl.png)
 
+**The project is still in the late development stage, namely, generators are still feature incomplete. However, it is actively being used in the authors' configurations and should be generally production-ready.**
+
 ---
 
 `nix-secrets` is a NixOS secret management solution designed to be lightweight and simple to use. It comes as a NixOS module which automatically installs the `nix-secrets` binary used for secret management. The secrets themselves are encrypted using the [age](https://age-encryption.org/v1) encryption format.
