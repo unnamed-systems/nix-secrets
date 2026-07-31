@@ -8,7 +8,7 @@ Two options you should know about are `security.nix-secrets.storagePath` and `se
 
 ### storagePath
 
-The first one, `storagePath`, allows you to define an absolute path to your storage directory which you usually pass to the `--storage` cli flag. If defined, the cli will no longer require you to pass the `--storage` flag.
+The first one, `storagePath`, allows you to define an absolute path to your storage directory which you usually pass to the `--storage` CLI flag. If defined, the CLI will no longer require you to pass the `--storage` flag.
 
 Example:
 
@@ -22,7 +22,7 @@ Example:
 
 ### nixEvalCommand
 
-First, you need to understand how the cli works. To get secret information when you initiate the `edit`, `rekey` or `regenerate` commands, the cli evaluates your config by appending `.#nixosConfigurations.<hostname>.security.nix-secrets.manifest` to `nixEvalCommand`.
+First, you need to understand how the CLI works. To get secret information when you initiate the `edit`, `rekey` or `regenerate` commands, the CLI evaluates your config by appending `.#nixosConfigurations.<hostname>.security.nix-secrets.manifest` to `nixEvalCommand`.
 
 So, as you may've guessed, if you use a non-standard installation of Nix, be it changing the command or flags, you will have to adapt `nixEvalCommand` to your use case. The default value is `${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw`.
 

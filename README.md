@@ -5,9 +5,6 @@
 ![Written in Rust](./.assets/images/rust.png)
 ![Powered by Nix](./.assets/images/nixos.png)
 ![Licensed under GPL 3.0](./.assets/images/gpl.png)
-![No AI has been used](./.assets/images/hand-coded.png)
-
-**We do not accept LLM assisted contributions. No generative AI technology has been used in the process of creating this software at any stage.**
 
 ---
 
@@ -38,6 +35,13 @@ imports = [ inputs.nix-secrets.nixosModules.default ];
 ```
 
 The module automatically adds the `nix-secrets` binary to your `environment.systemPackages`.
+
+To generate a key you can use the provided `nix-secrets` CLI or any other age compatible one (`age-keygen`, `rage-keygen`).
+```bash
+nix-secrets keygen [-o <output>]
+```
+
+For further CLI usage consult [the documentation](./docs/USAGE.md) or the manpages.
 
 To enable the module itself, create a `secrets` directory and enable the following options:
 
