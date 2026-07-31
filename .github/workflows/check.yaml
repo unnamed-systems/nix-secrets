@@ -23,9 +23,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Nix
-        uses: nixbuild/nix-quick-install-action@v35
+        uses: cachix/install-nix-action@v31
         with:
-          nix_conf: |
+          extra_nix_config: |
             keep-env-derivations = true
             keep-outputs = true
       
