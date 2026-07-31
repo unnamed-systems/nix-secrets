@@ -1,10 +1,10 @@
 # Nix Secrets
 
-![Created by a human with a heart](./.assets/images/human.png)
-![We do not accept LLM assisted contributions](./.assets/images/no-ai.png)
-![Written in Rust](./.assets/images/rust.png)
-![Powered by Nix](./.assets/images/nixos.png)
-![Licensed under GPL 3.0](./.assets/images/gpl.png)
+![Created by a human with a heart](./.github/assets/human.png)
+![We do not accept LLM assisted contributions](./.github/assets/no-ai.png)
+![Written in Rust](./.github/assets/rust.png)
+![Powered by Nix](./.github/assets/nixos.png)
+![Licensed under GPL 3.0](./.github/assets/gpl.png)
 
 **The project is still in the late development stage, namely, generators are still feature incomplete. However, it is actively being used in the authors' configurations and should be generally production-ready.**
 
