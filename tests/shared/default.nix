@@ -1,4 +1,5 @@
-{ config, lib, ... }: {
+{ config, lib, ... }:
+{
   imports = [
     ./minimal.nix
   ];
@@ -21,10 +22,11 @@
       debugPackage = true;
     };
 
+    defaultRecipients = [ "first" ];
+
     secrets = {
-      password.recipients = [ "ssh" ];
+      password.recipients = lib.mkForce [ "ssh" ];
       passwordForUsers = {
-        recipients = [ "first" ];
         neededForUsers = true;
       };
     };
