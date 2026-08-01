@@ -4,7 +4,6 @@
 ![We do not accept LLM assisted contributions](./.github/assets/no-ai.png)
 ![Written in Rust](./.github/assets/rust.png)
 ![Powered by Nix](./.github/assets/nixos.png)
-![Licensed under GPL 3.0](./.github/assets/gpl.png)
 
 **The project is still in the late development stage, namely, generators are still feature incomplete. However, it is actively being used in the authors' configurations and should be generally production-ready.**
 
