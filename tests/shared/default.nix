@@ -4,9 +4,13 @@
   ];
 
   security.nix-secrets = {
-    identityPaths = [ ./identities/first.txt ];
+    identityPaths = [
+      ./identities/first.txt
+      ./identities/id_ed25519
+    ];
     recipientAliases = {
       first = builtins.readFile ./recipients/first.txt;
+      ssh = builtins.readFile ./recipients/id_ed25519.pub;
     };
 
     nixEvalCommand = "cat ${builtins.toFile "manifest.json" config.security.nix-secrets.manifest} #";
@@ -18,7 +22,7 @@
     };
 
     secrets = {
-      password.recipients = [ "first" ];
+      password.recipients = [ "ssh" ];
       passwordForUsers = {
         recipients = [ "first" ];
         neededForUsers = true;
