@@ -67,20 +67,24 @@ Do note that you can **not** set the `owner` or `group` for secrets marked as `n
 
 ### Recipients
 
-Every secret has a `recipients` option. This option can either take raw recipients or aliases from `security.nix-secrets.recipientAliases`. Every alias can take multiple recipients. To demonstrate it better, consider the following:
+Every secret has a `recipients` option. This option accepts either raw recipients or aliases defined in `security.nix-secrets.recipientAliases`. In addition, `security.nix-secrets.defaultRecipients` lets you specify recipients that are automatically added to every secret. To disable the default recipients for a specific secret, set `recipients = lib.mkForce [ ... ]`. Every alias can take multiple recipients. The following example demonstrates how this works:
 
 ```nix
-{
+{ lib, ... }: {
   security.nix-secrets = {
     recipientAliases = {
       pc = "age14e2jdmau7tpau9emcn6gmg26vfl0uyf6cfd9lz85jml6ttv9wq2qphps4t"; # Define your recipients!
       laptop = "age12jegn2g3awkzfja7egt9mu0ld9rv78c7rlpcgs9vn9gf0ndrlgfq2gn5rk";
+      master = "age1gkq97hxujlxs2k4zwhnqxdadd6mds46m7nudgw5l02egldkl44ds4h5vqy";
       servers = ["age1ls5m8ml8cdu202xakl56lspqrccgln4kfx8q7c6v7qdex92xryhs03v6re" "age10n7r8daletpkqjupy3r6vqvnkq8a4dzq3w8lkjjsdz6754ku74zqdkxjc4"]; # Lists also work
     };
+
+    defaultRecipients = ["master" "age1xrpq2tjpsp564c4rnmq7yflvc6ds2e4j48f49z4tm9j8wqa2nf4sm8nch4"];
 
     secrets = {
       password.recipients = [ "pc" "laptop" "age1m3z7s07lykg0khllv65yxuapyeyul33c2pl807f3qlpg0aey6gqss6v6pe" ]; # Or define recipients per-secret
       sshKey.recipients = [ "servers" "laptop" "pc" ];
+      pcOnly.recipients = lib.mkForce [ "pc" ] # Prevent default recipients from being added
     };
   };
 }
