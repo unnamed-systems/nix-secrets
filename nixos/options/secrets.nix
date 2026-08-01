@@ -118,6 +118,12 @@ let
         };
 
       };
+
+      config = {
+
+        recipients = cfg.defaultRecipients;
+
+      };
     }
   );
 in
