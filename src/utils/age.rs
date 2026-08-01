@@ -31,9 +31,20 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
         .iter()
         .filter(|path| path.is_file())
         .filter_map(|path| File::open(path).map(BufReader::new).ok())
-        .filter_map(|reader| IdentityFile::from_buffer(reader).ok())
-        .try_fold(Vec::new(), |mut acc, file| {
-            acc.extend(file.into_identities()?);
+        .try_fold(Vec::new(), |mut acc, mut reader| {
+            // Parses both age native identities and plugins
+            if let Ok(file) = IdentityFile::from_buffer(&mut reader) {
+                acc.extend(file.into_identities()?);
+                trace!("Parsed a native age keypair")
+            } else {
+                use std::io::Seek;
+                reader.rewind()?;
+
+                match ssh::Identity::from_buffer(reader, None) {
+                    Ok(identity) => acc.push(Box::new(identity)),
+                    _ => trace!("Failed to parse ssh identity"),
+                }
+            }
             Ok(acc)
         })
 }
