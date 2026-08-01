@@ -74,7 +74,7 @@ Every secret has a `recipients` option. This option can either take raw recipien
   security.nix-secrets = {
     recipientAliases = {
       pc = "age14e2jdmau7tpau9emcn6gmg26vfl0uyf6cfd9lz85jml6ttv9wq2qphps4t"; # Define your recipients!
-      laptop = = "age12jegn2g3awkzfja7egt9mu0ld9rv78c7rlpcgs9vn9gf0ndrlgfq2gn5rk";
+      laptop = "age12jegn2g3awkzfja7egt9mu0ld9rv78c7rlpcgs9vn9gf0ndrlgfq2gn5rk";
       servers = ["age1ls5m8ml8cdu202xakl56lspqrccgln4kfx8q7c6v7qdex92xryhs03v6re" "age10n7r8daletpkqjupy3r6vqvnkq8a4dzq3w8lkjjsdz6754ku74zqdkxjc4"]; # Lists also work
     };
 
