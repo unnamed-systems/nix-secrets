@@ -51,13 +51,19 @@ To enable the module itself, create a `secrets` directory and enable the followi
 {
   security.nix-secrets = {
     storage = ../secrets; # Relative path to your `secrets` (copied to /nix/store)
-    identityPaths = [ "/home/user/keys.txt" ]; # Path to your age private key
+    identityPaths = [ 
+      "/home/user/keys.txt" # Path to your age private key
+      "/home/user/.ssh/id_ed25519" # You can also use SSH keys
+    ]; 
     recipientAliases = {
       first = "age14e2jdmau7tpau9emcn6gmg26vfl0uyf6cfd9lz85jml6ttv9wq2qphps4t"; # Your age recipient (public key)
+      ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuUsB0HH//1qkvgQMWTEoNd0riZpk+8A5w1Ep2vGKk0"; # Or your SSH public key
     };
 
+    # Add your secrets here...
     secrets = {
-      password.recipients = [ "first" ]; # Add your secrets here...
+      password.recipients = [ "first" ];
+      signingKey.recipients = [ "ssh" ];
     };
   };
 }
