@@ -1,5 +1,9 @@
-{ config, lib, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [
     ./minimal.nix
   ];
@@ -25,9 +29,17 @@
     defaultRecipients = [ "first" ];
 
     secrets = {
-      password.recipients = lib.mkForce [ "ssh" ];
+      password = {
+        recipients = lib.mkForce [ "ssh" ];
+        generator = pkgs.writeShellScript "password-generator" ''
+          tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16; echo "-pa$$w0rd"
+        '';
+      };
       passwordForUsers = {
         neededForUsers = true;
+        generator = pkgs.writeShellScript "passwordForUsers-generator" ''
+          tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16; echo "-pa$$w0rdF0rU$3r$"
+        '';
       };
     };
 
