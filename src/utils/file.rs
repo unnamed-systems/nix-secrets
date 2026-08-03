@@ -1,31 +1,17 @@
 use eyre::Result;
 use nix::unistd::chown;
-use std::collections::hash_map::DefaultHasher;
+use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::hash::Hasher as _;
-use std::io::{self, Read as _};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
-pub fn hash_file<P>(path: P) -> io::Result<u64>
-where
-    P: AsRef<Path>,
-{
+pub fn hash_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let mut file = File::open(path)?;
-    let mut hasher = DefaultHasher::new();
-
-    // 8 KB is the standard buffer size (_G_BUFSIZE)
-    let mut buffer = [0_u8; 8192];
-
-    while let io::Result::Ok(bytes_read) = file.read(&mut buffer) {
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.write(&buffer[..bytes_read]);
-    }
-
-    Ok(hasher.finish())
+    let mut hasher = Sha256::new();
+    io::copy(&mut file, &mut hasher)?;
+    Ok(hasher.finalize().to_vec())
 }
 
 pub fn set_owner_and_group(

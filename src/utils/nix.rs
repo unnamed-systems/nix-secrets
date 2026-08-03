@@ -37,8 +37,8 @@ pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
-    let program = &cmd[0];
-    let args = &cmd[1..];
+    let program = cmd.first().ok_or_eyre("No binary provided")?;
+    let args = cmd.get(1..).unwrap_or(&[]);
 
     let mut eval_command = Command::new(program);
 

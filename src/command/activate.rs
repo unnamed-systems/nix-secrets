@@ -34,6 +34,7 @@ pub struct ActivateCommand {
 }
 
 impl CommandTrait for ActivateCommand {
+    #[allow(clippy::too_many_lines)]
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
         let contents = fs::read_to_string(&self.manifest)?;
         let manifest = manifest::parse_manifest(&contents)?;
@@ -374,10 +375,10 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
                             result::Result::Ok(res) => {
                                 trace!("Found existing generation {res} in {gen_dir:?}");
                                 if res >= max {
-                                    max = res + 1;
+                                    max = res.checked_add(1).unwrap_or_default();
                                 }
 
-                                if max - res > 1 {
+                                if max.checked_sub(res).is_some_and(|d| d > 1) {
                                     cleanup.push(d.path());
                                 }
                                 Ok(())

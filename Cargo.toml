@@ -12,6 +12,7 @@ nix = { version = "0.31.3", features = ["user", "hostname", "fs"] }
 scopeguard = "1.2.0"
 serde = { version = "1.0.229", features = [ "derive" ] }
 serde_json = "1.0.151"
+sha2 = "0.10.0"
 shlex = { version = "2.0.1", default-features = false }
 simple-eyre = "0.3.1"
 sys-mount = "3.1.0"
@@ -31,35 +32,19 @@ codegen-units = 1
 panic = "abort"
 
 [lints.clippy]
-nursery = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
 
-blanket_clippy_restriction_lints = "allow"
-restriction = { level = "warn", priority = -1 }
-
-arbitrary-source-item-ordering = "allow"
-arithmetic_side_effects = "allow"
-exhaustive-enums = "allow"
-exhaustive-structs = "allow"
-implicit_return = "allow"
-indexing_slicing = "allow"
-integer_division_remainder_used = "allow"
-min_ident_chars = "allow"
-missing_docs_in_private_items = "allow"
-mod_module_files = "allow"
-pattern_type_mismatch = "allow"
-print_stderr = "allow"
-question_mark_used = "allow"
-semicolon_inside_block = "allow"
-separated_literal_suffix = "allow"
-similar_names = "allow"
-single_call_fn = "allow"
-std_instead_of_alloc = "allow"
-std_instead_of_core = "allow"
-pub_use = "allow"
-pub_with_shorthand = "allow"
-# Generally not useful
-cognitive_complexity = "allow"
-too_many_lines = "allow"
-
-doc_paragraphs_missing_punctuation = "allow"
+unwrap_used = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+unreachable = "deny"
+unimplemented = "deny"
+unchecked_time_subtraction = "deny"
+todo = "deny"
+string_slice = "deny"
+panic_in_result_fn = "deny"
+panic = "deny"
+exit = "deny"
+as_conversions = "deny"
