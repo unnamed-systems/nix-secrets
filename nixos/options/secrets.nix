@@ -48,6 +48,7 @@ let
           description = "TODO";
           type = lib.types.nullOr lib.types.package;
           default = null;
+          apply = value: value.drvPath or value;
           # example = TODO;
         };
 
