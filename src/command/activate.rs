@@ -36,7 +36,8 @@ pub struct ActivateCommand {
 impl CommandTrait for ActivateCommand {
     #[allow(clippy::too_many_lines)]
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
-        let contents = fs::read_to_string(&self.manifest)?;
+        let contents =
+            fs::read_to_string(&self.manifest).wrap_err("Failed to read manifest content")?;
         let manifest = manifest::parse_manifest(&contents)?;
         let is_dry = env::var("NIXOS_ACTION").is_ok_and(|val| val == "dry-activate");
 
@@ -72,7 +73,8 @@ impl CommandTrait for ActivateCommand {
                         "Using placeholder for secret `{}` ({:?})",
                         s.name, s.placeholder
                     );
-                    let placeholder = fs::read_to_string(&s.placeholder)?;
+                    let placeholder = fs::read_to_string(&s.placeholder)
+                        .wrap_err("Failed to read placeholder content")?;
                     return Ok((s, placeholder));
                 }
 
@@ -82,10 +84,11 @@ impl CommandTrait for ActivateCommand {
                     .with_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
-                    .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
+                    .map_err(|e| eyre!("Invalid unicode path provided: {e:?}"))?;
                 trace!("Reading secret `{}` ({})", &s.name, path_str);
 
-                let input_reader = InputReader::new(Some(path_str))?;
+                let input_reader = InputReader::new(Some(path_str))
+                    .wrap_err("Failed to create an input reader")?;
                 let mut decrypted = Vec::new();
                 utils::decrypt_stream(input_reader, &mut decrypted, &identities)?;
                 trace!("Successfully decrypted secret `{}`", &s.name);
@@ -122,7 +125,10 @@ impl CommandTrait for ActivateCommand {
                 "Ensuring secret directory {generation_dst_parent:?} inside generation directory exists"
             );
             fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-                eyre!("Failed to create secret generation directory ({generation_dst_parent:?})")
+                eyre!(
+                    "Failed to create secret generation directory: `{}",
+                    generation_dst_parent.display()
+                )
             })?;
 
             info!(
@@ -140,7 +146,14 @@ impl CommandTrait for ActivateCommand {
             )?;
 
             trace!("Writing secret content `{}`", secret.name);
-            the_file.write_all(raw_content.as_bytes())?;
+            the_file
+                .write_all(raw_content.as_bytes())
+                .wrap_err_with(|| {
+                    format!(
+                        "Failed to write secret content: `{}`",
+                        generation_dst_location.display()
+                    )
+                })?;
 
             let final_directory =
                 get_linkable_directory(&resulting_secrets_dir, &secret.name, &secret.path)?;
@@ -166,7 +179,12 @@ impl CommandTrait for ActivateCommand {
 
         for template in templates {
             trace!("Reading template content from {:?}", template.content);
-            let content = fs::read_to_string(template.content)?;
+            let content = fs::read_to_string(&template.content).wrap_err_with(|| {
+                format!(
+                    "Failed to read template content: `{}`",
+                    template.content.display()
+                )
+            })?;
             trace!("Replacing secret hashes");
             let raw_content = &hashes.iter().fold(content, |c, (key, value)| {
                 c.replace(*key, value.trim_end_matches('\n')) // TODO: find a better, customizable way
@@ -199,7 +217,14 @@ impl CommandTrait for ActivateCommand {
             )?;
 
             trace!("Writing template content `{}`", template.name);
-            the_file.write_all(raw_content.as_bytes())?;
+            the_file
+                .write_all(raw_content.as_bytes())
+                .wrap_err_with(|| {
+                    format!(
+                        "Failed to write template content: `{}`",
+                        generation_dst_location.display()
+                    )
+                })?;
 
             let final_directory =
                 get_linkable_directory(&resulting_templates_dir, &template.name, &template.path)?;
@@ -229,7 +254,12 @@ impl CommandTrait for ActivateCommand {
                 }
             );
             if !is_dry {
-                fs::remove_dir_all(directory)?;
+                fs::remove_dir_all(&directory).wrap_err_with(|| {
+                    format!(
+                        "Failed to remove old generation directory: `{}`",
+                        directory.display()
+                    )
+                })?;
             }
         }
 
@@ -263,7 +293,8 @@ fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
         ".tmp_symlink_{}_{}",
         process::id(),
         time::SystemTime::now()
-            .duration_since(time::UNIX_EPOCH)?
+            .duration_since(time::UNIX_EPOCH)
+            .wrap_err("Current system time is before the unix epoch")?
             .as_nanos()
     );
     let temp_path = parent.join(temp_name);
@@ -273,8 +304,20 @@ fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
         .wrap_err_with(|| eyre!("Failed to create secret parent directory ({parent:?})"))?;
 
     trace!("Symlinking {from:?} -> {to:?} ({temp_path:?})");
-    unix_fs::symlink(from, &temp_path)?;
-    fs::rename(&temp_path, to)?;
+    unix_fs::symlink(from, &temp_path).wrap_err_with(|| {
+        format!(
+            "Failed to symlink linkable ({} -> {})",
+            from.display(),
+            temp_path.display()
+        )
+    })?;
+    fs::rename(&temp_path, to).wrap_err_with(|| {
+        format!(
+            "Failed to move temp linkable to the final path ({} -> {})",
+            temp_path.display(),
+            to.display()
+        )
+    })?;
 
     trace!("Successfully deployed linkable");
 
@@ -289,8 +332,7 @@ fn get_linkable_file(
     group: &OwnerOrGroup,
     needed_for_users: bool,
 ) -> Result<File> {
-    let parsed_mode = utils::parse_permissions_str(mode)
-        .map_err(|e| eyre!("Failed to parse permissions: {}", e))?;
+    let parsed_mode = utils::parse_permissions_str(mode).wrap_err("Failed to parse permissions")?;
     let permissions = Permissions::from_mode(parsed_mode);
 
     trace!(
@@ -303,8 +345,10 @@ fn get_linkable_file(
         .create(true)
         .truncate(true)
         .write(true)
-        .open(dst)?;
-    file.set_permissions(permissions)?;
+        .open(dst)
+        .wrap_err_with(|| format!("Failed to open file: `{}`", dst.display()))?;
+    file.set_permissions(permissions)
+        .wrap_err_with(|| format!("Failed to set file permissions: `{}`", dst.display()))?;
 
     if !needed_for_users {
         trace!(
@@ -340,7 +384,7 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
             trace!("Creating mount point `{}`", gen_dir.display());
             fs::create_dir_all(&gen_dir).wrap_err_with(|| {
                 format!(
-                    "Creating decrypted mountpoint `{}` failed",
+                    "Failed to create the decrypted mountpoint `{}`",
                     gen_dir.display()
                 )
             })?;
@@ -351,13 +395,10 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
                 .data("relatime")
                 .data("mode=751")
                 .mount(String::default(), &gen_dir)
-                .wrap_err(eyre!("Failed to mount ramfs"))?;
+                .wrap_err("Failed to mount ramfs")?;
             Ok(())
         }
-        Err(e) => {
-            error!("{e}");
-            Err(e).wrap_err(eyre!("Failed to read mountpoint"))?
-        }
+        Err(e) => Err(e).wrap_err("Failed to read mountpoint")?,
         result::Result::Ok(_) => {
             trace!("Base generation directory exists, creating new generation");
 
@@ -366,7 +407,7 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
                 .and_then(|mut o| {
                     o.try_for_each(|en| {
                         let d = en.wrap_err_with(|| {
-                            eyre!("Failed to enter generation directory subdir.")
+                            eyre!("Failed to enter generation directory subdir")
                         })?;
                         match str::parse::<usize>(
                             d.file_name().to_string_lossy().to_string().as_str(),

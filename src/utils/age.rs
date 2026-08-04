@@ -21,7 +21,7 @@ where
     R: Read,
 {
     let reader = ArmoredReader::new(read);
-    let decryptor = Decryptor::new(reader)?;
+    let decryptor = Decryptor::new(reader).wrap_err("Failed to create a secret decryptor")?;
 
     Ok(decryptor)
 }
@@ -34,11 +34,14 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
         .try_fold(Vec::new(), |mut acc, mut reader| {
             // Parses both age native identities and plugins
             if let Ok(file) = IdentityFile::from_buffer(&mut reader) {
-                acc.extend(file.into_identities()?);
+                acc.extend(
+                    file.into_identities()
+                        .wrap_err("Failed to read identities from file")?,
+                );
                 trace!("Parsed a native age keypair");
             } else {
                 use std::io::Seek;
-                reader.rewind()?;
+                reader.rewind().wrap_err("Failed to rewind secret buffer")?;
 
                 if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
                     acc.push(Box::new(identity));
@@ -64,7 +67,8 @@ where
         reason = "dyn Identity + Send + Sync -> dyn Identity"
     )]
     let mut plaintext_reader = get_age_decryptor(input)?
-        .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))?;
+        .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))
+        .wrap_err("Failed to decrypt secret")?;
     io::copy(&mut plaintext_reader, &mut output)?;
     Ok(())
 }
@@ -183,12 +187,15 @@ fn merge_plugin_recipients_and_recipients(
     plugin_names.dedup();
 
     for plugin_name in plugin_names {
-        recipients.push(Box::new(plugin::RecipientPluginV1::new(
-            plugin_name,
-            plugin_recipients,
-            &Vec::<plugin::Identity>::new(),
-            UiCallbacks,
-        )?));
+        recipients.push(Box::new(
+            plugin::RecipientPluginV1::new(
+                plugin_name,
+                plugin_recipients,
+                &Vec::<plugin::Identity>::new(),
+                UiCallbacks,
+            )
+            .wrap_err("Failed to parse a plugin recipient")?,
+        ));
     }
     Ok(())
 }

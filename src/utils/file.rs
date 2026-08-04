@@ -1,4 +1,4 @@
-use eyre::Result;
+use eyre::{Context as _, Result, eyre};
 use nix::unistd::chown;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -22,7 +22,8 @@ pub fn set_owner_and_group(
     let uid = owner.get_uid()?;
     let gid = group.get_gid()?;
 
-    chown(path, Some(uid), Some(gid))?;
+    chown(path, Some(uid), Some(gid))
+        .wrap_err_with(|| format!("Failed to set file permissions: `{}`", path.display()))?;
 
     Ok(())
 }
@@ -31,13 +32,10 @@ pub fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
     let trimmed = input.strip_prefix('0').unwrap_or(input);
 
     if trimmed.is_empty() || !trimmed.chars().all(|c| c.is_ascii_digit()) {
-        return Err(eyre::eyre!(
-            "Failed to parse permissions: invalid numeric format"
-        ));
+        return Err(eyre!("Failed to parse permissions: invalid numeric format"));
     }
 
-    u32::from_str_radix(trimmed, 8)
-        .map_err(|err| eyre::eyre!("Failed to parse permissions: {:?}", err))
+    u32::from_str_radix(trimmed, 8).map_err(|err| eyre!("Failed to parse permissions: {:?}", err))
 }
 
 #[cfg(test)]

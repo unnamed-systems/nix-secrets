@@ -7,15 +7,15 @@ edition = "2024"
 age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 clap = { version = "4.6.4", features = ["derive", "env"] }
-eyre = { version = "0.6.12", default-features = false }
+eyre = { version = "0.6.12" }
 nix = { version = "0.31.3", features = ["user", "hostname", "fs"] }
 scopeguard = "1.2.0"
 serde = { version = "1.0.229", features = [ "derive" ] }
 serde_json = "1.0.151"
 sha2 = "0.10.0"
 shlex = { version = "2.0.1", default-features = false }
-simple-eyre = "0.3.1"
 sys-mount = "3.1.0"
+thiserror = "2.0.19"
 tracing = { version = "0.1.44", features = ["max_level_trace", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 

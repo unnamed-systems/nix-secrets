@@ -1,6 +1,6 @@
 use crate::Result;
 
-use eyre::eyre;
+use eyre::{OptionExt, eyre};
 
 #[must_use]
 pub fn is_stdin(editor: &str) -> bool {
@@ -8,8 +8,7 @@ pub fn is_stdin(editor: &str) -> bool {
 }
 
 pub fn split_editor(editor: &str) -> Result<(String, Option<Vec<String>>)> {
-    let mut splitted: Vec<String> =
-        shlex::split(editor).ok_or_else(|| eyre!("Could not parse editor"))?;
+    let mut splitted: Vec<String> = shlex::split(editor).ok_or_eyre("Could not parse editor")?;
 
     if splitted.is_empty() {
         Err(eyre!("Editor is empty"))

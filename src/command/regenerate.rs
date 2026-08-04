@@ -2,7 +2,7 @@ use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command}
 
 use age::cli_common::file_io::{OutputFormat, OutputWriter};
 use clap::{Parser, ValueHint};
-use eyre::{Ok, OptionExt as _, bail};
+use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
     Result, SECRETS_EXTENSION,
@@ -65,7 +65,17 @@ impl CommandTrait for RegenerateCommand {
                 let Some(generator) = &s.generator else {
                     bail!("Secret generator is undefined");
                 };
-                let output = Command::new(generator).output()?;
+                let output = Command::new(generator)
+                    .output()
+                    .wrap_err_with(|| format!("Failed to spawn the generator: {generator}"))?;
+
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+
+                    return Err(eyre!("Generator execution failed: {generator}"))
+                        .wrap_err_with(|| stderr.trim().to_owned());
+                }
+
                 trace!("Got generator output: {output:?}");
                 Ok((s, output.stdout))
             })
@@ -81,7 +91,11 @@ impl CommandTrait for RegenerateCommand {
                 .with_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
             let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)?;
-            writer.write_all(&rekey)?; // TODO: atomic
+            writer.write_all(&rekey).wrap_err(format!(
+                "Failed to write the secret `{}` ({})",
+                secret.name,
+                secret.path.display()
+            ))?; // TODO: atomic
         }
 
         trace!("Done");

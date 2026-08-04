@@ -1,4 +1,5 @@
 use crate::Result;
+use eyre::Context;
 use nix::unistd::{Gid, Group, Uid, User};
 use serde::Deserialize;
 use std::{fmt, path::PathBuf};
@@ -78,7 +79,8 @@ pub struct Template {
 }
 
 pub fn parse_manifest(input: &str) -> eyre::Result<Manifest> {
-    let manifest: Manifest = serde_json::from_str(input)?; // TODO: validate using schema
+    let manifest: Manifest =
+        serde_json::from_str(input).wrap_err("Failed to parse the manifest")?; // TODO: validate using schema
     trace!("Parsed manifest: {:#?}", manifest);
     Ok(manifest)
 }

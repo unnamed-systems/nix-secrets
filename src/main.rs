@@ -8,8 +8,7 @@ pub(crate) mod command;
 pub(crate) mod manifest;
 pub(crate) mod utils;
 
-pub type Result<T> = eyre::Result<T, Error>;
-pub type Error = eyre::ErrReport;
+pub type Result<T> = eyre::Result<T, eyre::ErrReport>;
 
 pub static SECRETS_DIR_D: &str = "/run/nix-secrets.d";
 pub static SECRETS_FOR_USERS_DIR_D: &str = "/run/nix-secrets-for-users.d";
@@ -30,8 +29,6 @@ fn main() -> Result<()> {
         .with_env_filter(filter)
         .init();
     trace!("Initialized tracing");
-
-    simple_eyre::install()?;
 
     Args::run()
 }

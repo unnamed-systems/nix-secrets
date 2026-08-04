@@ -26,7 +26,8 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
             .create(true)
             .truncate(true)
             .write(true)
-            .open(path)?;
+            .open(path)
+            .wrap_err("Failed to open stdin")?;
         io::copy(&mut src, &mut dst)?;
     } else {
         let (editor_bin, args) = utils::split_editor(editor)?;
@@ -37,7 +38,7 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
             .stdout(process::Stdio::inherit())
             .stderr(process::Stdio::piped())
             .output()
-            .wrap_err_with(|| format!("Failed to spawn editor '{editor_bin}'"))?;
+            .wrap_err_with(|| format!("Failed to spawn editor '{editor}'"))?;
 
         if !cmd.status.success() {
             let stderr = String::from_utf8_lossy(&cmd.stderr);
@@ -46,7 +47,7 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
                 "Editor '{}' exited with non-zero status code",
                 &editor_bin
             ))
-            .with_context(|| stderr.trim().to_owned());
+            .wrap_err_with(|| stderr.trim().to_owned());
         }
     }
 

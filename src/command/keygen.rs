@@ -1,7 +1,7 @@
 use crate::command::{Args, CommandTrait};
 use age::{cli_common::file_io, secrecy::ExposeSecret as _, x25519};
 use clap::{Parser, ValueHint};
-use eyre::Ok;
+use eyre::{Context, Ok};
 use std::io::Write as _;
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -39,7 +39,8 @@ impl CommandTrait for KeygenCommand {
                 self.output.clone(),
             )?)?;
 
-            file.write_recipients_file(output)?;
+            file.write_recipients_file(output)
+                .wrap_err("Failed to write the recipients output")?;
         } else {
             trace!("Generating a new keypair");
             let sk = x25519::Identity::generate();
@@ -54,7 +55,7 @@ impl CommandTrait for KeygenCommand {
             writeln!(output, "{}", sk.to_string().expose_secret())?;
 
             if !output.is_terminal() {
-                eprintln!("Public key: {pk}");
+                println!("Public key: {pk}");
             }
         }
         Ok(())
