@@ -3,7 +3,7 @@ let
   cfg = config.security.nix-secrets;
 in
 {
-  config.systemd.services = lib.mkIf (cfg.enable && cfg.activate.method == "systemd") {
+  config.systemd.services = lib.mkIf (cfg.enable && cfg.activate.enable && cfg.activate.method == "systemd") {
     nix-secrets-activate = {
       wantedBy = [ "sysinit.target" ];
       after = [

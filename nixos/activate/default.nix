@@ -13,6 +13,13 @@ in
   ];
 
   options.security.nix-secrets.activate = {
+    enable = lib.mkOption {
+      description = "TODO";
+      type = lib.types.bool;
+      default = true;
+      example = false;
+    };
+
     command = lib.mkOption {
       description = "TODO";
       type = lib.types.functionTo lib.types.str;

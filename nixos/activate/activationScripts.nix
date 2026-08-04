@@ -14,7 +14,7 @@ let
 in
 {
   config.system.activationScripts =
-    lib.mkIf (cfg.enable && cfg.activate.method == "activationScripts")
+    lib.mkIf (cfg.enable && cfg.activate.enable && cfg.activate.method == "activationScripts")
       {
         nixSecretsActivate = {
           deps = [
