@@ -26,6 +26,7 @@ in
       default =
         neededForUsers:
         "${lib.getExe cfg.package} activate ${builtins.toFile "nix-secrets-manifest.json" cfg.manifest} --needed-for-users ${lib.boolToString neededForUsers}";
+      defaultText = lib.literalExpression ''neededForUsers: "''${lib.getExe cfg.package} activate ''${builtins.toJSON "nix-secrets-manifest.json" cfg.manifest} --needed-for-users ''${lib.boolToString neededForUsers}"'';
       # example = TODO;
     };
 
