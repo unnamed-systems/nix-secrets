@@ -18,7 +18,7 @@
       ssh = builtins.readFile ./recipients/id_ed25519.pub;
     };
 
-    nixEvalCommand = "cat ${builtins.toFile "manifest.json" config.security.nix-secrets.manifest} #";
+    nixEvalCommand = "cat ${builtins.toFile "nix-secrets-manifest.json" config.security.nix-secrets.manifest} #";
     ciMode = {
       enableDangerously = lib.mkForce true;
 
