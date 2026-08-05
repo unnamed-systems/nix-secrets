@@ -64,6 +64,10 @@ let
 
             By default, the template is mounted under "/run/nix-secrets/templates", or under
             "/run/nix-secrets-for-users/templates" when `neededForUsers` is enabled.
+
+            Templates using the default paths are activated atomically together. When a
+            custom path is specified, templates are updated individually and atomicity is
+            only guaranteed for each individual secret.
           '';
           type = lib.types.str;
           # Use separate directories because activation scripts with
