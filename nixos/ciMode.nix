@@ -9,23 +9,43 @@ in
 {
   options.security.nix-secrets.ciMode = {
     enableDangerously = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Whether to enable insecure CI mode options.
+
+        This option enables features that may weaken secret protection and should only
+        be used in disposable CI environments or isolated test environments.
+      '';
       type = lib.types.bool;
       default = false;
     };
 
     usePlaceholders = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Whether to use placeholder values instead of decrypted secrets.
+
+        This is intended for CI and testing environments where real secret values
+        are not available or should not be used.
+      '';
       type = lib.types.bool;
       default = false;
     };
     storePathIdentities = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Whether to allow identity files stored in the Nix store.
+
+        Identity files should not normally be stored in the Nix store because its
+        contents are world-readable and therefore unsuitable for keeping confidential
+        information.
+      '';
       type = lib.types.bool;
       default = false;
     };
     debugPackage = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Whether to use a debug build of `security.nix-secrets.package`.
+
+        The debug build enables additional logging.
+      '';
       type = lib.types.bool;
       default = false;
     };
