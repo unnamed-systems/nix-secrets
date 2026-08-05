@@ -8,7 +8,14 @@ let
 in
 {
   options.security.nix-secrets.defaultRecipients = lib.mkOption {
-    description = "TODO";
+    description = ''
+      Recipients automatically added to every secret.
+
+      Entries may be age recipients, SSH public keys, or aliases defined in
+      `security.nix-secrets.recipientAliases`.
+
+      To override this list for a specific secret, use `lib.mkForce`.
+    '';
     type = lib.types.listOf lib.types.str;
     default = [ ];
     apply =
