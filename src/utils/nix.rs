@@ -71,7 +71,7 @@ pub fn eval_generator(generator: String) -> Result<String> {
 
     let build_output = eval_env_command(
         "NIX_SECRETS_GENERATOR_BUILD_COMMAND".to_owned(),
-        "nix-store --realise".to_owned(),
+        "nix-store --realise {{input}}".to_owned(),
         generator,
     )?;
 
@@ -85,7 +85,7 @@ pub fn eval_manifest(flake: String, hostname: String) -> Result<Manifest> {
 
     let build_output = eval_env_command(
         "NIX_SECRETS_NIX_EVAL_COMMAND".to_owned(),
-        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_owned(),
+        "nix --extra-experimental-features \"nix-command flakes\" eval --raw {{input}}".to_owned(),
         format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"),
     )?;
 
