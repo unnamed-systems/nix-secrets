@@ -16,7 +16,7 @@ in
 
   options.security.nix-secrets = {
     enable = lib.mkOption {
-      description = "Whether to enable Nix-Secrets integration.";
+      description = "Whether to enable nix-secrets integration.";
       type = lib.types.bool;
       default = false;
       example = true;
@@ -24,7 +24,7 @@ in
 
     storage = lib.mkOption {
       description = ''
-        Path to the Nix-Secrets storage.
+        Path to the nix-secrets storage.
 
         The path is used by activation scripts and services and must be specified as a path
         rather than a relative path string. For example, use `./storage` instead
@@ -58,7 +58,7 @@ in
 
     package = lib.mkOption {
       description = ''
-        Nix-Secrets package used by activation scripts and services.
+        nix-secrets package used by activation scripts and services.
 
         It can also be installed into the system by enabling
         `security.nix-secrets.installPackage`, which is enabled by default.
@@ -72,7 +72,7 @@ in
 
     extraPackages = lib.mkOption {
       description = ''
-        Additional packages made available to Nix-Secrets during activation scripts and services.
+        Additional packages made available to nix-secrets during activation scripts and services.
 
         This is primarily intended for age plugins such as `pkgs.age-plugin-yubikey`.
       '';

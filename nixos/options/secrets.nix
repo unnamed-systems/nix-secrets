@@ -189,7 +189,7 @@ in
 {
   options.security.nix-secrets.secrets = lib.mkOption {
     description = ''
-      Secrets managed by Nix-Secrets.
+      Secrets managed by nix-secrets.
     '';
     type = lib.types.attrsOf secretSubmodule;
     default = { };

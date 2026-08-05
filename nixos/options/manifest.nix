@@ -9,9 +9,9 @@ in
 {
   options.security.nix-secrets.manifest = lib.mkOption {
     description = ''
-      JSON manifest generated from the Nix-Secrets configuration.
+      JSON manifest generated from the nix-secrets configuration.
 
-      The manifest is used by the Nix-Secrets CLI to access information about
+      The manifest is used by the nix-secrets CLI to access information about
       configured secrets and templates.
     '';
     type = lib.types.str;

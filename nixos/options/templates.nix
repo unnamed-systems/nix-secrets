@@ -124,7 +124,7 @@ in
 {
   options.security.nix-secrets.templates = lib.mkOption {
     description = ''
-      Templates managed by Nix-Secrets.
+      Templates managed by nix-secrets.
     '';
     type = lib.types.attrsOf templateSubmodule;
     default = { };

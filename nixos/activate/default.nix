@@ -16,7 +16,7 @@ in
   options.security.nix-secrets.activate = {
     enable = lib.mkOption {
       description = ''
-        Whether to enable automatic activation of Nix-Secrets secrets and templates.
+        Whether to enable automatic activation of nix-secrets secrets and templates.
       '';
       type = lib.types.bool;
       default = true;
@@ -25,7 +25,7 @@ in
 
     command = lib.mkOption {
       description = ''
-        Command used to activate Nix-Secrets secrets and templates.
+        Command used to activate nix-secrets secrets and templates.
 
         The function receives whether it should activate secrets and templates
         with `neededForUsers` enabled and returns the command to execute.
@@ -41,7 +41,7 @@ in
     method = lib.mkOption (
       lib.fix (self: {
         description = ''
-          Method used to activate Nix-Secrets secrets and templates.
+          Method used to activate nix-secrets secrets and templates.
 
           The `systemd` method uses systemd services, while the `activationScripts`
           method uses the system activation scripts mechanism.

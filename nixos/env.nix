@@ -6,7 +6,7 @@ in
   options.security.nix-secrets = {
     nixEvalCommand = lib.mkOption {
       description = ''
-        Command used by the Nix-Secrets CLI to evaluate the
+        Command used by the nix-secrets CLI to evaluate the
         `security.nix-secrets.manifest` option.
 
         The command must contain the `{{input}}` placeholder, which is replaced with
@@ -20,7 +20,7 @@ in
 
     generatorBuildCommand = lib.mkOption {
       description = ''
-        Command used by the Nix-Secrets CLI to build secret generators.
+        Command used by the nix-secrets CLI to build secret generators.
 
         The command must contain the `{{input}}` placeholder, which is replaced with
         the derivation path of the generator.
@@ -33,7 +33,7 @@ in
 
     storagePath = lib.mkOption {
       description = ''
-        Default storage path used by the Nix-Secrets CLI.
+        Default storage path used by the nix-secrets CLI.
 
         The path must be absolute and outside of the Nix store.
 
