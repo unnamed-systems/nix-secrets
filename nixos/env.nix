@@ -7,16 +7,16 @@ in
     nixEvalCommand = lib.mkOption {
       description = "TODO";
       type = lib.types.nullOr lib.types.str;
-      default = "${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw";
-      defaultText = lib.literalExpression "\${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw";
+      default = "${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}";
+      defaultText = lib.literalExpression "\${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}";
       # example = TODO;
     };
 
     generatorBuildCommand = lib.mkOption {
       description = "TODO";
       type = lib.types.nullOr lib.types.str;
-      default = "${config.nix.package}/bin/nix-store --realise";
-      defaultText = lib.literalExpression "\${config.nix.package}/bin/nix-store --realise";
+      default = "${config.nix.package}/bin/nix-store --realise {{input}}";
+      defaultText = lib.literalExpression "\${config.nix.package}/bin/nix-store --realise {{input}}";
       # example = TODO;
     };
 

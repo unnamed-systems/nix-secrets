@@ -30,8 +30,10 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
     Some((path.to_owned(), attr.to_owned()))
 }
 
-pub fn eval_env_command(var: String, default: String, arg: String) -> Result<String> {
-    let env_cmd_str = env::var(var).unwrap_or(default);
+pub fn eval_env_command(var: String, default: String, input: String) -> Result<String> {
+    let env_cmd_str = env::var(var)
+        .unwrap_or(default)
+        .replace("{{input}}", &input);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
@@ -40,9 +42,9 @@ pub fn eval_env_command(var: String, default: String, arg: String) -> Result<Str
 
     let mut eval_command = Command::new(program);
 
-    trace!("Evaluating command: {} {}", env_cmd_str, arg);
+    trace!("Evaluating command: {} {}", env_cmd_str, input);
 
-    eval_command.args(args).arg(arg);
+    eval_command.args(args);
 
     eval_command.stdout(Stdio::piped());
     eval_command.stderr(Stdio::null());

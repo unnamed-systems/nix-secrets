@@ -3,7 +3,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   imports = [
     ./minimal.nix
   ];
@@ -18,7 +19,7 @@
       ssh = builtins.readFile ./recipients/id_ed25519.pub;
     };
 
-    nixEvalCommand = "cat ${pkgs.writeText "nix-secrets-manifest.json" config.security.nix-secrets.manifest} #";
+    nixEvalCommand = "cat ${pkgs.writeText "nix-secrets-manifest.json" config.security.nix-secrets.manifest}";
     ciMode = {
       enableDangerously = lib.mkForce true;
 
