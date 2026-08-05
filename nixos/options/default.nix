@@ -15,16 +15,33 @@ in
   ];
 
   options.security.nix-secrets = {
-    enable = lib.mkEnableOption "TODO";
+    enable = lib.mkOption {
+      description = "Whether to enable Nix-Secrets integration.";
+      type = lib.types.bool;
+      default = false;
+    };
 
     storage = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Path to the Nix-Secrets storage.
+
+        The path is used by activation scripts and services and must be specified as a path
+        rather than a relative path string. For example, use `./storage` instead
+        of `"./storage"`.
+
+        For improved security, it is recommended to keep the storage in a private
+        repository and reference it through a flake input.
+      '';
       type = lib.types.path;
       # example = TODO;
     };
 
     identityPaths = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Paths to identity files used for secret encryption and decryption.
+
+        For security reasons, identity files are kept outside of the Nix store.
+      '';
       type = lib.types.listOf (
         lib.types.pathWith {
           inStore = if cfg.ciMode.enableDangerously && cfg.ciMode.storePathIdentities then null else false;
@@ -36,7 +53,12 @@ in
     };
 
     package = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Nix-Secrets package used by activation scripts and services.
+
+        It can also be installed into the system by enabling
+        `security.nix-secrets.installPackage`, which is enabled by default.
+      '';
       type = lib.types.package;
       default = pkgs.callPackage ../../package.nix {
         debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
@@ -45,7 +67,9 @@ in
 
     extraPackages = lib.mkOption {
       description = ''
-        List of extra packages like age plugins to make available to nix-secrets.
+        Additional packages made available to Nix-Secrets during activation scripts and services.
+
+        This is primarily intended for age plugins such as `pkgs.age-plugin-yubikey`.
       '';
       type = lib.types.listOf lib.types.package;
       default = [ ];
@@ -53,7 +77,12 @@ in
     };
 
     recipientAliases = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Recipient aliases used when defining secret recipients.
+
+        An alias may refer to one or more recipients or to other aliases. Alias references
+        are resolved recursively. Cyclic references result in an evaluation error.
+      '';
       type =
         let
           inputType = lib.types.either lib.types.str (lib.types.listOf lib.types.str);
