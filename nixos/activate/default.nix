@@ -15,14 +15,21 @@ in
 
   options.security.nix-secrets.activate = {
     enable = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Whether to enable automatic activation of Nix-Secrets secrets and templates.
+      '';
       type = lib.types.bool;
       default = true;
       example = false;
     };
 
     command = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Command used to activate Nix-Secrets secrets and templates.
+
+        The function receives whether it should activate secrets and templates
+        with `neededForUsers` enabled and returns the command to execute.
+      '';
       type = lib.types.functionTo lib.types.str;
       default =
         neededForUsers:
@@ -33,7 +40,16 @@ in
 
     method = lib.mkOption (
       lib.fix (self: {
-        description = "TODO";
+        description = ''
+          Method used to activate Nix-Secrets secrets and templates.
+
+          The `systemd` method uses systemd services, while the `activationScripts`
+          method uses the system activation scripts mechanism.
+
+          The `systemd` method requires `systemd.sysusers.enable` or
+          `services.userborn.enable` to be enabled. It does not work correctly for
+          secrets and templates with `neededForUsers` enabled without one of these options.
+        '';
         type = lib.types.enum [
           "systemd"
           "activationScripts"
