@@ -8,14 +8,24 @@ let
       options = {
 
         name = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Secret name used as its path in the storage.
+
+            For example, the secret named `"forgejo/token"` is stored as
+            `forgejo/token.enc` in the storage.
+          '';
           type = lib.types.str;
           default = name;
           # example = TODO;
         };
 
         recipients = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Recipients allowed to decrypt the secret.
+
+            Entries may be Age recipients, SSH public keys, or aliases defined in
+            `security.nix-secrets.recipientAliases`.
+          '';
           type = lib.types.listOf lib.types.str;
           default = [ ];
           apply =
@@ -25,7 +35,13 @@ let
         };
 
         placeholder = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Placeholder content used instead of decrypting secret.
+
+            This option exists for CI and testing purposes. It replaces the decrypted
+            secret only when `security.nix-secrets.ciMode.usePlaceholders` is enabled.
+            It must not be used for real secrets.
+          '';
           type =
             let
               inputType = lib.types.either lib.types.str lib.types.path;
@@ -45,7 +61,9 @@ let
         };
 
         generator = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Package providing the executable used to generate the secret.
+          '';
           type = lib.types.nullOr lib.types.package;
           default = null;
           apply = value: {
@@ -57,7 +75,12 @@ let
         };
 
         neededForUsers = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Whether the secret must be available before users and groups are created.
+
+            Enable this for secrets referenced before or during user creation, such as
+            `users.users.<name>.hashedPasswordFile`.
+          '';
           type = lib.types.bool;
           default = false;
           example = true;
@@ -65,7 +88,12 @@ let
 
         # Mounting
         path = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Path where the decrypted secret will be mounted.
+
+            By default, the secret is mounted under "/run/nix-secrets", or under
+            "/run/nix-secrets-for-users" when `neededForUsers` is enabled.
+          '';
           type = lib.types.str;
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
@@ -74,14 +102,24 @@ let
         };
 
         mode = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Permissions of the file created at `path`.
+          '';
           type = lib.types.str;
           default = "0400";
           # example = TODO;
         };
 
         owner = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Owner of the file created at `path`.
+
+            May be specified as either a user name or a numeric UID.
+
+            Cannot be set when `neededForUsers` is enabled because users and groups are
+            not available at this stage of activation. In this case, the file owner is
+            set to `root`.
+          '';
           type = lib.types.oneOf [
             lib.types.int
             lib.types.str
@@ -91,7 +129,15 @@ let
         };
 
         group = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Group of the file created at `path`.
+
+            May be specified as either a group name or a numeric GID.
+
+            Cannot be set when `neededForUsers` is enabled because users and groups are
+            not available at this stage of activation. In this case, the file group is
+            set to `root`.
+          '';
           type = lib.types.oneOf [
             lib.types.int
             lib.types.str
@@ -102,7 +148,9 @@ let
 
         # Templating
         templateKey = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Placeholder string used to reference this secret in templates.
+          '';
           type = lib.types.str;
           readOnly = true;
           default = "{{NIX_SECRETS-${builtins.hashString "sha256" config.name}}}";
@@ -112,7 +160,9 @@ let
         };
 
         __toString = lib.mkOption {
-          description = "TODO";
+          description = ''
+            Internal option allowing the secret to be converted to its `templateKey` using `"''${secrets.<name>}"`.
+          '';
           type = lib.types.functionTo lib.types.str;
           readOnly = true;
           internal = true;
@@ -134,7 +184,9 @@ let
 in
 {
   options.security.nix-secrets.secrets = lib.mkOption {
-    description = "TODO";
+    description = ''
+      Secrets managed by Nix-Secrets.
+    '';
     type = lib.types.attrsOf secretSubmodule;
     default = { };
     # example = TODO;
