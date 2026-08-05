@@ -13,7 +13,7 @@ let
           '';
           type = lib.types.str;
           default = name;
-          # example = TODO;
+          example = "forgejo/env";
         };
 
         content = lib.mkOption {
@@ -39,7 +39,11 @@ let
                 value: if outputType.check value then value else builtins.toFile "nix-secrets-template" value;
             in
             lib.types.coercedTo inputType transformFunction outputType;
-          # example = TODO;
+          example = ''
+            NAME="Git Server"
+            TURNSTILE_SECRET="''${config.security.nix-secrets.secrets."forgejo/turnstile/secret"}"
+            TURNSTILE_SITEKEY="''${config.security.nix-secrets.secrets."forgejo/turnstile/sitekey"}"
+          '';
         };
 
         neededForUsers = lib.mkOption {
@@ -65,7 +69,7 @@ let
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
           default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/templates/${config.name}";
-          # example = TODO;
+          example = "/var/lib/forgejo/.env";
         };
 
         mode = lib.mkOption {
@@ -74,7 +78,7 @@ let
           '';
           type = lib.types.str;
           default = "0400";
-          # example = TODO;
+          example = "0660";
         };
 
         owner = lib.mkOption {
@@ -92,7 +96,7 @@ let
             lib.types.str
           ];
           default = 0;
-          # example = TODO;
+          example = "forgejo";
         };
 
         group = lib.mkOption {
@@ -110,7 +114,7 @@ let
             lib.types.str
           ];
           default = 0;
-          # example = TODO;
+          example = "users";
         };
 
       };
