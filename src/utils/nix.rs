@@ -85,7 +85,7 @@ pub fn eval_manifest(flake: String, hostname: String) -> Result<Manifest> {
 
     let build_output = eval_env_command(
         "NIX_SECRETS_NIX_EVAL_COMMAND".to_owned(),
-        "nix --extra-experimental-features \"nix-command flakes\" eval --raw {{input}}".to_owned(),
+        "nix --extra-experimental-features 'nix-command flakes' eval --raw {{input}}".to_owned(),
         format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"),
     )?;
 
