@@ -16,14 +16,14 @@ let
           '';
           type = lib.types.str;
           default = name;
-          # example = TODO;
+          example = "forgejo/token";
         };
 
         recipients = lib.mkOption {
           description = ''
             Recipients allowed to decrypt the secret.
 
-            Entries may be Age recipients, SSH public keys, or aliases defined in
+            Entries may be age recipients, SSH public keys, or aliases defined in
             `security.nix-secrets.recipientAliases`.
           '';
           type = lib.types.listOf lib.types.str;
@@ -31,7 +31,11 @@ let
           apply =
             values:
             lib.uniqueStrings (builtins.concatMap (value: cfg.recipientAliases.${value} or [ value ]) values);
-          # example = TODO;
+          example = [
+            "alias"
+            "age1ls5m8ml8cdu202xakl56lspqrccgln4kfx8q7c6v7qdex92xryhs03v6re"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuUsB0HH//1qkvgQMWTEoNd0riZpk+8A5w1Ep2vGKk0"
+          ];
         };
 
         placeholder = lib.mkOption {
@@ -57,7 +61,7 @@ let
             in
             lib.types.coercedTo inputType transformFunction outputType;
           default = "REPLACE WITH YOUR SECRET"; # TODO: generator
-          # example = TODO;
+          example = "insecurePassword";
         };
 
         generator = lib.mkOption {
@@ -98,7 +102,7 @@ let
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
           default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/secrets/${config.name}";
-          # example = TODO;
+          example = "/var/lib/forgejo/token";
         };
 
         mode = lib.mkOption {
@@ -107,7 +111,7 @@ let
           '';
           type = lib.types.str;
           default = "0400";
-          # example = TODO;
+          example = "0660";
         };
 
         owner = lib.mkOption {
@@ -125,7 +129,7 @@ let
             lib.types.str
           ];
           default = 0;
-          # example = TODO;
+          example = "forgejo";
         };
 
         group = lib.mkOption {
@@ -143,7 +147,7 @@ let
             lib.types.str
           ];
           default = 0;
-          # example = TODO;
+          example = "users";
         };
 
         # Templating
