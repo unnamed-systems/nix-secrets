@@ -12,6 +12,14 @@ in
       # example = TODO;
     };
 
+    generatorBuildCommand = lib.mkOption {
+      description = "TODO";
+      type = lib.types.nullOr lib.types.str;
+      default = "${config.nix.package}/bin/nix-store --realise";
+      defaultText = lib.literalExpression "\${config.nix.package}/bin/nix-store --realise";
+      # example = TODO;
+    };
+
     storagePath = lib.mkOption {
       description = "TODO";
       type = lib.types.nullOr (
@@ -35,6 +43,7 @@ in
     environment = {
       variables = {
         NIX_SECRETS_NIX_EVAL_COMMAND = cfg.nixEvalCommand;
+        NIX_SECRETS_GENERATOR_BUILD_COMMAND = cfg.generatorBuildCommand;
         NIX_SECRETS_STORAGE_PATH = cfg.storagePath;
       };
 
