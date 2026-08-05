@@ -8,7 +8,12 @@ let
 in
 {
   options.security.nix-secrets.manifest = lib.mkOption {
-    description = "TODO";
+    description = ''
+      JSON manifest generated from the Nix-Secrets configuration.
+
+      The manifest is used by the Nix-Secrets CLI to access information about
+      configured secrets and templates.
+    '';
     type = lib.types.str;
     default = builtins.toJSON {
       inherit (cfg) storage identityPaths;
