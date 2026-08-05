@@ -54,12 +54,12 @@ in
   config.security.nix-secrets.ciMode.enableDangerously = false;
 
   config.warnings = lib.optional cfg.ciMode.enableDangerously ''
-    security.nix-secrets.ciMode.enableDangerously IS ENABLED.
+    security.nix-secrets.ciMode.enableDangerously is enabled.
 
-    This configuration is INSECURE and must NEVER be deployed to a real
-    machine or production environment.
+    This configuration uses insecure CI mode options and should not be used
+    on production systems.
 
-    Stop this rebuild immediately unless you are intentionally running in
-    a disposable CI or VM environment.
+    Ensure that this configuration is only used in disposable CI or test
+    environments.
   '';
 }
