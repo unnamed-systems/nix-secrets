@@ -48,7 +48,11 @@ let
           description = "TODO";
           type = lib.types.nullOr lib.types.package;
           default = null;
-          apply = value: value.drvPath or value;
+          apply = value: {
+            derivation = value.drvPath or value;
+            # `lib.getExe` doesn't work here because the generator may be a standalone executable rather than a package containing a `bin` directory.
+            executable = if value ? meta.mainProgram then lib.getExe' value value.meta.mainProgram else value;
+          };
           # example = TODO;
         };
 
