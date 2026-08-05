@@ -19,6 +19,7 @@ in
       description = "Whether to enable Nix-Secrets integration.";
       type = lib.types.bool;
       default = false;
+      example = true;
     };
 
     storage = lib.mkOption {
@@ -33,7 +34,7 @@ in
         repository and reference it through a flake input.
       '';
       type = lib.types.path;
-      # example = TODO;
+      example = lib.literalExpression "inputs.my-secrets + /storage";
     };
 
     identityPaths = lib.mkOption {
@@ -49,7 +50,10 @@ in
         }
       );
       default = [ ];
-      # example = TODO;
+      example = [
+        "/home/user/keys.txt"
+        "/home/user/.ssh/id_ed25519"
+      ];
     };
 
     package = lib.mkOption {
@@ -63,6 +67,7 @@ in
       default = pkgs.callPackage ../../package.nix {
         debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
       };
+      # example = TODO;
     };
 
     extraPackages = lib.mkOption {
@@ -108,7 +113,18 @@ in
             );
         in
         builtins.mapAttrs (name: value: lib.uniqueStrings (func { ${name} = true; } value)) aliases;
-      # example = TODO;
+      example = {
+        pc = "age14e2jdmau7tpau9emcn6gmg26vfl0uyf6cfd9lz85jml6ttv9wq2qphps4t";
+        server = [
+          "age1ls5m8ml8cdu202xakl56lspqrccgln4kfx8q7c6v7qdex92xryhs03v6re"
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuUsB0HH//1qkvgQMWTEoNd0riZpk+8A5w1Ep2vGKk0"
+        ];
+
+        all = [
+          "pc"
+          "server"
+        ];
+      };
     };
   };
 }
