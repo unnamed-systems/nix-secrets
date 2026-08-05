@@ -34,7 +34,7 @@ impl CommandTrait for RekeyCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
-        let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let manifest = utils::eval_manifest(flake, hostname)?;
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()

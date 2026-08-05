@@ -79,7 +79,7 @@ impl CommandTrait for EditCommand {
         let editor = env::var("EDITOR").wrap_err(eyre!("$EDITOR is not set"))?;
         trace!("Using editor: {}", editor);
 
-        let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let manifest = utils::eval_manifest(flake, hostname)?;
 
         let secret = manifest
             .secrets

@@ -59,11 +59,18 @@ pub struct Secret {
     pub mode: String,
     pub name: String,
     pub placeholder: PathBuf,
-    pub generator: Option<String>,
+    pub generator: Option<Generator>,
     pub path: PathBuf,
     pub recipients: Vec<String>,
     pub template_key: String,
     pub needed_for_users: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct Generator {
+    pub derivation: String,
+    pub executable: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash)]

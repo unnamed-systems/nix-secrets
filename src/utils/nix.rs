@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{Result, manifest};
-use eyre::{OptionExt as _, bail};
+use eyre::{Context, OptionExt as _, bail};
 use nix::unistd::gethostname;
 
 use crate::manifest::Manifest;
@@ -30,10 +30,8 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
     Some((path.to_owned(), attr.to_owned()))
 }
 
-pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
-    let env_cmd_str = env::var("NIX_SECRETS_NIX_EVAL_COMMAND").unwrap_or_else(|_| {
-        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_owned()
-    });
+pub fn eval_env_command(var: String, default: String, arg: String) -> Result<String> {
+    let env_cmd_str = env::var(var).unwrap_or(default);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
@@ -42,15 +40,14 @@ pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
 
     let mut eval_command = Command::new(program);
 
-    trace!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+    trace!("Evaluating command: {} {}", env_cmd_str, arg);
 
-    eval_command.args(args).arg(format!(
-        "{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"
-    ));
+    eval_command.args(args).arg(arg);
 
     eval_command.stdout(Stdio::piped());
+    eval_command.stderr(Stdio::null());
 
-    let build_child = eval_command.stdout(Stdio::piped()).spawn()?;
+    let build_child = eval_command.spawn()?;
 
     let build_output = build_child.wait_with_output()?;
 
@@ -61,11 +58,38 @@ pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
         }
     }
 
-    let data_json = String::from_utf8(build_output.stdout)?;
+    let output = String::from_utf8(build_output.stdout)
+        .wrap_err("Failed to convert output stdout to a string")?;
 
-    trace!("Retrived manifest: {}", data_json);
+    Ok(output)
+}
 
-    let manifest: Manifest = manifest::parse_manifest(&data_json)?;
+pub fn eval_generator(generator: String) -> Result<String> {
+    trace!("Evaluating generator: `{generator}`");
+
+    let build_output = eval_env_command(
+        "NIX_SECRETS_GENERATOR_BUILD_COMMAND".to_owned(),
+        "nix-store --realise".to_owned(),
+        generator,
+    )?;
+
+    trace!("Retrived generator binary: {}", build_output);
+
+    Ok(build_output)
+}
+
+pub fn eval_manifest(flake: String, hostname: String) -> Result<Manifest> {
+    trace!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+
+    let build_output = eval_env_command(
+        "NIX_SECRETS_NIX_EVAL_COMMAND".to_owned(),
+        "nix --extra-experimental-features \"nix-command flakes\" eval --raw".to_owned(),
+        format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"),
+    )?;
+
+    trace!("Retrived manifest: {}", build_output);
+
+    let manifest: Manifest = manifest::parse_manifest(&build_output)?;
 
     Ok(manifest)
 }

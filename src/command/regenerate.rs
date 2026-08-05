@@ -8,7 +8,7 @@ use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::Secret,
-    utils::{self},
+    utils::{self, encrypt_stream},
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -42,7 +42,7 @@ impl CommandTrait for RegenerateCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
-        let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let manifest = utils::eval_manifest(flake, hostname)?;
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
@@ -65,19 +65,40 @@ impl CommandTrait for RegenerateCommand {
                 let Some(generator) = &s.generator else {
                     bail!("Secret generator is undefined");
                 };
-                let output = Command::new(generator)
+
+                trace!(
+                    "Evaluating generator from derivation: {}",
+                    generator.derivation
+                );
+                utils::eval_generator(generator.derivation.to_owned())?;
+                trace!("Evaluated generator. Binary: {}", generator.executable);
+
+                let output = Command::new("sh")
+                    .arg("-c")
+                    .arg(&generator.executable)
+                    .current_dir("/")
                     .output()
-                    .wrap_err_with(|| format!("Failed to spawn the generator: {generator}"))?;
+                    .wrap_err_with(|| {
+                        format!("Failed to spawn the generator: {}", generator.executable)
+                    })?;
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
 
-                    return Err(eyre!("Generator execution failed: {generator}"))
-                        .wrap_err_with(|| stderr.trim().to_owned());
+                    return Err(eyre!(
+                        "Generator execution failed: {}",
+                        generator.executable
+                    ))
+                    .wrap_err_with(|| stderr.trim().to_owned());
                 }
 
-                trace!("Got generator output: {output:?}");
-                Ok((s, output.stdout))
+                trace!("Got generator output");
+
+                let mut plaintext_buffer = Vec::new();
+                encrypt_stream(&*output.stdout, &mut plaintext_buffer, &s.recipients)?;
+
+                trace!("Successfully rekeyed secret `{}`", &s.name);
+                Ok((s, plaintext_buffer))
             })
             .collect::<eyre::Result<_>>()?;
 
