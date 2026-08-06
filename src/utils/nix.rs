@@ -89,8 +89,6 @@ pub fn eval_manifest(flake: String, hostname: String) -> Result<Manifest> {
         format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"),
     )?;
 
-    trace!("Retrived manifest: {}", build_output);
-
     let manifest: Manifest = manifest::parse_manifest(&build_output)?;
 
     Ok(manifest)

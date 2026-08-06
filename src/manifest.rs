@@ -86,6 +86,7 @@ pub struct Template {
 }
 
 pub fn parse_manifest(input: &str) -> eyre::Result<Manifest> {
+    trace!("Parsing manifest: {}", input);
     let manifest: Manifest =
         serde_json::from_str(input).wrap_err("Failed to parse the manifest")?; // TODO: validate using schema
     trace!("Parsed manifest: {:#?}", manifest);
