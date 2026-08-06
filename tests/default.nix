@@ -10,6 +10,7 @@ let
   shared = {
     outPath = ./shared;
     minimal = ./shared/minimal.nix;
+    minimalNoActivate = ./shared/minimalNoActivate.nix;
   };
 
   files = lib.fileset.toList (lib.fileset.fileFilter (file: file.hasExt "nix") ./tests);
