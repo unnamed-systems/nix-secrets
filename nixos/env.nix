@@ -58,11 +58,15 @@ in
 
   config = lib.mkIf cfg.enable {
     environment = {
-      variables = {
-        NIX_SECRETS_NIX_EVAL_COMMAND = cfg.nixEvalCommand;
-        NIX_SECRETS_GENERATOR_BUILD_COMMAND = cfg.generatorBuildCommand;
-        NIX_SECRETS_STORAGE_PATH = cfg.storagePath;
-      };
+      variables =
+        let
+          mkIfNotNull = value: lib.mkIf (value != null) value;
+        in
+        {
+          NIX_SECRETS_NIX_EVAL_COMMAND = mkIfNotNull cfg.nixEvalCommand;
+          NIX_SECRETS_GENERATOR_BUILD_COMMAND = mkIfNotNull cfg.generatorBuildCommand;
+          NIX_SECRETS_STORAGE_PATH = mkIfNotNull cfg.storagePath;
+        };
 
       systemPackages = lib.optional cfg.installPackage cfg.package;
     };
