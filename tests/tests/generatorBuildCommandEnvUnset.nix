@@ -7,18 +7,18 @@
 pkgs.testers.runNixOSTest (
   { lib, ... }:
   {
-    name = "generatorBuildCommandEnvNull";
+    name = "generatorBuildCommandEnvUnset";
 
     nodes.machine = {
       imports = [
         nixosModule
-        shared.minimal
+        shared.minimalNoActivate
       ];
 
       security.nix-secrets.generatorBuildCommand = null;
     };
 
-    testScript = { nodes, ... }: ''
+    testScript = ''
       machine.fail("printenv $NIX_SECRETS_GENERATOR_BUILD_COMMAND")
     '';
   }

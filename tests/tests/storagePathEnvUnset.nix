@@ -7,19 +7,19 @@
 pkgs.testers.runNixOSTest (
   { lib, ... }:
   {
-    name = "nixEvalCommandEnvNull";
+    name = "storagePathEnvUnset";
 
     nodes.machine = {
       imports = [
         nixosModule
-        shared.minimal
+        shared.minimalNoActivate
       ];
 
-      security.nix-secrets.nixEvalCommand = null;
+      security.nix-secrets.storagePath = null;
     };
 
     testScript = ''
-      machine.fail("printenv $NIX_SECRETS_NIX_EVAL_COMMAND")
+      machine.fail("printenv $NIX_SECRETS_STORAGE_PATH")
     '';
   }
 )
