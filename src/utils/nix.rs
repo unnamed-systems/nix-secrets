@@ -30,10 +30,10 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
     Some((path.to_owned(), attr.to_owned()))
 }
 
-pub fn eval_env_command(var: String, default: String, input: String) -> Result<String> {
+pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String> {
     let env_cmd_str = env::var(var)
-        .unwrap_or(default)
-        .replace("{{input}}", &input);
+        .unwrap_or_else(|_| default.to_owned())
+        .replace("{{input}}", input);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
@@ -66,12 +66,12 @@ pub fn eval_env_command(var: String, default: String, input: String) -> Result<S
     Ok(output)
 }
 
-pub fn eval_generator(generator: String) -> Result<String> {
+pub fn eval_generator(generator: &str) -> Result<String> {
     trace!("Evaluating generator: `{generator}`");
 
     let build_output = eval_env_command(
-        "NIX_SECRETS_GENERATOR_BUILD_COMMAND".to_owned(),
-        "nix-store --realise {{input}}".to_owned(),
+        "NIX_SECRETS_GENERATOR_BUILD_COMMAND",
+        "nix-store --realise {{input}}",
         generator,
     )?;
 
@@ -80,13 +80,15 @@ pub fn eval_generator(generator: String) -> Result<String> {
     Ok(build_output)
 }
 
-pub fn eval_manifest(flake: String, hostname: String) -> Result<Manifest> {
+pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     trace!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+    let hostname =
+        format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest");
 
     let build_output = eval_env_command(
-        "NIX_SECRETS_NIX_EVAL_COMMAND".to_owned(),
-        "nix --extra-experimental-features 'nix-command flakes' eval --raw {{input}}".to_owned(),
-        format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest"),
+        "NIX_SECRETS_NIX_EVAL_COMMAND",
+        "nix --extra-experimental-features 'nix-command flakes' eval --raw {{input}}",
+        &hostname,
     )?;
 
     let manifest: Manifest = manifest::parse_manifest(&build_output)?;

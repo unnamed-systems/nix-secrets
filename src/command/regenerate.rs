@@ -42,7 +42,7 @@ impl CommandTrait for RegenerateCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
-        let manifest = utils::eval_manifest(flake, hostname)?;
+        let manifest = utils::eval_manifest(&flake, &hostname)?;
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
@@ -70,7 +70,7 @@ impl CommandTrait for RegenerateCommand {
                     "Evaluating generator from derivation: {}",
                     generator.derivation
                 );
-                utils::eval_generator(generator.derivation.to_owned())?;
+                utils::eval_generator(&generator.derivation)?;
                 trace!("Evaluated generator. Binary: {}", generator.executable);
 
                 let output = Command::new("sh")
