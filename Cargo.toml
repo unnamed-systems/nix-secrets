@@ -16,7 +16,7 @@ sha2 = "0.10.0"
 shlex = { version = "2.0.1", default-features = false }
 sys-mount = "3.1.0"
 thiserror = "2.0.19"
-tracing = { version = "0.1.44", features = ["max_level_trace", "release_max_level_info"] }
+tracing = { version = "0.1.44", features = ["max_level_trace"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [profile.dev]
