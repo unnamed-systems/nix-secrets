@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate tracing;
 
+use eyre::Ok;
 use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{
+    Layer, Registry, fmt, layer::SubscriberExt as _, util::SubscriberInitExt,
+};
 
 use crate::command::Args;
-use std::str::FromStr as _;
 
 pub(crate) mod command;
 pub(crate) mod manifest;
@@ -21,25 +24,44 @@ pub static SECRETS_FOR_USERS_DIR: &str = "/run/nix-secrets-for-users";
 pub static SECRETS_EXTENSION: &str = "enc";
 
 fn main() -> Result<()> {
-    let default_level = if cfg!(debug_assertions) {
+    init_logger();
+
+    if let Err(err) = Args::run() {
+        error!("{}", err);
+    }
+
+    Ok(())
+}
+
+pub fn init_logger() {
+    let _ = simple_eyre::install();
+    let is_debug = cfg!(debug_assertions);
+    let default_level = if is_debug {
         LevelFilter::TRACE
     } else {
         LevelFilter::INFO
     };
-
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(default_level.into())
-        .from_env()
-        .unwrap_or_else(|_| {
-            #[expect(clippy::expect_used, reason = "Environment filter is hardcoded")]
-            tracing_subscriber::EnvFilter::from_str("error,nix-secrets=info")
-                .expect("Environment filter must work")
-        });
-    tracing_subscriber::fmt()
-        .compact()
-        .with_env_filter(filter)
-        .init();
-    trace!("Initialized tracing");
+        .from_env_lossy();
 
-    Args::run()
+    let fmt_layer = fmt::layer()
+        .compact()
+        .with_target(is_debug)
+        .with_writer(std::io::stderr)
+        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
+        .with_timer(tracing_subscriber::fmt::time::Uptime::default());
+
+    let fmt_layer_final = if is_debug {
+        fmt_layer.boxed()
+    } else {
+        fmt_layer.without_time().boxed()
+    };
+
+    Registry::default()
+        .with(filter)
+        .with(fmt_layer_final)
+        .init();
+
+    trace!("Initialized tracing");
 }

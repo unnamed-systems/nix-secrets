@@ -129,10 +129,11 @@ impl CommandTrait for EditCommand {
 
             if pre_edit_hash == post_edit_hash {
                 info!(
-                    "{} wasn't changed, skipping re-encryption.",
+                    "Secret {} wasn't changed, skipping re-encryption",
                     resulting_path.display()
                 );
                 fs::remove_file(&input_path)?;
+                info!("Done");
                 return Ok(());
             }
         } else {
@@ -150,6 +151,7 @@ impl CommandTrait for EditCommand {
 
         utils::encrypt(&input_path, &resulting_path, &secret.recipients)?;
 
+        info!("Done");
         Ok(())
     }
 }

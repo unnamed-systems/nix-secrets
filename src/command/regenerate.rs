@@ -49,6 +49,10 @@ impl CommandTrait for RegenerateCommand {
             .filter(|s| (self.secrets.contains(&s.name) || self.all) && s.generator.is_some())
             .collect();
 
+        if secrets.is_empty() {
+            bail!("No secrets to regenerate.");
+        }
+
         let regenerated: HashMap<&Secret, Vec<u8>> = secrets
             .iter()
             .map(|s| {
@@ -97,7 +101,7 @@ impl CommandTrait for RegenerateCommand {
                 let mut plaintext_buffer = Vec::new();
                 encrypt_stream(&*output.stdout, &mut plaintext_buffer, &s.recipients)?;
 
-                trace!("Successfully rekeyed secret `{}`", &s.name);
+                info!("Successfully regenerated secret `{}`", &s.name);
                 Ok((s, plaintext_buffer))
             })
             .collect::<eyre::Result<_>>()?;
@@ -119,7 +123,7 @@ impl CommandTrait for RegenerateCommand {
             ))?; // TODO: atomic
         }
 
-        trace!("Done");
+        info!("Done");
 
         Ok(())
     }

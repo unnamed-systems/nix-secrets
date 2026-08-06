@@ -1295,6 +1295,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "shlex 2.0.1",
+ "simple-eyre",
  "sys-mount",
  "thiserror 2.0.19",
  "tracing",
@@ -1951,6 +1952,16 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest 0.10.7",
  "rand_core",
+]
+
+[[package]]
+name = "simple-eyre"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b561532e8ffe7ecf09108c4f662896a9ec3eac4999eba84015ec3dcb8cc630a"
+dependencies = [
+ "eyre",
+ "indenter",
 ]
 
 [[package]]

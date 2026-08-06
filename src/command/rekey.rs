@@ -67,7 +67,7 @@ impl CommandTrait for RekeyCommand {
                     &s.recipients,
                 )?;
 
-                trace!("Successfully rekeyed secret `{}`", &s.name);
+                info!("Successfully rekeyed secret `{}`", &s.name);
                 Ok((s, plaintext_buffer))
             })
             .collect::<eyre::Result<_>>()?;
@@ -85,7 +85,7 @@ impl CommandTrait for RekeyCommand {
             writer.write_all(&rekey)?; // TODO: atomic
         }
 
-        trace!("Done");
+        info!("Done");
 
         Ok(())
     }

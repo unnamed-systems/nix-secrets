@@ -81,18 +81,18 @@ pub fn eval_generator(generator: &str) -> Result<String> {
 }
 
 pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
-    trace!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
-    let hostname =
+    info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+    let resulting_hostname =
         format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest");
 
     let build_output = eval_env_command(
         "NIX_SECRETS_NIX_EVAL_COMMAND",
         "nix --extra-experimental-features 'nix-command flakes' eval --raw {{input}}",
-        &hostname,
+        &resulting_hostname,
     )?;
 
     let manifest: Manifest = manifest::parse_manifest(&build_output)?;
-
+    trace!("Retrived manifest for {flake}#{hostname}");
     Ok(manifest)
 }
 
