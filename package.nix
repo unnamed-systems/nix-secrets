@@ -30,8 +30,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
   meta = {
     description = "Postmodern secrets manager for NixOS";
     homepage = "https://github.com/unnamed-systems/nix-secrets";
-    license = lib.licenses.mit;
-    maintainers = [ lib.maintainers.yunfachi ];
+    license = lib.licenses.eupl12;
+    maintainers = [ lib.maintainers.bananad3v lib.maintainers.yunfachi ];
     mainProgram = cargoFile.package.name;
   };
 })
