@@ -38,15 +38,17 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
                     file.into_identities()
                         .wrap_err("Failed to read identities from file")?,
                 );
-                trace!("Parsed a native age keypair");
+                trace!("Parsed a native age identity");
             } else {
+                trace!("Failed to parse a native identity, trying ssh");
                 use std::io::Seek;
                 reader.rewind().wrap_err("Failed to rewind secret buffer")?;
 
                 if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
+                    trace!("Parsed an ssh identity");
                     acc.push(Box::new(identity));
                 } else {
-                    trace!("Failed to parse ssh identity");
+                    trace!("Failed to parse the identity");
                 }
             }
             Ok(acc)
