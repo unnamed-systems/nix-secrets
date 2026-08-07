@@ -79,12 +79,15 @@ fn parse_recipient(
     plugin_recipients: &mut Vec<plugin::Recipient>,
 ) -> Result<()> {
     if let Ok(pk) = s.parse::<x25519::Recipient>() {
+        trace!("Parsed a native age recipient");
         recipients.push(Box::new(pk));
         Ok(())
     } else if let Some(pk) = { s.parse::<ssh::Recipient>().ok().map(Box::new) } {
+        trace!("Parsed an ssh recipient");
         recipients.push(pk);
         Ok(())
     } else if let Ok(pk) = s.parse::<plugin::Recipient>() {
+        trace!("Parsed an age plugin recipient ({})", pk.plugin());
         plugin_recipients.push(pk);
         Ok(())
     } else {
@@ -105,13 +108,14 @@ where
     }
 
     merge_plugin_recipients_and_recipients(&mut recipients, &plugin_recipients)?;
+    trace!("Merged plugin recipients");
 
     #[expect(
         clippy::as_conversions,
         reason = "dyn Recipient + Send -> dyn Recipient"
     )]
     let recipient_refs = recipients.iter().map(|r| r.as_ref() as &dyn age::Recipient);
-    let encryptor = age::Encryptor::with_recipients(recipient_refs)?;
+    let encryptor = age::Encryptor::with_recipients(recipient_refs)?; // TODO: cant combine pq and non-pq
 
     let mut output_writer = encryptor
         .wrap_output(
