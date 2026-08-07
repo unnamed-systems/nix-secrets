@@ -6,7 +6,11 @@
   };
 
   outputs =
-    { nixpkgs, self, ... }:
+    {
+      nixpkgs,
+      self,
+      ...
+    }:
     let
       lib = nixpkgs.lib;
 
@@ -36,14 +40,14 @@
         }
       );
 
-      checks = eachSystem (
-        system: _pkgs: self.packages.${system}
-      );
+      checks = eachSystem (system: _pkgs: self.packages.${system});
 
       devShells = eachSystem (
         _system: pkgs: {
           default = import ./shell.nix { inherit pkgs; };
         }
       );
+
+      formatter = eachSystem (_system: pkgs: pkgs.nixfmt-tree);
     };
 }
