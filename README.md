@@ -1,9 +1,16 @@
-# Nix Secrets
 
-![Created by a human with a heart](./.github/assets/human.png)
-![We do not accept LLM assisted contributions](./.github/assets/no-ai.png)
-![Written in Rust](./.github/assets/rust.png)
-![Powered by Nix](./.github/assets/nixos.png)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="./.github/assets/logo_white.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/logo_dark.svg">
+  <img src="./.github/assets/logo_white.svg" width="300px" alt="nix-secrets logo">
+</picture>
+
+<br>
+
+![Created by a human with a heart](./.github/assets/badges/human.png)
+![We do not accept LLM assisted contributions](./.github/assets/badges/no-ai.png)
+![Written in Rust](./.github/assets/badges/rust.png)
+![Powered by Nix](./.github/assets/badges/nixos.png)
 
 **The project is still in the late development stage, namely, generators are still feature incomplete. However, it is actively being used in the authors' configurations and should be generally production-ready.**
 
