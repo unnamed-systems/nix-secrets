@@ -21,8 +21,7 @@ pkgs.testers.runNixOSTest (
     };
 
     testScript =
-      { nodes, ... }:
-      ''
+      { nodes, ... }: ''
         env_var = machine.succeed("printenv NIX_SECRETS_STORAGE_PATH").strip()
 
         assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_STORAGE_PATH}

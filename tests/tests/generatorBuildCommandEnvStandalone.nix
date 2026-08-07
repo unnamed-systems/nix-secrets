@@ -21,8 +21,7 @@ pkgs.testers.runNixOSTest (
     };
 
     testScript =
-      { nodes, ... }:
-      ''
+      { nodes, ... }: ''
         env_var = machine.succeed("printenv NIX_SECRETS_GENERATOR_BUILD_COMMAND").strip()
 
         assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_GENERATOR_BUILD_COMMAND}
