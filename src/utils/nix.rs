@@ -42,8 +42,6 @@ pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String>
 
     let mut eval_command = Command::new(program);
 
-    trace!("Evaluating command: {} {}", env_cmd_str, input);
-
     eval_command.args(args);
 
     eval_command.stdout(Stdio::piped());
