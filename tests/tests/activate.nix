@@ -40,7 +40,7 @@ pkgs.testers.runNixOSTest (
 
         def stat(path, fmt):
           return machine.succeed(
-            f"stat -c {shlex.quote(fmt)} {shlex.quote(path)}"
+            f"stat -L -c {shlex.quote(fmt)} {shlex.quote(path)}"
           ).strip()
 
         def check_stat(path, fmt, expected):
