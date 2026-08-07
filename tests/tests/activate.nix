@@ -24,8 +24,8 @@ pkgs.testers.runNixOSTest (
             (secret: {
               path = secret.path;
               mode = lib.removePrefix "0" secret.mode;
-              owner = toString secret.owner;
-              group = toString secret.group;
+              owner = secret.owner;
+              group = secret.group;
             })
             (
               (builtins.attrValues nodes.machine.security.nix-secrets.secrets)
@@ -53,8 +53,8 @@ pkgs.testers.runNixOSTest (
         for check in checks:
           machine.succeed(f"test -f {shlex.quote(check["path"])}")
           check_stat(check["path"], "%a", check["mode"])
-          check_stat(check["path"], "%u", check["owner"])
-          check_stat(check["path"], "%g", check["group"])
+          check_stat(check["path"], "%u" if type(check["owner"]) == int else "%U", str(check["owner"]))
+          check_stat(check["path"], "%g" if type(check["group"]) == int else "%G", str(check["group"]))
       '';
   }
 )
