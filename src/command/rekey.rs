@@ -1,6 +1,7 @@
 use std::{collections::HashMap, io::Write as _, path::PathBuf};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
+use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail};
 
 use crate::{
@@ -20,6 +21,7 @@ pub struct RekeyCommand {
     storage: PathBuf,
 
     /// secrets to rekey. All if empty
+    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     secrets: Vec<String>,
 }
 

@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate tracing;
 
+use clap::CommandFactory;
+use clap_complete::CompleteEnv;
 use eyre::Ok;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -24,7 +26,11 @@ pub static SECRETS_FOR_USERS_DIR: &str = "/run/nix-secrets-for-users";
 pub static SECRETS_EXTENSION: &str = "enc";
 
 fn main() -> Result<()> {
-    init_logger();
+    CompleteEnv::with_factory(Args::command).complete();
+
+    if std::env::var_os("COMPLETE").is_none() {
+        init_logger();
+    }
 
     if let Err(err) = Args::run() {
         error!("{}", err);

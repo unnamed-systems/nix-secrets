@@ -2,6 +2,7 @@ use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command}
 
 use age::cli_common::file_io::{OutputFormat, OutputWriter};
 use clap::{Parser, ValueHint};
+use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
@@ -20,6 +21,7 @@ pub struct RegenerateCommand {
     storage: PathBuf,
 
     /// secrets to regenerate
+    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)))]
     secrets: Vec<String>,
 
     /// regenerate all secrets

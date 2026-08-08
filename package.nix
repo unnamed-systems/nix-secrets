@@ -1,6 +1,7 @@
 {
   lib,
   rustPlatform,
+  installShellFiles,
   debugBuild ? false,
 }:
 let
@@ -24,8 +25,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildType = if debugBuild then "debug" else "release";
 
   nativeBuildInputs = [
+    installShellFiles
     rustPlatform.bindgenHook
   ];
+
+  postInstall = ''
+    local exe="$out/bin/nix-secrets"
+
+    installShellCompletion --cmd nix-secrets \
+      --bash <(COMPLETE=bash $exe) \
+      --zsh <(COMPLETE=zsh $exe)
+  '';
 
   meta = {
     description = "Postmodern secrets manager for NixOS";

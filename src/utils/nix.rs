@@ -3,7 +3,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{Result, manifest};
+use crate::{Result, manifest, utils};
 use eyre::{Context, OptionExt as _, bail};
 use nix::unistd::gethostname;
 
@@ -27,7 +27,12 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
         None => (flake, fallback),
     };
 
-    Some((path.to_owned(), attr.to_owned()))
+    let canonical = std::fs::canonicalize(path)
+        .ok()
+        .and_then(|p| p.into_os_string().into_string().ok())
+        .unwrap_or_else(|| path.to_string());
+
+    Some((canonical, attr.to_owned()))
 }
 
 pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String> {
@@ -91,6 +96,10 @@ pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
 
     let manifest: Manifest = manifest::parse_manifest(&build_output)?;
     trace!("Retrived manifest for {flake}#{hostname}");
+
+    utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
+    trace!("Cached manifest");
+
     Ok(manifest)
 }
 

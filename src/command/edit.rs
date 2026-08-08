@@ -7,15 +7,15 @@ use std::{
     process,
 };
 
-use clap::Parser;
-use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
-use scopeguard::defer;
-
 use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     utils::{self},
 };
+use clap::Parser;
+use clap_complete::ArgValueCompleter;
+use eyre::{Context as _, OptionExt as _, bail, eyre};
+use scopeguard::defer;
 
 fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
     if utils::is_stdin(editor) {
@@ -62,6 +62,7 @@ pub struct EditCommand {
     storage: PathBuf,
 
     /// Secret name
+    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
 }
 

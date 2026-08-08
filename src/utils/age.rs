@@ -40,8 +40,8 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
                 );
                 trace!("Parsed a native age identity");
             } else {
-                trace!("Failed to parse a native identity, trying ssh");
                 use std::io::Seek;
+                trace!("Failed to parse a native identity, trying ssh");
                 reader.rewind().wrap_err("Failed to rewind secret buffer")?;
 
                 if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
