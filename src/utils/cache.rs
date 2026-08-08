@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use eyre::OptionExt;
+use eyre::{OptionExt, bail};
 use sha2::{Digest as _, Sha256};
 
 use crate::{
@@ -28,16 +28,16 @@ fn get_cached_manifest_file_location(flake: &str) -> Result<PathBuf> {
     Ok(manifest_location)
 }
 
-pub fn get_cached_manifest(flake: &str) -> Result<Option<Manifest>> {
+pub fn get_cached_manifest(flake: &str) -> Result<Manifest> {
     let file_location = get_cached_manifest_file_location(flake)?;
 
     if file_location.is_file() {
         let content = fs::read_to_string(file_location)?;
         let manifest = manifest::parse_manifest(&content)?;
-        return Ok(Some(manifest));
+        return Ok(manifest);
     }
 
-    Ok(None)
+    bail!("Manifest not found");
 }
 
 pub fn save_manifest(flake: &str, manifest: &Manifest) -> Result<()> {

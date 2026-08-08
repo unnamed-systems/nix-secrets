@@ -1,4 +1,5 @@
 use clap_complete::CompletionCandidate;
+use eyre::OptionExt;
 
 use crate::utils;
 
@@ -21,11 +22,12 @@ fn get_flake_native() -> String {
 pub fn complete_secrets(current: &std::ffi::OsStr, regenerate: bool) -> Vec<CompletionCandidate> {
     let f = get_flake_native();
     let (flake, hostname) = utils::parse_flake(&f).unwrap_or_default();
-    let flake = format!("{flake}#{hostname}");
 
-    if let Ok(Some(manifest)) = utils::get_cached_manifest(&flake) {
+    let manifest = utils::get_cached_manifest(&format!("{flake}#{hostname}"));
+
+    if let Ok(m) = manifest {
         let filter = current.to_str();
-        return manifest
+        return m
             .secrets
             .into_iter()
             .filter(|v| filter.is_none_or(|f| v.name.starts_with(f)))
