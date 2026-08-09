@@ -7,6 +7,7 @@ use std::{fmt, path::PathBuf};
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
+    pub storage_path: Option<PathBuf>,
     pub identity_paths: Vec<String>,
     pub secrets: Vec<Secret>,
     pub templates: Vec<Template>,

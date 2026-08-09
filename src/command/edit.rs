@@ -59,7 +59,7 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
 pub struct EditCommand {
     /// Path to the secrets directory
     #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
-    storage: PathBuf,
+    storage: Option<PathBuf>,
 
     /// Secret name
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
@@ -68,10 +68,6 @@ pub struct EditCommand {
 
 impl CommandTrait for EditCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if !self.storage.is_dir() {
-            bail!("Invalid directory path");
-        }
-
         let (flake, hostname) =
             utils::parse_flake(&root.flake, true).ok_or_eyre("Failed to parse flake")?;
 
@@ -81,6 +77,15 @@ impl CommandTrait for EditCommand {
         trace!("Using editor: {}", editor);
 
         let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let storage_path = self
+            .storage
+            .as_ref()
+            .or(manifest.storage_path.as_ref())
+            .ok_or_eyre("No storage path provided")?;
+
+        if !storage_path.is_dir() {
+            bail!("Invalid directory path");
+        }
 
         let secret = manifest
             .secrets
@@ -88,8 +93,7 @@ impl CommandTrait for EditCommand {
             .find(|s| s.name.eq(&self.name))
             .ok_or_eyre("Secret not present in nix config.")?;
 
-        let resulting_path = self
-            .storage
+        let resulting_path = storage_path
             .join(&self.name)
             .with_extension(SECRETS_EXTENSION);
         let dir = env::temp_dir().join(".nix-secrets");

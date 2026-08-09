@@ -18,7 +18,7 @@ pub struct RegenerateCommand {
     /// path to the secrets directory
     #[arg(short, long)]
     #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
-    storage: PathBuf,
+    storage: Option<PathBuf>,
 
     /// secrets to regenerate
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)))]
@@ -31,12 +31,8 @@ pub struct RegenerateCommand {
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if !self.storage.is_dir() {
-            bail!("Invalid directory path");
-        }
-
         if self.secrets.is_empty() != self.all {
-            bail!("Provide either secret names to rekey or `--all`");
+            bail!("Provide either secret names to regenerate or `--all`");
         }
 
         let (flake, hostname) =
@@ -45,6 +41,16 @@ impl CommandTrait for RegenerateCommand {
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
         let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let storage_path = self
+            .storage
+            .as_ref()
+            .or(manifest.storage_path.as_ref())
+            .ok_or_eyre("No storage path provided")?;
+
+        if !storage_path.is_dir() {
+            bail!("Invalid directory path");
+        }
+
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
@@ -112,8 +118,7 @@ impl CommandTrait for RegenerateCommand {
 
         #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
         for (secret, rekey) in regenerated {
-            let resulting_path = self
-                .storage
+            let resulting_path = storage_path
                 .join(&secret.name)
                 .with_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
