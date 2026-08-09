@@ -14,7 +14,7 @@ To edit a secret, navigate to your flake directory and use the `nix-secrets edit
 nix-secrets edit --storage <STORAGE> <NAME>
 ```
 
-The `--storage` argument is used to specify your secret storage directory, defined by `security.nix-secrets.storage`. You can set the [storagePath](./CONFIGURE.md#storagepath) configuration option to automatically provide the default value.
+The `--storage` argument is used to specify your secret storage directory, defined by `security.nix-secrets.storage`. You can set the [storagePath](./CONFIGURE.md#storagepath) configuration option to automatically provide the default value or use the `NIX_SECRETS_STORAGE_PATH` environment variable.
 
 The `name` option is the name of the secret, not the path to its file. For example, if you have the `cloudflare/dnsToken` secret, you would pass `cloudflare/dnsToken` in the CLI **and not** `./secrets/cloudflare/dnsToken.enc`.
 
