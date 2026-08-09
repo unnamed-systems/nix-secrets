@@ -16,7 +16,7 @@ in
     '';
     type = lib.types.str;
     default = builtins.toJSON {
-      inherit (cfg) storage identityPaths;
+      inherit (cfg) storage identityPaths storagePath;
 
       usePlaceholders = cfg.ciMode.enableDangerously && cfg.ciMode.usePlaceholders;
 
