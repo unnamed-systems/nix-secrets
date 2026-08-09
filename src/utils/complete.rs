@@ -1,5 +1,9 @@
-use clap_complete::CompletionCandidate;
-use eyre::OptionExt;
+use std::{
+    ffi::OsStr,
+    process::{Command, Stdio},
+};
+
+use clap_complete::{CompletionCandidate, PathCompleter, engine::ValueCompleter};
 
 use crate::utils;
 
@@ -19,9 +23,9 @@ fn get_flake_native() -> String {
     ".".to_string()
 }
 
-pub fn complete_secrets(current: &std::ffi::OsStr, regenerate: bool) -> Vec<CompletionCandidate> {
+pub fn complete_secrets(current: &OsStr, regenerate: bool) -> Vec<CompletionCandidate> {
     let f = get_flake_native();
-    let (flake, hostname) = utils::parse_flake(&f).unwrap_or_default();
+    let (flake, hostname) = utils::parse_flake(&f, true).unwrap_or_default();
 
     let manifest = utils::get_cached_manifest(&format!("{flake}#{hostname}"));
 
@@ -37,4 +41,37 @@ pub fn complete_secrets(current: &std::ffi::OsStr, regenerate: bool) -> Vec<Comp
     }
 
     vec![]
+}
+
+pub fn complete_flake(current: &OsStr) -> Vec<CompletionCandidate> {
+    let cur = current.to_str().unwrap_or(".");
+    let (flake, hostname) = utils::parse_flake_fallback(cur, "", false).unwrap_or_default();
+    let flake_str = format!("{flake}#nixosConfigurations.");
+
+    let output = Command::new("nix") // TODO: add ability to customize command?
+        .args(["eval", &flake_str])
+        .env("NIX_GET_COMPLETIONS", "2")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output();
+
+    if let Ok(out) = output {
+        let stdout_str = String::from_utf8_lossy(&out.stdout);
+
+        let completions: Vec<CompletionCandidate> = stdout_str
+            .lines()
+            .filter_map(|line| line.strip_prefix(&flake_str))
+            .filter(|suffix| hostname.is_empty() || suffix.starts_with(&hostname))
+            .map(|suffix| {
+                let clean_suffix = suffix.replace('\t', "");
+                CompletionCandidate::new(format!("{flake}#{clean_suffix}"))
+            })
+            .collect();
+
+        if !completions.is_empty() {
+            return completions;
+        }
+    }
+
+    PathCompleter::file().complete(current)
 }

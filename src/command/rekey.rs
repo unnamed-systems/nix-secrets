@@ -32,7 +32,7 @@ impl CommandTrait for RekeyCommand {
         }
 
         let (flake, hostname) =
-            utils::parse_flake(&root.flake).ok_or_eyre("Failed to parse flake")?;
+            utils::parse_flake(&root.flake, true).ok_or_eyre("Failed to parse flake")?;
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 

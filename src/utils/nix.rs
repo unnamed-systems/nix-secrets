@@ -9,13 +9,11 @@ use nix::unistd::gethostname;
 
 use crate::manifest::Manifest;
 
-pub fn parse_flake(flake: &str) -> Option<(String, String)> {
-    let hostname = gethostname().ok();
-    let fallback = hostname
-        .as_ref()
-        .and_then(|os| os.to_str())
-        .unwrap_or("default");
-
+pub fn parse_flake_fallback(
+    flake: &str,
+    fallback: &str,
+    canonicalize: bool,
+) -> Option<(String, String)> {
     let (path, attr) = match flake.split_once('#') {
         Some((p, "")) => (p, fallback),
         Some((p, a)) => {
@@ -27,12 +25,25 @@ pub fn parse_flake(flake: &str) -> Option<(String, String)> {
         None => (flake, fallback),
     };
 
-    let canonical = std::fs::canonicalize(path)
-        .ok()
-        .and_then(|p| p.into_os_string().into_string().ok())
-        .unwrap_or_else(|| path.to_string());
+    let res = if canonicalize {
+        std::fs::canonicalize(path)
+            .ok()
+            .and_then(|p| p.into_os_string().into_string().ok())
+            .unwrap_or_else(|| path.to_string())
+    } else {
+        path.to_string()
+    };
+    Some((res, attr.to_owned()))
+}
 
-    Some((canonical, attr.to_owned()))
+pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> {
+    let hostname = gethostname().ok();
+    let fallback = hostname
+        .as_ref()
+        .and_then(|os| os.to_str())
+        .unwrap_or("default");
+
+    parse_flake_fallback(flake, fallback, canonicalize)
 }
 
 pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String> {
@@ -118,14 +129,14 @@ mod test_flake_parsing {
 
     #[test]
     fn parse_flake_both() -> Result<()> {
-        let actual = parse_flake("foo#bar");
+        let actual = parse_flake("foo#bar", false);
         let expected = Some(("foo".to_string(), "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
     #[test]
     fn parse_flake_spaces() -> Result<()> {
-        let actual = parse_flake("foo bar#buzz");
+        let actual = parse_flake("foo bar#buzz", false);
         let expected = Some(("foo bar".to_string(), "buzz".to_string()));
         assert_eq!(actual, expected);
         Ok(())
@@ -133,7 +144,7 @@ mod test_flake_parsing {
 
     #[test]
     fn parse_flake_host_sharp() -> Result<()> {
-        let actual = parse_flake("foo#");
+        let actual = parse_flake("foo#", false);
         let expected = Some(("foo".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
@@ -141,7 +152,7 @@ mod test_flake_parsing {
 
     #[test]
     fn parse_flake_host() -> Result<()> {
-        let actual = parse_flake("foo");
+        let actual = parse_flake("foo", false);
         let expected = Some(("foo".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
@@ -149,7 +160,7 @@ mod test_flake_parsing {
 
     #[test]
     fn parse_flake_attr() -> Result<()> {
-        let actual = parse_flake("#bar");
+        let actual = parse_flake("#bar", false);
         let expected = Some(("".to_string(), "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
@@ -157,7 +168,7 @@ mod test_flake_parsing {
 
     #[test]
     fn parse_flake_empty() -> Result<()> {
-        let actual = parse_flake("");
+        let actual = parse_flake("", false);
         let expected = Some(("".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
@@ -165,7 +176,7 @@ mod test_flake_parsing {
 
     #[test]
     fn invalid_parse_flake_space_attr() -> Result<()> {
-        let actual = parse_flake("foo# bar");
+        let actual = parse_flake("foo# bar", false);
         let expected = None;
         assert_eq!(actual, expected);
         Ok(())
@@ -173,7 +184,7 @@ mod test_flake_parsing {
 
     #[test]
     fn invalid_parse_flake_sharp_attr() -> Result<()> {
-        let actual = parse_flake("foo#bar#buz");
+        let actual = parse_flake("foo#bar#buz", false);
         let expected = None;
         assert_eq!(actual, expected);
         Ok(())
@@ -181,7 +192,7 @@ mod test_flake_parsing {
 
     #[test]
     fn invalid_parse_flake_escape_attr() -> Result<()> {
-        let actual = parse_flake("foo#\nbar");
+        let actual = parse_flake("foo#\nbar", false);
         let expected = None;
         assert_eq!(actual, expected);
         Ok(())

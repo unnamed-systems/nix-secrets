@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use clap_complete::ArgValueCompleter;
 use eyre::Ok;
 
 use activate::ActivateCommand;
@@ -6,6 +7,8 @@ use edit::EditCommand;
 use keygen::KeygenCommand;
 use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
+
+use crate::utils;
 
 mod activate;
 mod edit;
@@ -21,6 +24,7 @@ pub struct Args {
     command: Command,
 
     #[clap(short, long, default_value = ".")]
+    #[arg(add = ArgValueCompleter::new(utils::complete_flake))]
     /// path to the flake containing secrets
     flake: String,
 }
