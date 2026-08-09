@@ -20,6 +20,8 @@ Example:
 }
 ```
 
+You can also set the `NIX_SECRETS_STORAGE_PATH` variable for a similar effect, e.g. in per-developer environments. The order of precedence is `--storage argument` > `environment variable` > `storagePath option`.
+
 ### nixEvalCommand
 
 First, you need to understand how the CLI works. To get secret information when you initiate the `edit`, `rekey` or `regenerate` commands, the CLI evaluates your config by appending `.#nixosConfigurations.<hostname>.security.nix-secrets.manifest` to `nixEvalCommand`.
@@ -29,6 +31,8 @@ So, as you may've guessed, if you use a non-standard installation of Nix, be it 
 **Do note that this is an advanced configuration option and you should generally be fine with the default value (tested on Nix and Lix).**
 
 ## Secrets
+
+To enable nix-secrets, set `security.nix-secrets.enable` to `true`.
 
 To define secrets, as you may've learned from the README, you have to set the `security.nix-secrets.secrets.<name>` option. 
 
@@ -152,3 +156,51 @@ security.nix-secrets.identityPaths = [ "/persist/home/user/keys.txt" ];
 ```nix
 fileSystems."/home/user".neededForBoot = true;
 ```
+
+## Templates
+
+Templates are designed for creating files with secrets inside. To use them, define `security.nix-secrets.templates`:
+
+```nix
+{
+  security.nix-secrets = {
+    templates = {
+      forgejoEnv.content = ''
+        NAME="Git Server"
+        TURNSTILE_SECRET="''${config.security.nix-secrets.secrets."forgejo/turnstile/secret".templateKey}"
+        TURNSTILE_SITEKEY="''${config.security.nix-secrets.secrets."forgejo/turnstile/sitekey"}" // Shorthand for `templateKey`
+      '';
+    };
+  };
+}
+```
+
+To embed secrets, interpolate either `config.security.nix-secrets.secrets.<name>.templateKey` or, as a shorthand, `config.security.nix-secrets.secrets.<name>`, which will be coerced to a string.
+
+If you can't interpolate values in your template content, calculate them yourself, as they are just hashes based on the secret name: `{{NIX_SECRETS-${builtins.hashString "sha256" config.name}}}`.
+
+Templates support the same options as secrets, namely `owner`, `group`, `mode`, `path` and `neededForUsers`.
+
+# A note for using post-quantum secrets
+
+Due to the [rage](https://github.com/str4d/rage) library not supporting post-quantum encryption natively yet (as of writing, `nix-secrets` uses rage v0.12.1), you have to use the `age` package and the `age-plugin-pq` plugin.
+
+Add the `age` package to `extraPackages`:
+
+```nix
+{ pkgs, ... }: {
+  security.nix-secrets = {
+    extraPackages = with pkgs; [age];
+  };
+}
+```
+
+Then, convert your secrets to the `age-plugin-pq` format. This is required until `rage` supports post-quantum keys. The public keys remains unchanged.
+
+```bash
+echo "AGE-SECRET-KEY-PQ-10FQNUZZCAG78VJM4H5DGHNGYM3YZTN3YFG2YEJG8LUVTDW9XASAQJXUA86" | age-plugin-pq -identity
+```
+
+Sorry for the inconvenience.
+
+Also note that you can **not** mix post-quantum recipients with regular ones, per age design.
