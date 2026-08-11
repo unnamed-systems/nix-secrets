@@ -34,6 +34,7 @@ fn main() -> Result<()> {
 
     if let Err(err) = Args::run() {
         error!("{}", err);
+        std::process::exit(1);
     }
 
     Ok(())
