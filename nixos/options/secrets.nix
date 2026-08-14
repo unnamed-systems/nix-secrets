@@ -78,7 +78,13 @@ let
               `derivation` can be either a derivation or a path to a `.drv` file.
               `executable` can be either a derivation or a path to an executable file.
           '';
-          type = lib.types.nullOr (lib.types.either lib.types.attrs lib.types.path);
+          type = lib.types.nullOr (
+            lib.types.oneOf [
+              lib.types.attrs
+              lib.types.path
+              lib.types.str
+            ]
+          );
           apply =
             let
               isRaw =
