@@ -46,6 +46,7 @@
   };
 
   imports = [
+    ./default/age.nix
     ./default/dkim.nix
     ./default/ssh.nix
     ./default/uuid.nix
