@@ -46,6 +46,7 @@
   };
 
   imports = [
+    ./default/ssh.nix
     ./default/uuid.nix
   ];
 }
