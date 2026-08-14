@@ -46,6 +46,7 @@
   };
 
   imports = [
+    ./default/dkim.nix
     ./default/ssh.nix
     ./default/uuid.nix
   ];
