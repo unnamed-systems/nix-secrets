@@ -48,4 +48,8 @@ in
       }
     '';
   };
+
+  imports = [
+    ./default/uuid.nix
+  ];
 }
