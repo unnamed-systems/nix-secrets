@@ -85,9 +85,7 @@ impl CommandTrait for RegenerateCommand {
                 utils::eval_generator(&generator.derivation)?;
                 trace!("Evaluated generator. Binary: {}", generator.executable);
 
-                let output = Command::new("sh")
-                    .arg("-c")
-                    .arg(&generator.executable)
+                let output = Command::new(&generator.executable)
                     .current_dir("/")
                     .output()
                     .wrap_err_with(|| {
