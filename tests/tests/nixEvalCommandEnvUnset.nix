@@ -2,6 +2,7 @@
   pkgs,
   nixosModule,
   shared,
+  lib,
   ...
 }:
 pkgs.testers.runNixOSTest {
@@ -13,7 +14,7 @@ pkgs.testers.runNixOSTest {
       shared.minimalNoActivate
     ];
 
-    security.nix-secrets.nixEvalCommand = null;
+    security.nix-secrets.nixEvalCommand = lib.mkForce null;
   };
 
   testScript = ''

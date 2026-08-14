@@ -2,28 +2,26 @@
   pkgs,
   nixosModule,
   shared,
+  lib,
   ...
 }:
-pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
-    name = "nixEvalCommandEnvStandalone";
+pkgs.testers.runNixOSTest {
+  name = "nixEvalCommandEnvStandalone";
 
-    nodes.machine = {
-      imports = [
-        nixosModule
-        shared.minimalNoActivate
-      ];
+  nodes.machine = {
+    imports = [
+      nixosModule
+      shared.minimalNoActivate
+    ];
 
-      security.nix-secrets.nixEvalCommand = null;
+    security.nix-secrets.nixEvalCommand = lib.mkForce null;
 
-      environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND = "foo --bar 'eval'";
-    };
+    environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND = "foo --bar 'eval'";
+  };
 
-    testScript = { nodes, ... }: ''
-      env_var = machine.succeed("printenv NIX_SECRETS_NIX_EVAL_COMMAND").strip()
+  testScript = { nodes, ... }: ''
+    env_var = machine.succeed("printenv NIX_SECRETS_NIX_EVAL_COMMAND").strip()
 
-      assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND}
-    '';
-  }
-)
+    assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_NIX_EVAL_COMMAND}
+  '';
+}

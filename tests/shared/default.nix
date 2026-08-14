@@ -10,25 +10,6 @@
   ];
 
   security.nix-secrets = {
-    identityPaths = [
-      ./identities/first.txt
-      ./identities/id_ed25519
-    ];
-    recipientAliases = {
-      first = builtins.readFile ./recipients/first.txt;
-      ssh = builtins.readFile ./recipients/id_ed25519.pub;
-    };
-
-    nixEvalCommand = "cat ${pkgs.writeText "nix-secrets-manifest.json" config.security.nix-secrets.manifest}";
-    ciMode = {
-      enableDangerously = lib.mkForce true;
-
-      storePathIdentities = true;
-      debugPackage = true;
-    };
-
-    defaultRecipients = [ "first" ];
-
     secrets = {
       password = {
         recipients = lib.mkForce [ "ssh" ];
