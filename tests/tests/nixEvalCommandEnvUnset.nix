@@ -4,22 +4,19 @@
   shared,
   ...
 }:
-pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
-    name = "nixEvalCommandEnvUnset";
+pkgs.testers.runNixOSTest {
+  name = "nixEvalCommandEnvUnset";
 
-    nodes.machine = {
-      imports = [
-        nixosModule
-        shared.minimalNoActivate
-      ];
+  nodes.machine = {
+    imports = [
+      nixosModule
+      shared.minimalNoActivate
+    ];
 
-      security.nix-secrets.nixEvalCommand = null;
-    };
+    security.nix-secrets.nixEvalCommand = null;
+  };
 
-    testScript = ''
-      machine.fail("printenv $NIX_SECRETS_NIX_EVAL_COMMAND")
-    '';
-  }
-)
+  testScript = ''
+    machine.fail("printenv $NIX_SECRETS_NIX_EVAL_COMMAND")
+  '';
+}

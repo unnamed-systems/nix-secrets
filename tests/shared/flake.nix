@@ -4,7 +4,7 @@
   inputs.nix-secrets.url = "path:../../.";
 
   outputs =
-    { self, nix-secrets, ... }:
+    { nix-secrets, ... }:
     {
       nixosConfigurations = {
         "shared" = nix-secrets.inputs.nixpkgs.lib.nixosSystem {

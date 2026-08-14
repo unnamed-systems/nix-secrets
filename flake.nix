@@ -12,7 +12,7 @@
       ...
     }:
     let
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
 
       systems = lib.systems.flakeExposed;
 

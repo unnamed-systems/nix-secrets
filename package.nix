@@ -5,9 +5,9 @@
   debugBuild ? false,
 }:
 let
-  cargoFile = (builtins.fromTOML (builtins.readFile ./Cargo.toml));
+  cargoFile = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 in
-rustPlatform.buildRustPackage (finalAttrs: {
+rustPlatform.buildRustPackage {
   pname = cargoFile.package.name;
   version = cargoFile.package.version;
 
@@ -41,7 +41,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     description = "Postmodern secrets manager for NixOS";
     homepage = "https://github.com/unnamed-systems/nix-secrets";
     license = lib.licenses.eupl12;
-    maintainers = [ lib.maintainers.bananad3v lib.maintainers.yunfachi ];
+    maintainers = [
+      lib.maintainers.bananad3v
+      lib.maintainers.yunfachi
+    ];
     mainProgram = cargoFile.package.name;
   };
-})
+}

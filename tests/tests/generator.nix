@@ -4,20 +4,17 @@
   shared,
   ...
 }:
-pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
-    name = "generator";
+pkgs.testers.runNixOSTest {
+  name = "generator";
 
-    nodes.machine = {
-      imports = [
-        shared.outPath
-        nixosModule
-      ];
-    };
+  nodes.machine = {
+    imports = [
+      shared.outPath
+      nixosModule
+    ];
+  };
 
-    testScript = ''
-      machine.succeed("nix-secrets -f ${shared}#shared regenerate --storage $(mktemp -d) --all")
-    '';
-  }
-)
+  testScript = ''
+    machine.succeed("nix-secrets -f ${shared}#shared regenerate --storage $(mktemp -d) --all")
+  '';
+}

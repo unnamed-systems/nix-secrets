@@ -20,11 +20,10 @@ pkgs.testers.runNixOSTest (
       environment.variables.NIX_SECRETS_STORAGE_PATH = "/foo/bar";
     };
 
-    testScript =
-      { nodes, ... }: ''
-        env_var = machine.succeed("printenv NIX_SECRETS_STORAGE_PATH").strip()
+    testScript = { nodes, ... }: ''
+      env_var = machine.succeed("printenv NIX_SECRETS_STORAGE_PATH").strip()
 
-        assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_STORAGE_PATH}
-      '';
+      assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_STORAGE_PATH}
+    '';
   }
 )

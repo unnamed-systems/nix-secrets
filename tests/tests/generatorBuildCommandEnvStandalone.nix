@@ -20,11 +20,10 @@ pkgs.testers.runNixOSTest (
       environment.variables.NIX_SECRETS_GENERATOR_BUILD_COMMAND = "foo --bar 'build'";
     };
 
-    testScript =
-      { nodes, ... }: ''
-        env_var = machine.succeed("printenv NIX_SECRETS_GENERATOR_BUILD_COMMAND").strip()
+    testScript = { nodes, ... }: ''
+      env_var = machine.succeed("printenv NIX_SECRETS_GENERATOR_BUILD_COMMAND").strip()
 
-        assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_GENERATOR_BUILD_COMMAND}
-      '';
+      assert env_var == ${lib.strings.escapeNixString nodes.machine.environment.variables.NIX_SECRETS_GENERATOR_BUILD_COMMAND}
+    '';
   }
 )

@@ -1,7 +1,5 @@
-{ lib, config, ... }:
+{ lib, ... }:
 let
-  cfg = config.security.nix-secrets;
-
   templateSubmodule = lib.types.submodule (
     { name, config, ... }:
     {

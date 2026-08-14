@@ -1,11 +1,7 @@
 {
   lib,
-  config,
   ...
 }:
-let
-  cfg = config.security.nix-secrets;
-in
 {
   options.security.nix-secrets.generators = lib.mkOption {
     description = ''

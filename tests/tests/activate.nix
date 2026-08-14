@@ -9,7 +9,7 @@ pkgs.testers.runNixOSTest (
   {
     name = "activate";
 
-    nodes.machine = { config, ... }: {
+    nodes.machine = {
       imports = [
         shared.outPath
         nixosModule
@@ -22,10 +22,8 @@ pkgs.testers.runNixOSTest (
         checks =
           map
             (secret: {
-              path = secret.path;
+              inherit (secret) path owner group;
               mode = lib.removePrefix "0" secret.mode;
-              owner = secret.owner;
-              group = secret.group;
             })
             (
               (builtins.attrValues nodes.machine.security.nix-secrets.secrets)
