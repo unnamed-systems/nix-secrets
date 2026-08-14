@@ -8,9 +8,10 @@ use keygen::KeygenCommand;
 use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
 
-use crate::utils;
+use crate::{command::decrypt::DecryptCommand, utils};
 
 mod activate;
+mod decrypt;
 mod edit;
 mod keygen;
 mod regenerate;
@@ -33,6 +34,7 @@ pub struct Args {
 enum Command {
     Activate(ActivateCommand),
     Edit(EditCommand),
+    Decrypt(DecryptCommand),
     Rekey(RekeyCommand),
     Keygen(KeygenCommand),
     Regenerate(RegenerateCommand),
@@ -44,6 +46,7 @@ impl CommandTrait for Command {
             Self::Activate(cmd) => cmd.execute(root)?,
             Self::Keygen(cmd) => cmd.execute(root)?,
             Self::Edit(cmd) => cmd.execute(root)?,
+            Self::Decrypt(cmd) => cmd.execute(root)?,
             Self::Rekey(cmd) => cmd.execute(root)?,
             Self::Regenerate(cmd) => cmd.execute(root)?,
         }
