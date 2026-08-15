@@ -64,7 +64,7 @@ in
         `security.nix-secrets.installPackage`, which is enabled by default.
       '';
       type = lib.types.package;
-      default = pkgs.callPackage ../../package.nix {
+      default = pkgs.callPackage ../../../package.nix {
         debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
       };
       # example = TODO;

@@ -141,18 +141,6 @@ let
           # example = TODO;
         };
 
-        neededForUsers = lib.mkOption {
-          description = ''
-            Whether the secret must be available before users and groups are created.
-
-            Enable this for secrets referenced before or during user creation, such as
-            `users.users.<name>.hashedPasswordFile`.
-          '';
-          type = lib.types.bool;
-          default = false;
-          example = true;
-        };
-
         # Mounting
         path = lib.mkOption {
           description = ''

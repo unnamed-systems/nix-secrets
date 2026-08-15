@@ -44,17 +44,6 @@ let
           '';
         };
 
-        neededForUsers = lib.mkOption {
-          description = ''
-            Whether the template must be available before users and groups are created.
-
-            Enable this for templates referenced before or during user creation.
-          '';
-          type = lib.types.bool;
-          default = false;
-          example = true;
-        };
-
         # Mounting
         path = lib.mkOption {
           description = ''

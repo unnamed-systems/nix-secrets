@@ -21,7 +21,12 @@
     {
       nixosModules = {
         default = self.nixosModules.nix-secrets;
-        nix-secrets = ./nixos/default.nix;
+        nix-secrets = ./nix/nixos/default.nix;
+      };
+
+      darwinModules = {
+        default = self.darwinModules.nix-secrets;
+        nix-secrets = ./nix/nix-darwin/default.nix;
       };
 
       packages = eachSystem (
