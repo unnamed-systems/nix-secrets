@@ -1,0 +1,13 @@
+{
+  inputs = {
+    nix-secrets.url = "path:../.";
+    nixpkgs.follows = "nix-secrets/nixpkgs";
+
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = _: { };
+}
