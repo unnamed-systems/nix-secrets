@@ -136,7 +136,7 @@ let
                 else
                   abort "expected a derivation, generator name, generator attribute set, or raw generator specification.";
             in
-            func;
+            lib.mapNullable func;
           default = null;
           # example = TODO;
         };
