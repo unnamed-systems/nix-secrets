@@ -14,11 +14,7 @@ pub fn hash_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     Ok(hasher.finalize().to_vec())
 }
 
-pub fn set_owner_and_group(
-    path: &PathBuf,
-    owner: &OwnerOrGroup,
-    group: &OwnerOrGroup,
-) -> Result<()> {
+pub fn set_owner_and_group(path: &Path, owner: &OwnerOrGroup, group: &OwnerOrGroup) -> Result<()> {
     let uid = owner.get_uid()?;
     let gid = group.get_gid()?;
 

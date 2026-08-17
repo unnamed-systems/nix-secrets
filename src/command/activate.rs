@@ -3,8 +3,9 @@ use std::{
     env,
     fs::{self, File, OpenOptions, Permissions},
     io::{BufRead as _, BufReader, ErrorKind, Write as _},
+    ops::Deref,
     os::unix::fs::{self as unix_fs, PermissionsExt as _},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{self, Command},
     result, time,
 };
@@ -107,7 +108,7 @@ impl CommandTrait for ActivateCommand {
             SECRETS_DIR
         })
         .join("secrets");
-        trace!("Resulting dir for secret linking: {resulting_secrets_dir:?}");
+        trace!("Resulting dir for secret linking: {resulting_secrets_dir:?}",);
 
         let mut links: HashMap<PathBuf, PathBuf> = HashMap::new();
 
@@ -164,9 +165,9 @@ impl CommandTrait for ActivateCommand {
         let templates_generation_dir = generation_dir.join("templates");
         trace!("Initialized generation directory {generation_dir:?}");
 
-        let hashes: HashMap<&String, String> = plain
+        let hashes: HashMap<&str, String> = plain
             .into_iter()
-            .map(|(k, v)| (&k.template_key, v))
+            .map(|(k, v)| (k.template_key.deref(), v))
             .collect();
 
         let resulting_templates_dir = PathBuf::from(if self.needed_for_users {
@@ -187,7 +188,7 @@ impl CommandTrait for ActivateCommand {
             })?;
             trace!("Replacing secret hashes");
             let raw_content = &hashes.iter().fold(content, |c, (key, value)| {
-                c.replace(*key, value.trim_end_matches('\n')) // TODO: find a better, customizable way
+                c.replace(key, value.trim_end_matches('\n')) // TODO: find a better, customizable way
             });
 
             let generation_dst_location = templates_generation_dir.join(&template.name);
@@ -267,7 +268,7 @@ impl CommandTrait for ActivateCommand {
     }
 }
 
-fn get_linkable_directory(base: &PathBuf, name: &String, path: &PathBuf) -> Result<PathBuf> {
+fn get_linkable_directory(base: &Path, name: &str, path: &Path) -> Result<PathBuf> {
     if path == &base.join(name) {
         trace!("Using default path for linkable `{}`", &name);
         Ok(base.join(name))
@@ -282,11 +283,11 @@ fn get_linkable_directory(base: &PathBuf, name: &String, path: &PathBuf) -> Resu
             name,
             path.display()
         );
-        Ok(path.clone()) // TODO: attempt zerocopy
+        Ok(path.to_path_buf())
     }
 }
 
-fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
+fn deploy_linkable(from: &Path, to: &Path) -> Result<()> {
     trace!("Creating a temporary directory for linkable");
     let parent = to.parent().ok_or_eyre("Path to secret is a directory")?;
     let temp_name = format!(
@@ -325,7 +326,7 @@ fn deploy_linkable(from: &PathBuf, to: &PathBuf) -> Result<()> {
 }
 
 fn get_linkable_file(
-    dst: &PathBuf,
+    dst: &Path,
     name: &str,
     mode: &str,
     owner: &OwnerOrGroup,
@@ -362,7 +363,7 @@ fn get_linkable_file(
 }
 
 #[cfg(target_os = "macos")]
-fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
+fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     trace!("Creating mount point `{}`", mountpoint.display());
     fs::create_dir_all(&mountpoint).wrap_err_with(|| {
         format!(
@@ -430,7 +431,7 @@ fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
 }
 
 #[cfg(target_os = "linux")]
-fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
+fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     use rustix::mount::{MountFlags, mount};
 
     let supports_ramfs = File::open("/proc/filesystems")
