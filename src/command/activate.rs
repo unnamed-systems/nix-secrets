@@ -380,20 +380,20 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     let size = mb * 1024 * 1024 / 512;
     let path = format!("ram://{}", size);
 
-    let hdutil = Command::new("hdutil")
+    let hdiutil = Command::new("hdiutil")
         .arg("attach")
         .arg("-nomount")
         .arg(path)
         .output()?;
 
-    if !hdutil.status.success() {
-        let stderr = String::from_utf8_lossy(&hdutil.stderr);
+    if !hdiutil.status.success() {
+        let stderr = String::from_utf8_lossy(&hdiutil.stderr);
 
         return Err(eyre!("Failed to create a temporary filesystem"))
             .wrap_err_with(|| stderr.trim().to_owned());
     }
 
-    let diskpath = String::from_utf8_lossy(&hdutil.stdout);
+    let diskpath = String::from_utf8_lossy(&hdiutil.stdout);
     let diskpath_trimmed = diskpath.trim();
 
     let newfs = Command::new("newfs_hfs")
