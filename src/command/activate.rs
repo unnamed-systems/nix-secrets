@@ -2,10 +2,11 @@ use std::{
     collections::HashMap,
     env,
     fs::{self, File, OpenOptions, Permissions},
-    io::{ErrorKind, Write as _},
+    io::{BufRead as _, BufReader, ErrorKind, Write as _},
     os::unix::fs::{self as unix_fs, PermissionsExt as _},
     path::PathBuf,
-    process, result, time,
+    process::{self, Command},
+    result, time,
 };
 
 use crate::Result;
@@ -18,7 +19,7 @@ use crate::{
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
-use sys_mount::{Mount, MountFlags, SupportedFilesystems};
+use rustix::mount::{MountFlags, mount};
 
 #[derive(Parser, PartialEq, Eq, Debug)]
 #[command(hide = true, hide_possible_values = true)]
@@ -361,6 +362,48 @@ fn get_linkable_file(
     Ok(file)
 }
 
+fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
+    let supports_ramfs = File::open("/proc/filesystems")
+        .map(|file| {
+            BufReader::new(file)
+                .lines()
+                .filter_map(|line| line.ok())
+                .any(|line| {
+                    let mut parts = line.split_whitespace();
+
+                    match (parts.next(), parts.next()) {
+                        (Some("nodev"), Some(fs)) => fs == "ramfs",
+                        (Some(fs), None) => fs == "ramfs",
+                        _ => false,
+                    }
+                })
+        })
+        .unwrap_or(false);
+
+    if !supports_ramfs {
+        bail!("ramfs not supported! Refusing extract secret since it will write to disk");
+    }
+    trace!("Creating mount point `{}`", mountpoint.display());
+    fs::create_dir_all(&mountpoint).wrap_err_with(|| {
+        format!(
+            "Failed to create the decrypted mountpoint `{}`",
+            mountpoint.display()
+        )
+    })?;
+    trace!("Creating ramfs");
+
+    mount(
+        "ramfs",
+        mountpoint,
+        "ramfs",
+        MountFlags::NOSUID | MountFlags::RELATIME,
+        Some(c"mode=751"),
+    )
+    .wrap_err("Ramfs creation failed")?;
+
+    Ok(())
+}
+
 fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
@@ -377,25 +420,7 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
     let res = match fs::read_dir(&gen_dir) {
         Err(e) if e.kind() == ErrorKind::NotFound => {
             trace!("Base generation directory not found, creating ramfs");
-            let support_ramfs = SupportedFilesystems::new().map(|fss| fss.is_supported("ramfs"));
-            if !support_ramfs? {
-                bail!("ramfs not supported! Refusing extract secret since it will write to disk");
-            }
-            trace!("Creating mount point `{}`", gen_dir.display());
-            fs::create_dir_all(&gen_dir).wrap_err_with(|| {
-                format!(
-                    "Failed to create the decrypted mountpoint `{}`",
-                    gen_dir.display()
-                )
-            })?;
-            trace!("Creating ramfs");
-            Mount::builder()
-                .fstype("ramfs")
-                .flags(MountFlags::NOSUID)
-                .data("relatime")
-                .data("mode=751")
-                .mount(String::default(), &gen_dir)
-                .wrap_err("Failed to mount ramfs")?;
+            mount_secret_fs(&gen_dir)?;
             Ok(())
         }
         Err(e) => Err(e).wrap_err("Failed to read mountpoint")?,

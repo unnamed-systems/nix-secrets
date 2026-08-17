@@ -5,7 +5,7 @@ use std::{
 
 use crate::{Result, manifest, utils};
 use eyre::{Context, OptionExt as _, bail};
-use nix::unistd::gethostname;
+use rustix::system::uname;
 
 use crate::manifest::Manifest;
 
@@ -37,11 +37,9 @@ pub fn parse_flake_fallback(
 }
 
 pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> {
-    let hostname = gethostname().ok();
-    let fallback = hostname
-        .as_ref()
-        .and_then(|os| os.to_str())
-        .unwrap_or("default");
+    let uname = uname();
+    let hostname = uname.nodename().to_str().ok();
+    let fallback = hostname.unwrap_or("default");
 
     parse_flake_fallback(flake, fallback, canonicalize)
 }
@@ -119,11 +117,9 @@ mod test_flake_parsing {
     use super::*;
 
     fn get_attr_fallback() -> String {
-        let hostname = nix::unistd::gethostname().ok();
-        let fallback = hostname
-            .as_ref()
-            .and_then(|os| os.to_str())
-            .unwrap_or("default");
+        let uname = uname();
+        let hostname = uname.nodename().to_str().ok();
+        let fallback = hostname.unwrap_or("default");
         fallback.to_string()
     }
 
