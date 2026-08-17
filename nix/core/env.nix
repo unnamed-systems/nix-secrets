@@ -14,7 +14,7 @@ in
       '';
       type = lib.types.nullOr lib.types.str;
       default = "${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}";
-      defaultText = lib.literalExpression "\${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}";
+      defaultText = lib.literalExpression ''"''${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}"'';
       # example = TODO;
     };
 
@@ -27,7 +27,7 @@ in
       '';
       type = lib.types.nullOr lib.types.str;
       default = "${config.nix.package}/bin/nix-store --realise {{input}}";
-      defaultText = lib.literalExpression "\${config.nix.package}/bin/nix-store --realise {{input}}";
+      defaultText = lib.literalExpression ''"''${config.nix.package}/bin/nix-store --realise {{input}}"'';
       # example = TODO;
     };
 
@@ -49,11 +49,12 @@ in
       example = "/etc/nixos/secrets";
     };
 
-    installPackage =
-      lib.mkEnableOption "installation of `security.nix-secrets.package` into `environment.systemPackages`"
-      // {
-        default = true;
-      };
+    installPackage = lib.mkOption {
+      description = "Whether to enable installation of `security.nix-secrets.package` into `environment.systemPackages`.";
+      type = lib.types.bool;
+      default = true;
+      example = false;
+    };
   };
 
   config = lib.mkIf cfg.enable {

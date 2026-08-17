@@ -19,7 +19,7 @@
 
       A generator with arguments can be referenced using an attribute set:
 
-      ```
+      ```nix
       generator.uuid = {
         count = 5;
         raw = true;
@@ -30,19 +30,21 @@
       lib.types.functionTo (lib.types.either lib.types.package lib.types.attrs)
     );
     default = { };
-    example = lib.literalExpression ''
-      {
-        password =
-          { length ? 32 }:
-          pkgs.writeShellScriptBin "generate-password" '''
-            head -c ''${toString length} /dev/urandom | base64
-          ''';
+    example = lib.literalExpression (
+      lib.removeSuffix "\n" ''
+        {
+          password =
+            { length ? 32 }:
+            pkgs.writeShellScriptBin "generate-password" '''
+              head -c ''${toString length} /dev/urandom | base64
+            ''';
 
-        uuid = {}: pkgs.writeShellScriptBin "generate-uuid" '''
-          uuidgen
-        ''';
-      }
-    '';
+          uuid = {}: pkgs.writeShellScriptBin "generate-uuid" '''
+            uuidgen
+          ''';
+        }
+      ''
+    );
   };
 
   imports = [

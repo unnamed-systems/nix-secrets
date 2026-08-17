@@ -30,11 +30,13 @@
           "systemd"
         else
           "activationScripts";
-      defaultText = lib.literalExpression ''
-        if config.systemd.sysusers.enable or false || config.services.userborn.enable or false 
-        then "systemd"
-        else "activationScripts";
-      '';
+      defaultText = lib.literalExpression (
+        lib.removeSuffix "\n" ''
+          if config.systemd.sysusers.enable or false || config.services.userborn.enable or false
+          then "systemd"
+          else "activationScripts"
+        ''
+      );
       example =
         {
           systemd = "activationScripts";
