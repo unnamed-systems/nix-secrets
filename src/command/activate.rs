@@ -3,10 +3,9 @@ use std::{
     env,
     fs::{self, File, OpenOptions, Permissions},
     io::{BufRead as _, BufReader, ErrorKind, Write as _},
-    ops::Deref,
     os::unix::fs::{self as unix_fs, PermissionsExt as _},
     path::{Path, PathBuf},
-    process::{self, Command},
+    process::{self},
     result, time,
 };
 
@@ -167,7 +166,7 @@ impl CommandTrait for ActivateCommand {
 
         let hashes: HashMap<&str, String> = plain
             .into_iter()
-            .map(|(k, v)| (k.template_key.deref(), v))
+            .map(|(k, v)| (&*k.template_key, v))
             .collect();
 
         let resulting_templates_dir = PathBuf::from(if self.needed_for_users {
@@ -269,7 +268,7 @@ impl CommandTrait for ActivateCommand {
 }
 
 fn get_linkable_directory(base: &Path, name: &str, path: &Path) -> Result<PathBuf> {
-    if path == &base.join(name) {
+    if path == base.join(name) {
         trace!("Using default path for linkable `{}`", &name);
         Ok(base.join(name))
     } else {
@@ -434,28 +433,25 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
 fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     use rustix::mount::{MountFlags, mount};
 
-    let supports_ramfs = File::open("/proc/filesystems")
-        .map(|file| {
-            BufReader::new(file)
-                .lines()
-                .filter_map(|line| line.ok())
-                .any(|line| {
-                    let mut parts = line.split_whitespace();
+    let supports_ramfs = File::open("/proc/filesystems").is_ok_and(|file| {
+        BufReader::new(file)
+            .lines()
+            .map_while(std::result::Result::ok)
+            .any(|line| {
+                let mut parts = line.split_whitespace();
 
-                    match (parts.next(), parts.next()) {
-                        (Some("nodev"), Some(fs)) => fs == "ramfs",
-                        (Some(fs), None) => fs == "ramfs",
-                        _ => false,
-                    }
-                })
-        })
-        .unwrap_or(false);
+                match (parts.next(), parts.next()) {
+                    (Some("nodev"), Some(fs)) | (Some(fs), None) => fs == "ramfs",
+                    _ => false,
+                }
+            })
+    });
 
     if !supports_ramfs {
         bail!("ramfs not supported! Refusing extract secret since it will write to disk");
     }
     trace!("Creating mount point `{}`", mountpoint.display());
-    fs::create_dir_all(&mountpoint).wrap_err_with(|| {
+    fs::create_dir_all(mountpoint).wrap_err_with(|| {
         format!(
             "Failed to create the decrypted mountpoint `{}`",
             mountpoint.display()

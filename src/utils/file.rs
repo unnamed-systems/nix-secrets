@@ -3,7 +3,7 @@ use nix::unistd::chown;
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::manifest::OwnerOrGroup;
 
