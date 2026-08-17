@@ -9,7 +9,7 @@ use std::{
     result, time,
 };
 
-use crate::Result;
+use crate::{Result, utils::PathBufExt as _};
 use crate::{
     SECRETS_DIR, SECRETS_DIR_D, SECRETS_EXTENSION, SECRETS_FOR_USERS_DIR, SECRETS_FOR_USERS_DIR_D,
     command::{Args, CommandTrait},
@@ -81,7 +81,7 @@ impl CommandTrait for ActivateCommand {
                 let path_str = manifest
                     .storage
                     .join(&s.name)
-                    .with_extension(SECRETS_EXTENSION)
+                    .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
                     .map_err(|e| eyre!("Invalid unicode path provided: {e:?}"))?;

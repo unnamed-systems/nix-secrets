@@ -8,7 +8,7 @@ use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::Secret,
-    utils::{self, rekey_stream},
+    utils::{self, PathBufExt as _, rekey_stream},
 };
 use clap::{Parser, ValueHint};
 
@@ -59,7 +59,7 @@ impl CommandTrait for RekeyCommand {
                 let path_str = manifest
                     .storage
                     .join(&s.name)
-                    .with_extension(SECRETS_EXTENSION)
+                    .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
                     .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
@@ -86,7 +86,7 @@ impl CommandTrait for RekeyCommand {
         for (secret, rekey) in rekeyed {
             let resulting_path = storage_path
                 .join(&secret.name)
-                .with_extension(SECRETS_EXTENSION);
+                .append_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
             let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)?;
             writer.write_all(&rekey)?; // TODO: atomic

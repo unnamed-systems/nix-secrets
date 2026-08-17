@@ -10,7 +10,7 @@ use std::{
 use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils::{self},
+    utils::{self, PathBufExt as _},
 };
 use clap::Parser;
 use clap_complete::ArgValueCompleter;
@@ -95,7 +95,7 @@ impl CommandTrait for EditCommand {
 
         let resulting_path = storage_path
             .join(&self.name)
-            .with_extension(SECRETS_EXTENSION);
+            .append_extension(SECRETS_EXTENSION);
         let dir = env::temp_dir().join(".nix-secrets");
 
         trace!("Ensuring temporary directory {dir:?} exists");

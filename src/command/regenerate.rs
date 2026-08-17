@@ -9,7 +9,7 @@ use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::Secret,
-    utils::{self, encrypt_stream},
+    utils::{self, PathBufExt as _, encrypt_stream},
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -67,7 +67,7 @@ impl CommandTrait for RegenerateCommand {
                 let path_str = manifest
                     .storage
                     .join(&s.name)
-                    .with_extension(SECRETS_EXTENSION)
+                    .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
                     .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
@@ -118,7 +118,7 @@ impl CommandTrait for RegenerateCommand {
         for (secret, rekey) in regenerated {
             let resulting_path = storage_path
                 .join(&secret.name)
-                .with_extension(SECRETS_EXTENSION);
+                .append_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
             let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)?;
             writer.write_all(&rekey).wrap_err(format!(

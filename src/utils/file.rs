@@ -1,9 +1,10 @@
 use eyre::{Context as _, Result, eyre};
 use nix::unistd::chown;
 use sha2::{Digest, Sha256};
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
@@ -34,6 +35,19 @@ pub fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
     u32::from_str_radix(trimmed, 8).map_err(|err| eyre!("Failed to parse permissions: {:?}", err))
 }
 
+pub trait PathBufExt {
+    fn append_extension(self, ext: impl AsRef<OsStr>) -> Self;
+}
+
+impl PathBufExt for PathBuf {
+    fn append_extension(self, ext: impl AsRef<OsStr>) -> Self {
+        let mut os_string: OsString = self.into();
+        os_string.push(".");
+        os_string.push(ext.as_ref());
+        os_string.into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -49,5 +63,28 @@ mod tests {
         assert!(parse_permissions_str("33993").is_err(),);
         assert!(parse_permissions_str("0000111").is_ok(),);
         assert!(parse_permissions_str("1000119").is_err(),);
+    }
+
+    #[test]
+    fn test_pathbuf_append_ext() {
+        let cases = vec![
+            ("secret/test.testing", "enc", "secret/test.testing.enc"),
+            ("mydot.secret...", "enc", "mydot.secret....enc"),
+            (".hidden", "enc", ".hidden.enc"),
+            ("", "empty", ".empty"),
+        ];
+
+        for (input, ext, expected) in cases {
+            let path = PathBuf::from(input);
+            let result = path.append_extension(ext);
+
+            assert_eq!(
+                result,
+                PathBuf::from(expected),
+                "Failed assertion for input: '{}' with extension: '{}'",
+                input,
+                ext
+            );
+        }
     }
 }

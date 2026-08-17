@@ -1,7 +1,7 @@
 use crate::{
     SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils,
+    utils::{self, PathBufExt as _},
 };
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
@@ -49,7 +49,7 @@ impl CommandTrait for DecryptCommand {
 
         let resulting_path = storage_path
             .join(&self.name)
-            .with_extension(SECRETS_EXTENSION);
+            .append_extension(SECRETS_EXTENSION);
         trace!("Got secret path: {}", resulting_path.display());
 
         if !resulting_path.exists() {
