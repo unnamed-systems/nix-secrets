@@ -19,7 +19,6 @@ use crate::{
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
-use rustix::mount::{MountFlags, mount};
 
 #[derive(Parser, PartialEq, Eq, Debug)]
 #[command(hide = true, hide_possible_values = true)]
@@ -362,7 +361,78 @@ fn get_linkable_file(
     Ok(file)
 }
 
+#[cfg(target_os = "macos")]
 fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
+    trace!("Creating mount point `{}`", mountpoint.display());
+    fs::create_dir_all(&mountpoint).wrap_err_with(|| {
+        format!(
+            "Failed to create the decrypted mountpoint `{}`",
+            mountpoint.display()
+        )
+    })?;
+
+    let anchor = mountpoint.join("nix-secrets-anchor");
+    if anchor.exists() {
+        return Ok(());
+    }
+
+    let mb = 64;
+    let size = mb * 1024 * 1024 / 512;
+    let path = format!("ram://{}", size);
+
+    let hdutil = Command::new("hdutil")
+        .arg("attach")
+        .arg("-nomount")
+        .arg(path)
+        .output()?;
+
+    if !hdutil.status.success() {
+        let stderr = String::from_utf8_lossy(&hdutil.stderr);
+
+        return Err(eyre!("Failed to create a temporary filesystem"))
+            .wrap_err_with(|| stderr.trim().to_owned());
+    }
+
+    let diskpath = String::from_utf8_lossy(&hdutil.stdout);
+    let diskpath_trimmed = diskpath.trim();
+
+    let newfs = Command::new("newfs_hfs")
+        .arg("-s")
+        .arg(diskpath_trimmed)
+        .output()?;
+
+    if !newfs.status.success() {
+        let stderr = String::from_utf8_lossy(&newfs.stderr);
+
+        return Err(eyre!("Failed to format a new filesystem"))
+            .wrap_err_with(|| stderr.trim().to_owned());
+    }
+
+    let mount = Command::new("mount")
+        .arg("-t")
+        .arg("hfs")
+        .arg("-o")
+        .arg("nobrowse,nodev,nosuid,-m=0751")
+        .arg(diskpath_trimmed)
+        .arg(mountpoint)
+        .output()?;
+
+    if !mount.status.success() {
+        let stderr = String::from_utf8_lossy(&mount.stderr);
+
+        return Err(eyre!("Failed to mount the filesystem"))
+            .wrap_err_with(|| stderr.trim().to_owned());
+    }
+
+    fs::File::create(&anchor)?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn mount_secret_fs(mountpoint: &PathBuf) -> Result<()> {
+    use rustix::mount::{MountFlags, mount};
+
     let supports_ramfs = File::open("/proc/filesystems")
         .map(|file| {
             BufReader::new(file)
