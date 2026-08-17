@@ -1,7 +1,11 @@
 {
   lib,
+  config,
   ...
 }:
+let
+  cfg = config.security.nix-secrets;
+in
 {
   options.security.nix-secrets.generators = lib.mkOption {
     description = ''
@@ -26,9 +30,20 @@
       };
       ```
     '';
-    type = lib.types.attrsOf (
-      lib.types.functionTo (lib.types.either lib.types.package lib.types.attrs)
-    );
+    type =
+      let
+        inputType = lib.types.either lib.types.str outputType;
+        outputType = lib.types.functionTo (
+          lib.types.oneOf [
+            lib.types.str
+            lib.types.package
+            lib.types.attrs
+          ]
+        );
+
+        transformFunction = value: if builtins.isString value then cfg.generators.${value} else value;
+      in
+      lib.types.attrsOf (lib.types.coercedTo inputType transformFunction outputType);
     default = { };
     example = lib.literalExpression (
       lib.removeSuffix "\n" ''
