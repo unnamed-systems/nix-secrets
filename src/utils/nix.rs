@@ -59,7 +59,6 @@ pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String>
     eval_command.args(args);
 
     eval_command.stdout(Stdio::piped());
-    eval_command.stderr(Stdio::null());
 
     let build_child = eval_command.spawn()?;
 
