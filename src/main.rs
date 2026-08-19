@@ -25,6 +25,12 @@ pub static SECRETS_FOR_USERS_DIR: &str = "/run/nix-secrets-for-users";
 
 pub static SECRETS_EXTENSION: &str = "enc";
 
+#[cfg(target_os = "macos")]
+pub static FLAKE_CONFIGURATION_PREFIX: &str = "darwinConfigurations";
+
+#[cfg(target_os = "linux")]
+pub static FLAKE_CONFIGURATION_PREFIX: &str = "nixosConfigurations";
+
 fn main() -> Result<()> {
     CompleteEnv::with_factory(Args::command).complete();
 

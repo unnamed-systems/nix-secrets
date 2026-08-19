@@ -5,6 +5,7 @@ use std::{
 
 use clap_complete::{CompletionCandidate, PathCompleter, engine::ValueCompleter};
 
+use crate::FLAKE_CONFIGURATION_PREFIX;
 use crate::utils;
 
 // Can't get access to other arguments in the completion function
@@ -46,7 +47,7 @@ pub fn complete_secrets(current: &OsStr, regenerate: bool) -> Vec<CompletionCand
 pub fn complete_flake(current: &OsStr) -> Vec<CompletionCandidate> {
     let cur = current.to_str().unwrap_or(".");
     let (flake, hostname) = utils::parse_flake_fallback(cur, "", false).unwrap_or_default();
-    let flake_str = format!("{flake}#nixosConfigurations.");
+    let flake_str = format!("{flake}#{FLAKE_CONFIGURATION_PREFIX}.");
 
     let output = Command::new("nix") // TODO: add ability to customize command?
         .args(["eval", &flake_str])

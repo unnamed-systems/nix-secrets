@@ -7,6 +7,7 @@ use crate::{Result, manifest, utils};
 use eyre::{Context, OptionExt as _, bail};
 use rustix::system::uname;
 
+use crate::FLAKE_CONFIGURATION_PREFIX;
 use crate::manifest::Manifest;
 
 pub fn parse_flake_fallback(
@@ -93,8 +94,9 @@ pub fn eval_generator(generator: &str) -> Result<String> {
 
 pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
-    let resulting_hostname =
-        format!("{flake}#nixosConfigurations.{hostname}.config.security.nix-secrets.manifest");
+    let resulting_hostname = format!(
+        "{flake}#{FLAKE_CONFIGURATION_PREFIX}.{hostname}.config.security.nix-secrets.manifest"
+    );
 
     let build_output = eval_env_command(
         "NIX_SECRETS_NIX_EVAL_COMMAND",
