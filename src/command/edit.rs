@@ -18,6 +18,7 @@ use eyre::{Context as _, OptionExt as _, bail, eyre};
 use scopeguard::defer;
 
 fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
+    trace!("Running editor hook with editor: {editor}");
     if utils::is_stdin(editor) {
         let mut src = io::stdin();
         let mut dst = OpenOptions::new()
@@ -126,11 +127,13 @@ impl CommandTrait for EditCommand {
             utils::decrypt(&resulting_path, &input_path, &identities)?;
             trace!("Decrypted secret successfully");
 
-            let pre_edit_hash = utils::hash_file(&input_path)?;
+            let pre_edit_hash =
+                utils::hash_file(&input_path).wrap_err("Failed to calculate file pre-edit hash")?;
 
-            editor_hook(&input_path, &editor)?;
+            editor_hook(&input_path, &editor).wrap_err("Failed to set up editor hook")?;
 
-            let post_edit_hash = utils::hash_file(&input_path)?;
+            let post_edit_hash = utils::hash_file(&input_path)
+                .wrap_err("Failed to calculate file post-edit hash")?;
 
             if pre_edit_hash == post_edit_hash {
                 info!(
