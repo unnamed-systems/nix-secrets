@@ -12,6 +12,7 @@ in
     ./manifest.nix
     ./secrets.nix
     ./templates.nix
+    ./neededForUsers.nix
   ];
 
   options.security.nix-secrets = {

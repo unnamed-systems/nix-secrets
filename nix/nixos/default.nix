@@ -3,6 +3,5 @@
     ../core/default.nix
 
     ./activate
-    ./options
   ];
 }
