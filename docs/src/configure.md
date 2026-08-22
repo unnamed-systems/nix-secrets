@@ -14,9 +14,9 @@ Example:
 
 ```nix
 {
-    security.nix-secrets = {
-        storagePath = "/home/user/nixos-config/secrets";
-    };
+  security.nix-secrets = {
+    storagePath = "/home/user/nixos-config/secrets";
+  };
 }
 ```
 
@@ -102,9 +102,9 @@ This is where you'd use the `path` option, which is a path to the resulting decr
 
 ```nix
 {
-    services.vaultwarden = {
-        environmentFile = config.security.nix-secrets.secrets."vaultwarden/env".path;
-    };
+  services.vaultwarden = {
+    environmentFile = config.security.nix-secrets.secrets."vaultwarden/env".path;
+  };
 }
 ```
 
@@ -133,15 +133,15 @@ To actually do that, you should set the `neededForUsers` secret option. This mak
 For example:
 ```nix
 {
-    security.nix-secrets.secrets.password.neededForUsers = true;
-    # The secret should contain the hashed user password
-    # you can generate one by using `echo "password" | mkpasswd -s`
-    # for example: `$y$j9T$uYFYCkJ20.oc4oIzPHzDc0$lpBKkRUxBOn3E9zR8Dmj6to3z0JqXTLQwQSHtE86/b2`
+  security.nix-secrets.secrets.password.neededForUsers = true;
+  # The secret should contain the hashed user password
+  # you can generate one by using `echo "password" | mkpasswd -s`
+  # for example: `$y$j9T$uYFYCkJ20.oc4oIzPHzDc0$lpBKkRUxBOn3E9zR8Dmj6to3z0JqXTLQwQSHtE86/b2`
 
-    users.users.user = {
-        isNormalUser = true;
-        hashedPasswordFile = config.security.nix-secrets.secrets.password.path;
-    };
+  users.users.user = {
+    isNormalUser = true;
+    hashedPasswordFile = config.security.nix-secrets.secrets.password.path;
+  };
 }
 ```
 
@@ -149,12 +149,16 @@ If you are using impermanence, make sure your age identities are loaded early en
 
 1. Make sure the identity is on a filesystem loaded before the activation script.
 ```nix
-security.nix-secrets.identityPaths = [ "/persist/home/user/keys.txt" ];
+{
+  security.nix-secrets.identityPaths = [ "/persist/home/user/keys.txt" ];
+}
 ```
 
 2. Persist the filesystem the key is on.
 ```nix
-fileSystems."/home/user".neededForBoot = true;
+{
+  fileSystems."/home/user".neededForBoot = true;
+}
 ```
 
 ## Templates
@@ -180,6 +184,88 @@ To embed secrets, interpolate either `config.security.nix-secrets.secrets.<name>
 If you can't interpolate values in your template content, calculate them yourself, as they are just hashes based on the secret name: `{{NIX_SECRETS-${builtins.hashString "sha256" config.name}}}`.
 
 Templates support the same options as secrets, namely `owner`, `group`, `mode`, `path` and `neededForUsers`.
+
+## Generators
+
+Secrets can support generators to bootstrap secret values or derive secrets based on other secrets. 
+
+Each generator is a function that accepts an attribute set of arguments and returns a package or a generator specification.
+
+A generator without arguments can be referenced by name:
+
+```nix
+{
+  security.nix-secrets.secrets.my-secret = {
+    generator = "uuid";
+  };
+}
+```
+
+A generator with arguments can be referenced using an attribute set:
+
+```nix
+{
+  security.nix-secrets.secrets.my-secret = {
+    generator.uuid = {
+      count = 5;
+      raw = true;
+    };
+  };
+}
+```
+
+To define custom generators, set the `generator` argument to a package:
+
+```nix
+{
+  security.nix-secrets.secrets.my-secret = {
+    generator = pkgs.writeShellScript "password-generator" ''
+      tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16; echo "-pa$$w0rd"
+    '';
+  }
+}
+```
+
+For a list of default generators, consult [the reference](https://nix-secrets.unnamed.systems/generators_reference)
+
+### Custom generators
+
+You can also create custom generators to reference by name like those included by default. To do so, define a new generator in `security.nix-secrets.generators`:
+
+```nix
+{
+  config.security.nix-secrets.generators.custom-uuid =
+    {
+      count ? 1,
+      raw ? false,
+    }:
+    pkgs.writeShellScript "uuid-generator" ''
+      uuidgen ${
+        lib.cli.toCommandLineShellGNU { } {
+          random = true;
+          inherit count;
+        }
+      }${lib.optionalString raw " | tr -d '-'"}
+    '';
+}
+```
+
+Your generators can also reference existing ones:
+
+```nix
+{
+  security.nix-secrets.generators.custom-ssh-ed25519 =
+    {
+      format ? null,
+    }:
+    {
+      ssh = { # References the default `ssh` generator
+        type = "ed25519";
+        inherit format;
+      };
+    };
+}
+```
 
 # A note for using post-quantum secrets
 
