@@ -7,28 +7,21 @@
   /**
     Generate an age private key.
 
-    # Inputs
+    *Inputs:*
+    - `pq` - Whether to generate a post-quantum key (`false` by default).
 
-    `config` (Attribute set)
-    : `pq`
-      : Whether to generate a post-quantum key (`false` by default).
+    *Type:*
+    `age :: { pq :: Bool; } -> Derivation`
 
-    # Type
-
-    ```
-    age :: { pq :: Bool; } -> Derivation
-    ```
-
-    # Examples
-    :::{.example}
-    ## `generator.age` usage example
-
+    *Examples:*
     ```nix
     generator = "age";
-
-    generator.age.pq = true;
     ```
-    :::
+    ```nix
+    generator.age = {
+      pq = true;
+    };
+    ```
   */
   config.security.nix-secrets.generators.age =
     {

@@ -7,33 +7,23 @@
   /**
     Generate random UUIDs.
 
-    # Inputs
+    *Inputs:*
+    - `count` - Number of UUIDs to generate (`1` by default).
+    - `raw` - Whether to remove hyphens from generated UUIDs (`false` by default).
 
-    `config` (Attribute set)
-    : `count`
-      : Number of UUIDs to generate (`1` by default).
-    : `raw`
-      : Whether to remove hyphens from generated UUIDs (`false` by default).
+    *Type:*
+    `uuid :: { count :: Int; raw :: Bool; } -> Derivation`
 
-    # Type
-
-    ```
-    uuid :: { count :: Int; raw :: Bool; } -> Derivation
-    ```
-
-    # Examples
-    :::{.example}
-    ## `generator.uuid` usage example
-
+    *Examples:*
     ```nix
     generator = "uuid";
-
+    ```
+    ```nix
     generator.uuid = {
       count = 5;
       raw = true;
     };
     ```
-    :::
   */
   config.security.nix-secrets.generators.uuid =
     {

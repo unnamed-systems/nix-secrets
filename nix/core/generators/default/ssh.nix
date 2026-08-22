@@ -7,31 +7,20 @@
   /**
     Generate an SSH private key.
 
-    # Inputs
+    *Inputs:*
+    - `type` - SSH key type (`"ed25519"` by default).
+    - `bits` - Number of bits for the key (`null` by default).
+    - `comment` - Comment to add to the public key (`null` by default).
+    - `format` - Private key format (`null` by default).
 
-    `config` (Attribute set)
-    : `type`
-      : SSH key type (`"ed25519"` by default).
-    : `bits`
-      : Number of bits for the key (`null` by default).
-    : `comment`
-      : Comment to add to the public key (`null` by default).
-    : `format`
-      : Private key format (`null` by default).
+    *Type:*
+    `ssh :: { type :: String; bits :: (Int | Null); comment :: (String | Null); format :: (String | Null); } -> Derivation`
 
-    # Type
-
-    ```
-    ssh :: { type :: String; bits :: (Int | Null); comment :: (String | Null); format :: (String | Null); } -> Derivation
-    ```
-
-    # Examples
-    :::{.example}
-    ## `generator.ssh` usage example
-
+    *Examples:*
     ```nix
     generator = "ssh";
-
+    ```
+    ```nix
     generator.ssh = {
       type = "rsa";
       bits = 4096;
@@ -39,7 +28,6 @@
       format = "PEM";
     };
     ```
-    :::
   */
   config.security.nix-secrets.generators.ssh =
     {
@@ -76,33 +64,23 @@
 
     Short-hand for `generator.ssh` with `type` set to `"ed25519"`.
 
-    # Inputs
+    *Inputs:*
+    - `comment` - Comment to add to the public key (`null` by default).
+    - `format` - Private key format (`null` by default).
 
-    `config` (Attribute set)
-    : `comment`
-      : Comment to add to the public key (`null` by default).
-    : `format`
-      : Private key format (`null` by default).
+    *Type:*
+    `ssh-ed25519 :: { comment :: (String | Null); format :: (String | Null); } -> AttrSet`
 
-    # Type
-
-    ```
-    ssh-ed25519 :: { comment :: (String | Null); format :: (String | Null); } -> Derivation
-    ```
-
-    # Examples
-    :::{.example}
-    ## `generator.ssh-ed25519` usage example
-
+    *Examples:*
     ```nix
     generator = "ssh-ed25519";
-
+    ```
+    ```nix
     generator.ssh-ed25519 = {
       comment = "user@host";
       format = "PEM";
     };
     ```
-    :::
   */
   config.security.nix-secrets.generators.ssh-ed25519 =
     {
@@ -121,36 +99,25 @@
 
     Short-hand for `generator.ssh` with `type` set to `"rsa"`.
 
-    # Inputs
+    *Inputs:*
+    - `bits` - Number of bits for the key (`null` by default).
+    - `comment` - Comment to add to the public key (`null` by default).
+    - `format` - Private key format (`null` by default).
 
-    `config` (Attribute set)
-    : `bits`
-      : Number of bits for the key (`null` by default).
-    : `comment`
-      : Comment to add to the public key (`null` by default).
-    : `format`
-      : Private key format (`null` by default).
+    *Type:*
+    `ssh-rsa :: { bits :: (Int | Null); comment :: (String | Null); format :: (String | Null); } -> AttrSet`
 
-    # Type
-
-    ```
-    ssh-rsa :: { bits :: (Int | Null); comment :: (String | Null); format :: (String | Null); } -> Derivation
-    ```
-
-    # Examples
-    :::{.example}
-    ## `generator.ssh-rsa` usage example
-
+    *Examples:*
     ```nix
     generator = "ssh-rsa";
-
+    ```
+    ```nix
     generator.ssh-rsa = {
       bits = 4096;
       comment = "user@host";
       format = "PEM";
     };
     ```
-    :::
   */
   config.security.nix-secrets.generators.ssh-rsa =
     {
