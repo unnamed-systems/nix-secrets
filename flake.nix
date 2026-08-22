@@ -66,6 +66,7 @@
         {
           default = self.packages.${system}.nix-secrets;
           nix-secrets = pkgs.callPackage ./package.nix { };
+          docs = pkgs.callPackage ./docs { inherit self; };
         }
         // import ./tests {
           inherit

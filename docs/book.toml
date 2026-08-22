@@ -1,0 +1,15 @@
+[book]
+title = "nix-secrets"
+authors = ["nix-secrets maintainers"]
+description = "A postmodern secrets manager for NixOS."
+language = "en"
+
+[build]
+create-missing = false
+
+[output.html]
+git-repository-url = "https://github.com/unnamed-systems/nix-secrets"
+edit-url-template = "https://github.com/unnamed-systems/nix-secrets/edit/master/docs/{path}"
+
+[output.html.print]
+enable = false
