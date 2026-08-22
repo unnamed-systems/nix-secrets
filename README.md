@@ -12,7 +12,7 @@
 ![Written in Rust](./.github/assets/badges/rust.png)
 ![Powered by Nix](./.github/assets/badges/nixos.png)
 
-**The project is still in the late development stage, namely, generators are still feature incomplete. However, it is actively being used in the authors' configurations and should be generally production-ready.**
+**The project is in the polish development stage. It is actively being used in the authors' configurations and is production-ready.**
 
 ---
 
@@ -49,7 +49,7 @@ To generate a key you can use the provided `nix-secrets` CLI or any other age co
 nix-secrets keygen [-o <output>]
 ```
 
-For further CLI usage consult [the documentation](./docs/USAGE.md) or the manpages.
+For further CLI usage consult [the documentation](https://nix-secrets.unnamed.systems/usage) or the manpages.
 
 To enable the module itself, create a `secrets` directory and enable the following options:
 
@@ -85,4 +85,4 @@ nix-secrets edit password --storage secrets
 
 After editing the secret, add the resulting file to git and rebuild your system again. The secret should now be available under it's default path in `/run/nix-secrets`.
 
-For advanced configuration refer to [the documentation](./docs/CONFIGURE.md)
+For advanced configuration refer to [the documentation](https://nix-secrets.unnamed.systems/configure)
