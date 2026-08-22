@@ -86,3 +86,7 @@ nix-secrets edit password --storage secrets
 After editing the secret, add the resulting file to git and rebuild your system again. The secret should now be available under it's default path in `/run/nix-secrets`.
 
 For advanced configuration refer to [the documentation](https://nix-secrets.unnamed.systems/configure)
+
+## Reference
+
+For a full list of options, refer to the [nixos option reference](https://nix-secrets.unnamed.systems/nixos-configuration-options) and the [darwin option reference](https://nix-secrets.unnamed.systems/nix-darwin-configuration-options)
