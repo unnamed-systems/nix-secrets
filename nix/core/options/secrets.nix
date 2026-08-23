@@ -59,7 +59,7 @@ let
                   # Deduplicates placeholder files automatically.
                   builtins.toFile "nix-secrets-placeholder" value;
             in
-            lib.types.coercedTo inputType transformFunction outputType;
+            lib.types.str;
           default = "REPLACE WITH YOUR SECRET"; # TODO: generator
           example = "insecurePassword";
         };
