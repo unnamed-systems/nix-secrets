@@ -49,9 +49,6 @@ let
           type = lib.types.either lib.types.str lib.types.path;
           apply = 
                 value:
-                if builtins.isPath value then
-                  value
-                else
                   # Deduplicates placeholder files automatically.
                   builtins.toFile "nix-secrets-placeholder" value;
           default = "my secret"; # TODO: generator
