@@ -46,20 +46,14 @@ let
             secret only when `security.nix-secrets.ciMode.usePlaceholders` is enabled.
             It must not be used for real secrets.
           '';
-          type =
-            let
-              inputType = lib.types.either lib.types.str lib.types.path;
-              outputType = lib.types.path;
-
-              transformFunction =
+          type = lib.types.either lib.types.str lib.types.path;
+          apply = 
                 value:
                 if builtins.isPath value then
                   value
                 else
                   # Deduplicates placeholder files automatically.
                   builtins.toFile "nix-secrets-placeholder" value;
-            in
-            lib.types.coercedTo inputType transformFunction outputType;
           default = "my secret"; # TODO: generator
           example = "insecurePassword";
         };
