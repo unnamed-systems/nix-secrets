@@ -13,8 +13,8 @@ in
         the flake reference provided to the CLI followed by the manifest option path.
       '';
       type = lib.types.nullOr lib.types.str;
-      default = "${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}";
-      defaultText = lib.literalExpression ''"''${lib.getExe config.nix.package} --extra-experimental-features 'nix-command flakes' eval --raw {{input}}"'';
+      default = "${config.nix.package}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'";
+      defaultText = lib.literalExpression ''"''${config.nix.package}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'"'';
       # example = TODO;
     };
 

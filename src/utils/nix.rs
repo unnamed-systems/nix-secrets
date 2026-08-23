@@ -94,14 +94,14 @@ pub fn eval_generator(generator: &str) -> Result<String> {
 
 pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
     info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
-    let resulting_hostname = format!(
-        "{flake}#{FLAKE_CONFIGURATION_PREFIX}.{hostname}.config.security.nix-secrets.manifest"
+    let resulting_input = format!(
+        "(builtins.getFlake \"{flake}\").{FLAKE_CONFIGURATION_PREFIX}.{hostname}.config.security.nix-secrets.manifest"
     );
 
     let build_output = eval_env_command(
         "NIX_SECRETS_NIX_EVAL_COMMAND",
-        "nix --extra-experimental-features 'nix-command flakes' eval --raw {{input}}",
-        &resulting_hostname,
+        "nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'",
+        &resulting_input,
     )?;
 
     let manifest: Manifest = manifest::parse_manifest(&build_output)?;

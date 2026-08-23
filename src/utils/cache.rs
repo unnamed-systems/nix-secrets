@@ -9,7 +9,7 @@ use crate::{
 };
 
 fn get_cached_manifest_file_location(flake: &str) -> Result<PathBuf> {
-    let state_directory = dirs::state_dir().ok_or_eyre("Failed to get state directory")?;
+    let state_directory = dirs::cache_dir().ok_or_eyre("Failed to get state directory")?;
 
     let mut hasher = Sha256::new();
     hasher.update(flake);
