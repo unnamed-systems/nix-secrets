@@ -47,10 +47,10 @@ let
             It must not be used for real secrets.
           '';
           type = lib.types.either lib.types.str lib.types.path;
-          apply = 
-                value:
-                  # Deduplicates placeholder files automatically.
-                  builtins.toFile "nix-secrets-placeholder" value;
+          # apply = 
+          #       value:
+          #         # Deduplicates placeholder files automatically.
+          #         builtins.toFile "nix-secrets-placeholder" value;
           default = "my secret"; # TODO: generator
           example = "insecurePassword";
         };
