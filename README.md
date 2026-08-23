@@ -83,7 +83,7 @@ nix-secrets edit password --storage secrets
 
 `password` being your secret name you've defined previously and `secrets` is the relative directory to your storage. You can set the `security.nix-secrets.storagePath` to an absolute path (e.g. `/home/user/nixos-config/secrets`) to eliminate the need to pass the `storage` argument.
 
-After editing the secret, add the resulting file to git and rebuild your system again. The secret should now be available under it's default path in `/run/nix-secrets`.
+After editing the secret, add the resulting file to git and rebuild your system again. The secret should now be available under its default path in `/run/nix-secrets`.
 
 For advanced configuration refer to [the documentation](https://nix-secrets.unnamed.systems/configure)
 
