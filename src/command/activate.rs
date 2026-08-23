@@ -363,6 +363,8 @@ fn get_linkable_file(
 
 #[cfg(target_os = "macos")]
 fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
+    use std::process::Command;
+
     trace!("Creating mount point `{}`", mountpoint.display());
     fs::create_dir_all(&mountpoint).wrap_err_with(|| {
         format!(
