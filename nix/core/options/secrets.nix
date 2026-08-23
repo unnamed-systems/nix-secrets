@@ -60,7 +60,7 @@ let
                   builtins.toFile "nix-secrets-placeholder" value;
             in
             lib.types.coercedTo inputType transformFunction outputType;
-          default = "REPLACE WITH YOUR SECRET"; # TODO: generator
+          default = "my secret"; # TODO: generator
           example = "insecurePassword";
         };
 
