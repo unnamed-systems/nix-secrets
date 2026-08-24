@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
@@ -37,7 +37,7 @@ pub fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
 
 pub fn check_secret_name(name: &str) -> bool {
     !name
-        .split("/")
+        .split('/')
         .any(|c| c == ".." || c == "." || c.is_empty())
 }
 

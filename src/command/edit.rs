@@ -96,7 +96,7 @@ impl CommandTrait for EditCommand {
 
         if !check_secret_name(&secret.name) {
             bail!("Secret name `{}` contains illegal values", secret.name)
-        };
+        }
 
         let resulting_path = storage_path
             .join(&self.name)

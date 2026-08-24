@@ -3,7 +3,7 @@ use std::{
     env,
     fs::{self, File, OpenOptions, Permissions},
     io::{BufRead as _, BufReader, ErrorKind, Write as _},
-    os::unix::fs::{self as unix_fs, MetadataExt, PermissionsExt as _},
+    os::unix::fs::{self as unix_fs, PermissionsExt as _},
     path::{Path, PathBuf},
     process::{self},
     result, time,
@@ -23,7 +23,7 @@ use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 use nix::sys::statfs::{FsType, statfs};
 
 #[cfg(target_os = "linux")]
-const RAMFS_MAGIC: FsType = FsType(0x858458f6);
+const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
 
 #[cfg(target_os = "macos")]
 const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";

@@ -66,7 +66,7 @@ impl CommandTrait for RegenerateCommand {
             .map(|s| {
                 if !check_secret_name(&s.name) {
                     bail!("Secret name `{}` contains illegal values", s.name)
-                };
+                }
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)

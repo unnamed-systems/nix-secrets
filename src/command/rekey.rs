@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     io::Write as _,
-    path::{Component, PathBuf},
+    path::PathBuf,
 };
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
@@ -62,7 +62,7 @@ impl CommandTrait for RekeyCommand {
             .map(|s| {
                 if !check_secret_name(&s.name) {
                     bail!("Secret name `{}` contains illegal values", s.name)
-                };
+                }
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)
