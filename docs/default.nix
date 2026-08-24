@@ -70,12 +70,15 @@ stdenv.mkDerivation {
   ];
 
   patchPhase = ''
+    echo "# NixOS Configuration Options" > docs/src/nixos-configuration-options.md
     cat ${
       optionsDoc { modules = [ self.nixosModules.default ]; }
-    } > docs/src/nixos-configuration-options.md
+    } >> docs/src/nixos-configuration-options.md
+
+    echo "# Nix-Darwin Configuration Options" > docs/src/nix-darwin-configuration-options.md
     cat ${
       optionsDoc { modules = [ self.darwinModules.default ]; }
-    } > docs/src/nix-darwin-configuration-options.md
+    } >> docs/src/nix-darwin-configuration-options.md
 
     mkdir -p "''${TMPDIR}"/nixdoc
 
@@ -84,26 +87,24 @@ stdenv.mkDerivation {
 
       nixdoc \
         --prefix "" \
-        --anchor-prefix "generator-" \
+        --anchor-prefix "" \
         --category "" \
         --description "" \
         --file "''${file}" \
         > "$output"
     done
 
-    echo "# Generators Reference" > ./docs/src/generators_reference.md
-    cat "''${TMPDIR}"/nixdoc/*.md >> ./docs/src/generators_reference.md
+    echo "# Generators Reference" > docs/src/generators_reference.md
+    cat "''${TMPDIR}"/nixdoc/*.md >> docs/src/generators_reference.md
 
     sed -i \
         's/config\.security\.nix-secrets\.generators\.//g' \
-        ./docs/src/generators_reference.md
+        docs/src/generators_reference.md
   '';
 
   buildPhase = ''
     cd docs
     mdbook build
-
-    cp -r $TMPDIR/nixdoc book/LOL
   '';
 
   installPhase = "cp -r book $out";
