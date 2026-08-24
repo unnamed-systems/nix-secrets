@@ -17,6 +17,7 @@ use crate::{
     utils,
 };
 use age::cli_common::file_io::InputReader;
+use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
 
@@ -164,10 +165,8 @@ impl CommandTrait for ActivateCommand {
         let templates_generation_dir = generation_dir.join("templates");
         trace!("Initialized generation directory {generation_dir:?}");
 
-        let hashes: HashMap<&str, String> = plain
-            .into_iter()
-            .map(|(k, v)| (&*k.template_key, v))
-            .collect();
+        let hashes: HashMap<&str, &String> =
+            plain.iter().map(|(k, v)| (&*k.template_key, v)).collect();
 
         let resulting_templates_dir = PathBuf::from(if self.needed_for_users {
             SECRETS_FOR_USERS_DIR
@@ -186,9 +185,7 @@ impl CommandTrait for ActivateCommand {
                 )
             })?;
             trace!("Replacing secret hashes");
-            let raw_content = &hashes.iter().fold(content, |c, (key, value)| {
-                c.replace(key, value.trim_end_matches('\n')) // TODO: find a better, customizable way
-            });
+            let raw_content = replace_template_keys(&hashes, &content)?;
 
             let generation_dst_location = templates_generation_dir.join(&template.name);
             let generation_dst_parent = generation_dst_location
@@ -265,6 +262,25 @@ impl CommandTrait for ActivateCommand {
 
         Ok(())
     }
+}
+
+fn replace_template_keys(hashes: &HashMap<&str, &String>, content: &str) -> Result<String> {
+    let keys: Vec<&&str> = hashes.keys().collect();
+    let mut result = String::with_capacity(content.len());
+
+    let ac = AhoCorasick::builder()
+        .match_kind(MatchKind::LeftmostFirst)
+        .build(&keys)?;
+
+    ac.replace_all_with(content, &mut result, |mat, _, dst| {
+        let pat = mat.pattern().as_usize();
+        keys.get(pat)
+            .and_then(|key| hashes.get(*key))
+            .map(|value| dst.push_str(value.trim_end_matches('\n')))
+            .is_some()
+    });
+
+    Ok(result)
 }
 
 fn get_linkable_directory(base: &Path, name: &str, path: &Path) -> Result<PathBuf> {

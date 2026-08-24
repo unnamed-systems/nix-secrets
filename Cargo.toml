@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
+aho-corasick = "1.1.5"
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 clap = { version = "4.6.4", features = ["derive", "env"] }
 clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
