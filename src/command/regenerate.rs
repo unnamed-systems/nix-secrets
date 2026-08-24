@@ -64,8 +64,7 @@ impl CommandTrait for RegenerateCommand {
         let regenerated: HashMap<&Secret, Vec<u8>> = secrets
             .iter()
             .map(|s| {
-                let path_str = manifest
-                    .storage
+                let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
