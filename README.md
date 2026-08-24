@@ -1,16 +1,14 @@
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="./.github/assets/logo_white.svg">
-  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/logo_dark.svg">
-  <img src="./.github/assets/logo_white.svg" width="300px" alt="nix-secrets logo">
-</picture>
-
-<br>
-
-![Created by a human with a heart](./.github/assets/badges/human.png)
-![We do not accept LLM assisted contributions](./.github/assets/badges/no-ai.png)
-![Written in Rust](./.github/assets/badges/rust.png)
-![Powered by Nix](./.github/assets/badges/nixos.png)
+<p>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="./.github/assets/logo_white.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/logo_dark.svg">
+    <img src="./.github/assets/logo_white.svg" width="300" alt="nix-secrets logo">
+  </picture>
+  <img align="right" src="./.github/assets/badges/nixos.png" alt="Powered by Nix">
+  <img align="right" src="./.github/assets/badges/rust.png" alt="Written in Rust">
+  <img align="right" src="./.github/assets/badges/no-ai.png" alt="We do not accept LLM assisted contributions">
+  <img align="right" src="./.github/assets/badges/human.png" alt="Created by a human with a heart">
+</p>
 
 **The project is in the polish development stage. It is actively being used in the authors' configurations and is production-ready.**
 
