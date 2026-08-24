@@ -2,7 +2,7 @@
   /**
     Generate a DKIM private key.
 
-    Short-hand for `generator.ssh-rsa` with `format` set to `"PKCS8"`.
+    Short-hand for [`generator.ssh-rsa`](#ssh-rsa) with `format` set to `"PKCS8"`.
 
     *Inputs:*
     - `bits` - Number of bits for the RSA key (`2048` by default).

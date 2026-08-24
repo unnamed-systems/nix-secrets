@@ -62,7 +62,7 @@
   /**
     Generate an Ed25519 SSH private key.
 
-    Short-hand for `generator.ssh` with `type` set to `"ed25519"`.
+    Short-hand for [`generator.ssh`](#ssh) with `type` set to `"ed25519"`.
 
     *Inputs:*
     - `comment` - Comment to add to the public key (`null` by default).
@@ -97,7 +97,7 @@
   /**
     Generate an RSA SSH private key.
 
-    Short-hand for `generator.ssh` with `type` set to `"rsa"`.
+    Short-hand for [`generator.ssh`](#ssh) with `type` set to `"rsa"`.
 
     *Inputs:*
     - `bits` - Number of bits for the key (`null` by default).
