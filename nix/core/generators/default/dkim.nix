@@ -5,7 +5,7 @@
     Short-hand for `generator.ssh-rsa` with `format` set to `"PKCS8"`.
 
     *Inputs:*
-    - `pq` - Number of bits for the RSA key (`2048` by default).
+    - `bits` - Number of bits for the RSA key (`2048` by default).
 
     *Type:*
     `dkim :: { bits :: (Int | Null); } -> AttrSet`
