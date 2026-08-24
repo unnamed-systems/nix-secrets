@@ -128,13 +128,19 @@ impl CommandTrait for EditCommand {
             trace!("Decrypted secret successfully ({input_path:?})");
 
             let pre_edit_hash = utils::hash_file(&input_path).wrap_err_with(|| {
-                format!("Failed to calculate file pre-edit hash for {input_path:?}")
+                format!(
+                    "Failed to calculate file pre-edit hash for {}",
+                    input_path.display()
+                )
             })?;
 
             editor_hook(&input_path, &editor).wrap_err("Failed to set up editor hook")?;
 
             let post_edit_hash = utils::hash_file(&input_path).wrap_err_with(|| {
-                format!("Failed to calculate file post-edit hash for {input_path:?}")
+                format!(
+                    "Failed to calculate file post-edit hash for {}",
+                    input_path.display()
+                )
             })?;
 
             if pre_edit_hash == post_edit_hash {
