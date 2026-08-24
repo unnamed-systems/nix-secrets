@@ -10,7 +10,7 @@ use std::{
 use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _},
+    utils::{self, PathBufExt as _, check_secret_name},
 };
 use clap::Parser;
 use clap_complete::ArgValueCompleter;
@@ -93,6 +93,10 @@ impl CommandTrait for EditCommand {
             .iter()
             .find(|s| s.name.eq(&self.name))
             .ok_or_eyre("Secret not present in nix config.")?;
+
+        if !check_secret_name(&secret.name) {
+            bail!("Secret name `{}` contains illegal values", secret.name)
+        };
 
         let resulting_path = storage_path
             .join(&self.name)

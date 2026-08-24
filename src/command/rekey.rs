@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io::Write as _, path::PathBuf};
+use std::{
+    collections::HashMap,
+    io::Write as _,
+    path::{Component, PathBuf},
+};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
@@ -8,7 +12,7 @@ use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::Secret,
-    utils::{self, PathBufExt as _, rekey_stream},
+    utils::{self, PathBufExt as _, check_secret_name, rekey_stream},
 };
 use clap::{Parser, ValueHint};
 
@@ -56,6 +60,9 @@ impl CommandTrait for RekeyCommand {
         let rekeyed: HashMap<&Secret, Vec<u8>> = secrets
             .iter()
             .map(|s| {
+                if !check_secret_name(&s.name) {
+                    bail!("Secret name `{}` contains illegal values", s.name)
+                };
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)

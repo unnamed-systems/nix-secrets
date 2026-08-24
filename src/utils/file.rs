@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use crate::manifest::OwnerOrGroup;
 
@@ -33,6 +33,12 @@ pub fn parse_permissions_str(input: &str) -> eyre::Result<u32> {
     }
 
     u32::from_str_radix(trimmed, 8).map_err(|err| eyre!("Failed to parse permissions: {:?}", err))
+}
+
+pub fn check_secret_name(name: &str) -> bool {
+    !name
+        .split("/")
+        .any(|c| c == ".." || c == "." || c.is_empty())
 }
 
 pub trait PathBufExt {
@@ -85,6 +91,29 @@ mod tests {
                 input,
                 ext
             );
+        }
+    }
+
+    #[test]
+    fn test_secret_name_path_traversal() {
+        let cases = vec![
+            ("user/password", true),
+            ("user/password.", true),
+            ("user./password.", true),
+            (".././user/password", false),
+            ("./user/password", false),
+            ("user/password/", false),
+            ("/user/password", false),
+            ("/user/password/", false),
+            ("user//password", false),
+            ("/./", false),
+            ("/../", false),
+        ];
+
+        for (input, expected) in cases {
+            let result = check_secret_name(input);
+
+            assert_eq!(result, expected, "Failed assertion for input: '{}'", input);
         }
     }
 }

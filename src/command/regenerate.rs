@@ -9,7 +9,7 @@ use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::Secret,
-    utils::{self, PathBufExt as _, encrypt_stream},
+    utils::{self, PathBufExt as _, check_secret_name, encrypt_stream},
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -64,6 +64,9 @@ impl CommandTrait for RegenerateCommand {
         let regenerated: HashMap<&Secret, Vec<u8>> = secrets
             .iter()
             .map(|s| {
+                if !check_secret_name(&s.name) {
+                    bail!("Secret name `{}` contains illegal values", s.name)
+                };
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)
