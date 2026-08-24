@@ -12,7 +12,7 @@
   ...
 }:
 pkgs.testers.runNixOSTest (_: {
-  name = "templateNoRecursiveRendering";
+  name = "templateNoRecursiveSecretRendering";
 
   nodes.machine = { config, ... }: {
     imports = [
