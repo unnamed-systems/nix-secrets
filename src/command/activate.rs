@@ -3,7 +3,7 @@ use std::{
     env,
     fs::{self, File, OpenOptions, Permissions},
     io::{BufRead as _, BufReader, ErrorKind, Write as _},
-    os::unix::fs::{self as unix_fs, PermissionsExt as _},
+    os::unix::fs::{self as unix_fs, MetadataExt, PermissionsExt as _},
     path::{Path, PathBuf},
     process::{self},
     result, time,
@@ -20,6 +20,13 @@ use age::cli_common::file_io::InputReader;
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
+use nix::sys::statfs::{FsType, statfs};
+
+#[cfg(target_os = "linux")]
+const RAMFS_MAGIC: FsType = FsType(0x858458f6);
+
+#[cfg(target_os = "macos")]
+const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";
 
 #[derive(Parser, PartialEq, Eq, Debug)]
 #[command(hide = true, hide_possible_values = true)]
@@ -389,7 +396,7 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
         )
     })?;
 
-    let anchor = mountpoint.join("nix-secrets-anchor");
+    let anchor = mountpoint.join(DARWIN_ANCHOR_NAME);
     if anchor.exists() {
         return Ok(());
     }
@@ -489,6 +496,28 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     Ok(())
 }
 
+fn check_generation_dir_existence(mountpoint: &Path) -> Result<bool> {
+    match fs::read_dir(mountpoint) {
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e).wrap_err("Failed to read mountpoint")?,
+        result::Result::Ok(_) => {
+            #[cfg(target_os = "linux")]
+            {
+                let buf =
+                    statfs(mountpoint).wrap_err("Failed to get statfs for secret mountpoint")?;
+                let magic = buf.filesystem_type();
+                Ok(magic == RAMFS_MAGIC)
+            }
+
+            #[cfg(target_os = "macos")]
+            {
+                let anchor = Path::new(mountpoint).join(DARWIN_ANCHOR_NAME);
+                return Ok(anchor.exists());
+            }
+        }
+    }
+}
+
 fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
@@ -502,45 +531,41 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
 
     trace!("Base generation directory: `{}`", gen_dir.display());
 
-    let res = match fs::read_dir(&gen_dir) {
-        Err(e) if e.kind() == ErrorKind::NotFound => {
-            trace!("Base generation directory not found, creating ramfs");
-            mount_secret_fs(&gen_dir)?;
-            Ok(())
-        }
-        Err(e) => Err(e).wrap_err("Failed to read mountpoint")?,
-        result::Result::Ok(_) => {
-            trace!("Base generation directory exists, creating new generation");
+    let secret_dir_exists = check_generation_dir_existence(&gen_dir)
+        .wrap_err("Failed to check for secret generation existence")?;
 
-            fs::read_dir(&gen_dir)
-                .wrap_err_with(|| eyre!("Failed to read base generation directory: {gen_dir:?}"))
-                .and_then(|mut o| {
-                    o.try_for_each(|en| {
-                        let d = en.wrap_err_with(|| {
-                            eyre!("Failed to enter generation directory subdir")
-                        })?;
-                        match str::parse::<usize>(
-                            d.file_name().to_string_lossy().to_string().as_str(),
-                        ) {
-                            Err(e) => Err(eyre!("Failed to parse generation: {e}")),
-                            result::Result::Ok(res) => {
-                                trace!("Found existing generation {res} in {gen_dir:?}");
-                                if res >= max {
-                                    max = res.checked_add(1).unwrap_or_default();
-                                }
+    if !secret_dir_exists {
+        mount_secret_fs(&gen_dir).wrap_err("Failed to create generation directory")?;
+    }
 
-                                if max.checked_sub(res).is_some_and(|d| d > 1) {
-                                    cleanup.push(d.path());
-                                }
-                                Ok(())
-                            }
+    trace!("Base generation directory exists, creating new generation");
+
+    fs::read_dir(&gen_dir)
+        .wrap_err_with(|| eyre!("Failed to read base generation directory: {gen_dir:?}"))
+        .and_then(|mut o| {
+            o.try_for_each(|en| {
+                let d =
+                    en.wrap_err_with(|| eyre!("Failed to enter generation directory subdir"))?;
+                match str::parse::<usize>(d.file_name().to_string_lossy().to_string().as_str()) {
+                    Err(e) => Err(eyre!("Failed to parse generation: {e}")),
+                    result::Result::Ok(res) => {
+                        trace!("Found existing generation {res} in {gen_dir:?}");
+                        if res >= max {
+                            max = res.checked_add(1).unwrap_or_default();
                         }
-                    })
-                })
-        }
-    };
+
+                        if max.checked_sub(res).is_some_and(|d| d > 1) {
+                            cleanup.push(d.path());
+                        }
+                        Ok(())
+                    }
+                }
+            })
+        })
+        .wrap_err("Failed to read secrets directory")?;
+
     trace!("Calculated new generation id: {}", max);
     trace!("{} old generation directories to remove", cleanup.len());
 
-    res.map(|()| (gen_dir.join(max.to_string()), cleanup))
+    Ok((gen_dir.join(max.to_string()), cleanup))
 }
