@@ -1,0 +1,12 @@
+[package]
+name = "random"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "random"
+path = "main.rs"
+
+[dependencies]
+eyre = "0.6.14"
+rand = "0.10.2"

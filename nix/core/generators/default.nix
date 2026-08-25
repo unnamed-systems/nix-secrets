@@ -63,6 +63,7 @@ in
   };
 
   imports = [
+    ./default/random
     ./default/age.nix
     ./default/dkim.nix
     ./default/ssh.nix
