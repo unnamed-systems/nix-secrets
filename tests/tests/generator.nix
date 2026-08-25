@@ -19,6 +19,39 @@ pkgs.testers.runNixOSTest {
         pq = true;
       };
 
+      random-1.generator.random = {
+        length = 32;
+        count = 3;
+      };
+      random-2.generator.random = {
+        length = 512;
+        count = 4096;
+        charset = "abc";
+      };
+      random-3.generator.random = {
+        length = 4096;
+        count = 512;
+        charset = "0000000001";
+      };
+
+      random-alphanumeric-1.generator = "alphanumeric";
+      random-alphanumeric-2.generator.alphanumeric = {
+        length = 16;
+        count = 5;
+      };
+
+      random-alnum-1.generator = "alnum";
+      random-alnum-2.generator.alnum = {
+        length = 16;
+        count = 5;
+      };
+
+      random-hex-1.generator = "hex";
+      random-hex-2.generator.hex = {
+        length = 64;
+        count = 5;
+      };
+
       ssh-1.generator = "ssh";
       ssh-2.generator.ssh = {
         type = "ed25519";
@@ -72,6 +105,7 @@ pkgs.testers.runNixOSTest {
     in
     ''
       import shlex
+      import math
 
       storage = machine.succeed("mktemp -d").strip()
 
@@ -110,6 +144,56 @@ pkgs.testers.runNixOSTest {
           raise AssertionError(
             f"{name}: expected {prefix}, got {identity[:32]!r}"
           )
+
+
+      random = {
+        "random-1": (3, 32, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"),
+        "random-2": (4096, 512, "abc"),
+        "random-3": (512, 4096, "0000000001"),
+        "random-alphanumeric-1": (1, 32, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+        "random-alphanumeric-2": (5, 16, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+        "random-alnum-1": (1, 32, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+        "random-alnum-2": (5, 16, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+        "random-hex-1": (1, 32, "0123456789abcdef"),
+        "random-hex-2": (5, 64, "0123456789abcdef"),
+      }
+
+      for name, (count, length, charset) in random.items():
+        values = outputs[name].splitlines()
+
+        if len(values) != count:
+          raise AssertionError(
+            f"{name}: expected {count} values, got {len(values)}"
+          )
+
+        for value in values:
+          if len(value) != length:
+            raise AssertionError(
+              f"{name}: expected length {length}, got {len(value)}"
+            )
+
+          if not set(value) <= set(charset):
+            raise AssertionError(
+              f"{name}: value contains characters outside charset"
+            )
+
+      for name in ("random-2", "random-3"):
+        _, _, charset = random[name]
+        values = outputs[name].replace("\n", "")
+        total = len(values)
+
+        for char in set(charset):
+          expected = charset.count(char) / len(charset)
+          actual = values.count(char) / total
+
+          deviation = 5 * math.sqrt(expected * (1 - expected) / total)
+
+          if abs(actual - expected) > deviation:
+            raise AssertionError(
+              f"{name}: unexpected distribution for {char!r}: "
+              f"expected {expected:.2%} ± {deviation:.2%}, "
+              f"got {actual:.2%}"
+            )
 
 
       ssh = {
