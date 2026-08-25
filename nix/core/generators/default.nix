@@ -65,6 +65,7 @@ in
   imports = [
     ./default/random
     ./default/age.nix
+    ./default/alphanumeric.nix
     ./default/dkim.nix
     ./default/hex.nix
     ./default/ssh.nix
