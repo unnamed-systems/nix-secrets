@@ -82,7 +82,8 @@ stdenv.mkDerivation {
 
     mkdir -p "''${TMPDIR}"/nixdoc
 
-    for file in ./nix/core/generators/default/*.nix; do
+    for file in ./nix/core/generators/default/*.nix \
+                ./nix/core/generators/default/*/default.nix; do
       output="''${TMPDIR}/nixdoc/$(basename "''${file}").md"
 
       nixdoc \
