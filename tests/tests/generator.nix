@@ -69,6 +69,46 @@ pkgs.testers.runNixOSTest {
         count = 100;
       };
 
+      random-password-1.generator = "password";
+      random-password-2.generator.password = {
+        length = 16;
+        count = 5;
+        symbols = true;
+      };
+      random-password-3.generator.password = {
+        length = 32;
+        count = 3;
+        lowercase = true;
+        uppercase = false;
+        numbers = true;
+        symbols = false;
+      };
+      random-password-4.generator.password = {
+        length = 16;
+        count = 3;
+        extraCharset = "~`";
+      };
+      random-password-5.generator.password = {
+        length = 100;
+        count = 1000;
+        lowercase = false;
+        uppercase = false;
+        numbers = false;
+        symbols = false;
+        extraCharset = "aaaaaaaaab";
+        deduplicateCharset = false;
+      };
+      random-password-6.generator.password = {
+        length = 100;
+        count = 1000;
+        lowercase = false;
+        uppercase = false;
+        numbers = false;
+        symbols = false;
+        extraCharset = "aaaaaaaaab";
+        deduplicateCharset = true;
+      };
+
       ssh-1.generator = "ssh";
       ssh-2.generator.ssh = {
         type = "ed25519";
@@ -218,6 +258,12 @@ pkgs.testers.runNixOSTest {
         "random-hex-2": (5, 64, "0123456789abcdef"),
         "random-numeric-1": (1, 32, "0123456789"),
         "random-numeric-2": (100, 1, "0123456789"),
+        "random-password-1": (1, 32, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+        "random-password-2": (5, 16, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_+="),
+        "random-password-3": (3, 32, "abcdefghijklmnopqrstuvwxyz0123456789"),
+        "random-password-4": (3, 16, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~`"),
+        "random-password-5": (1000, 100, "aaaaaaaaab"),
+        "random-password-6": (1000, 100, "ab"),
       }
 
       for name, (count, length, charset) in random.items():
@@ -239,7 +285,7 @@ pkgs.testers.runNixOSTest {
               f"{name}: value contains characters outside charset"
             )
 
-      for name in ("random-2", "random-3"):
+      for name in ("random-2", "random-3", "random-password-5", "random-password-6"):
         _, _, charset = random[name]
         values = outputs[name].replace("\n", "")
         total = len(values)

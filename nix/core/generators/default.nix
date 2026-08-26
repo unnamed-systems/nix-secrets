@@ -70,6 +70,7 @@ in
     ./default/dkim.nix
     ./default/hex.nix
     ./default/numeric.nix
+    ./default/password.nix
     ./default/ssh.nix
     ./default/uuid.nix
     ./default/wireguard.nix
