@@ -9,6 +9,8 @@ let
   package = self.packages.${system}.default;
   shared = {
     outPath = ./shared;
+    default = ./shared/default.nix;
+    defaultNoActivate = ./shared/defaultNoActivate.nix;
     minimal = ./shared/minimal.nix;
     minimalNoActivate = ./shared/minimalNoActivate.nix;
   };
