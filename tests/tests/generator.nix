@@ -19,6 +19,12 @@ pkgs.testers.runNixOSTest {
         pq = true;
       };
 
+      base64-1.generator = "base64";
+      base64-2.generator.base64 = {
+        length = 512;
+        count = 3;
+      };
+
       random-1.generator.random = {
         length = 32;
         count = 3;
@@ -106,6 +112,8 @@ pkgs.testers.runNixOSTest {
     ''
       import shlex
       import math
+      from base64 import b64decode
+      import string
 
       storage = machine.succeed("mktemp -d").strip()
 
@@ -144,6 +152,40 @@ pkgs.testers.runNixOSTest {
           raise AssertionError(
             f"{name}: expected {prefix}, got {identity[:32]!r}"
           )
+
+
+      base64_valid = set(string.ascii_letters + string.digits + '+/=')
+
+      base64 = {
+        "base64-1": (1, 32),
+        "base64-2": (3, 512),
+      }
+
+      for name, (count, byte_length) in base64.items():
+        values = outputs[name].splitlines()
+        expected_str_length = 4 * ((byte_length + 2) // 3)
+
+        if len(values) != count:
+          raise AssertionError(
+            f"{name}: expected {count} values, got {len(values)}"
+          )
+
+        for value in values:
+          if len(value) != expected_str_length:
+            raise AssertionError(
+              f"{name}: expected base64 length {expected_str_length} (from {byte_length} bytes), got {len(value)}"
+            )
+
+          if not set(value) <= base64_valid:
+            raise AssertionError(
+              f"{name}: value contains non-base64 characters"
+            )
+
+          decoded = b64decode(value)
+          if len(decoded) != byte_length:
+            raise AssertionError(
+              f"{name}: decoded length {len(decoded)} != expected {byte_length}"
+            )
 
 
       random = {
