@@ -25,6 +25,11 @@ pkgs.testers.runNixOSTest {
         count = 3;
       };
 
+      base64-wireguard-1.generator = "wireguard";
+      base64-wireguard-2.generator.wireguard = {
+        count = 3;
+      };
+
       random-1.generator.random = {
         length = 32;
         count = 3;
@@ -159,6 +164,8 @@ pkgs.testers.runNixOSTest {
       base64 = {
         "base64-1": (1, 32),
         "base64-2": (3, 512),
+        "base64-wireguard-1": (1, 32),
+        "base64-wireguard-2": (3, 32),
       }
 
       for name, (count, byte_length) in base64.items():
@@ -185,6 +192,11 @@ pkgs.testers.runNixOSTest {
           if len(decoded) != byte_length:
             raise AssertionError(
               f"{name}: decoded length {len(decoded)} != expected {byte_length}"
+            )
+
+          if "wireguard" in name:
+            machine.succeed(
+              f"printf '%s' {shlex.quote(value)} | ${pkgs.wireguard-tools}/bin/wg pubkey"
             )
 
 
