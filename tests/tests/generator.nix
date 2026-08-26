@@ -63,6 +63,12 @@ pkgs.testers.runNixOSTest {
         count = 5;
       };
 
+      random-numeric-1.generator = "numeric";
+      random-numeric-2.generator.numeric = {
+        length = 1;
+        count = 100;
+      };
+
       ssh-1.generator = "ssh";
       ssh-2.generator.ssh = {
         type = "ed25519";
@@ -210,6 +216,8 @@ pkgs.testers.runNixOSTest {
         "random-alnum-2": (5, 16, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
         "random-hex-1": (1, 32, "0123456789abcdef"),
         "random-hex-2": (5, 64, "0123456789abcdef"),
+        "random-numeric-1": (1, 32, "0123456789"),
+        "random-numeric-2": (100, 1, "0123456789"),
       }
 
       for name, (count, length, charset) in random.items():

@@ -69,6 +69,7 @@ in
     ./default/base64.nix
     ./default/dkim.nix
     ./default/hex.nix
+    ./default/numeric.nix
     ./default/ssh.nix
     ./default/uuid.nix
     ./default/wireguard.nix
