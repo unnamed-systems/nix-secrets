@@ -36,7 +36,7 @@ impl CommandTrait for KeygenCommand {
         if self.convert {
             trace!("Converting an existing identity");
             let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(
-                self.output.clone(),
+                self.input.clone(),
             )?)?;
 
             file.write_recipients_file(output)
