@@ -7,18 +7,15 @@ use std::io::Write as _;
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Generate an age keypair
 pub struct KeygenCommand {
-    /// Path to the input file
-    #[arg(value_hint = ValueHint::FilePath)]
-    input: Option<String>,
-
     /// Path to the output directory
     #[arg(short, long)]
     #[arg(value_hint = ValueHint::DirPath)]
     output: Option<String>,
 
     /// Convert an identity file to a recipient
-    #[arg(short = 'y')]
-    convert: bool,
+    #[arg(value_hint = ValueHint::FilePath)]
+    #[arg(short = 'y', long = "convert")]
+    input: Option<Option<String>>,
 }
 
 impl CommandTrait for KeygenCommand {
@@ -33,11 +30,9 @@ impl CommandTrait for KeygenCommand {
             false,
         )?;
 
-        if self.convert {
+        if let Some(input) = self.input.clone() {
             trace!("Converting an existing identity");
-            let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(
-                self.input.clone(),
-            )?)?;
+            let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(input)?)?;
 
             file.write_recipients_file(output)
                 .wrap_err("Failed to write the recipients output")?;
