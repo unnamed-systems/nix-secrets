@@ -10,7 +10,7 @@ pkgs.testers.runNixOSTest {
   nodes.machine = {
     imports = [
       nixosModule
-      shared.minimalNoActivate
+      shared.defaultNoActivate
     ];
   };
 
