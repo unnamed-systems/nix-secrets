@@ -146,8 +146,8 @@ let
           description = ''
             Path where the decrypted secret will be mounted.
 
-            By default, the secret is mounted under "/run/nix-secrets", or under
-            "/run/nix-secrets-for-users" when `neededForUsers` is enabled.
+            By default, the secret is mounted under "/run/nix-secrets/secrets", or under
+            "/run/nix-secrets-for-users/secrets" when `neededForUsers` is enabled.
 
             Secrets using the default paths are activated atomically together. When a
             custom path is specified, secrets are updated individually and atomicity is
@@ -157,6 +157,7 @@ let
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
           default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/secrets/${config.name}";
+          defaultText = lib.literalExpression ''"/run/nix-secrets''${lib.optionalString config.neededForUsers "-for-users"}/secrets/${config.name}"'';
           example = "/var/lib/forgejo/token";
         };
 
