@@ -1,7 +1,7 @@
 use crate::{
     SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _},
+    utils::{self, PathBufExt as _, check_secret_name},
 };
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
@@ -47,8 +47,18 @@ impl CommandTrait for DecryptCommand {
             bail!("Invalid directory path");
         }
 
+        let secret = manifest
+            .secrets
+            .iter()
+            .find(|s| s.name.eq(&self.name))
+            .ok_or_eyre("Secret not present in nix config.")?;
+
+        if !check_secret_name(&secret.name) {
+            bail!("Secret name `{}` contains illegal values", secret.name)
+        }
+
         let resulting_path = storage_path
-            .join(&self.name)
+            .join(&secret.name)
             .append_extension(SECRETS_EXTENSION);
         trace!("Got secret path: {}", resulting_path.display());
 
