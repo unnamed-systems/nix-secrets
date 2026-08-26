@@ -71,5 +71,6 @@ in
     ./default/hex.nix
     ./default/ssh.nix
     ./default/uuid.nix
+    ./default/wireguard.nix
   ];
 }
