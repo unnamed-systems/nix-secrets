@@ -5,7 +5,7 @@
 }:
 {
   /**
-    Generate a random base64 string.
+    Generate a random Base64 string.
 
     *Inputs:*
     - `length` - Number of random bytes to generate (`32` by default). The output string will be `4 * ceil(length / 3)` characters long.
