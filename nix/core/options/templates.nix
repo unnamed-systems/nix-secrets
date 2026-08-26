@@ -54,12 +54,13 @@ let
 
             Templates using the default paths are activated atomically together. When a
             custom path is specified, templates are updated individually and atomicity is
-            only guaranteed for each individual secret.
+            only guaranteed for each individual template.
           '';
           type = lib.types.str;
           # Use separate directories because activation scripts with
           # `beforeUsers = true` and `beforeUsers = false` run independently.
           default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/templates/${config.name}";
+          defaultText = lib.literalExpression ''"/run/nix-secrets''${lib.optionalString config.neededForUsers "-for-users"}/templates/${config.name}"'';
           example = "/var/lib/forgejo/.env";
         };
 
