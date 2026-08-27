@@ -13,6 +13,17 @@ pub struct Manifest {
     pub templates: Vec<Template>,
     pub storage: PathBuf,
     pub use_placeholders: bool,
+    pub module_system: ModuleSystem,
+    pub generations_dir: String,
+    pub generations_for_users_dir: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub enum ModuleSystem {
+    HomeManager,
+    Nixos,
+    NixDarwin,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]

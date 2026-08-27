@@ -9,9 +9,9 @@ use std::{
     result, time,
 };
 
-use crate::{Result, utils::PathBufExt as _};
+use crate::{Result, manifest::ModuleSystem, utils::PathBufExt as _};
 use crate::{
-    SECRETS_DIR, SECRETS_DIR_D, SECRETS_EXTENSION, SECRETS_FOR_USERS_DIR, SECRETS_FOR_USERS_DIR_D,
+    SECRETS_EXTENSION,
     command::{Args, CommandTrait},
     manifest::{self, OwnerOrGroup, Secret, Template},
     utils,
@@ -105,17 +105,16 @@ impl CommandTrait for ActivateCommand {
             })
             .collect::<eyre::Result<_>>()?;
 
-        let (generation_dir, cleanup) = init_generation_dir(self.needed_for_users)?;
+        let (generation_dir, cleanup) = init_generation_dir(
+            &manifest.module_system,
+            if self.needed_for_users {
+                &manifest.generations_for_users_dir
+            } else {
+                &manifest.generations_dir
+            },
+        )?;
         let secret_generation_dir = generation_dir.join("secrets");
         trace!("Initialized generation directory {generation_dir:?}");
-
-        let resulting_secrets_dir = PathBuf::from(if self.needed_for_users {
-            SECRETS_FOR_USERS_DIR
-        } else {
-            SECRETS_DIR
-        })
-        .join("secrets");
-        trace!("Resulting dir for secret linking: {resulting_secrets_dir:?}",);
 
         let mut links: HashMap<PathBuf, PathBuf> = HashMap::new();
 
@@ -163,8 +162,7 @@ impl CommandTrait for ActivateCommand {
                     )
                 })?;
 
-            let final_directory =
-                get_linkable_directory(&resulting_secrets_dir, &secret.name, &secret.path)?;
+            let final_directory = get_linkable_directory(&secret.name, &secret.path)?;
 
             links.insert(generation_dst_location, final_directory);
         }
@@ -174,14 +172,6 @@ impl CommandTrait for ActivateCommand {
 
         let hashes: HashMap<&str, &String> =
             plain.iter().map(|(k, v)| (&*k.template_key, v)).collect();
-
-        let resulting_templates_dir = PathBuf::from(if self.needed_for_users {
-            SECRETS_FOR_USERS_DIR
-        } else {
-            SECRETS_DIR
-        })
-        .join("templates");
-        trace!("Resulting dir for template linking: {resulting_templates_dir:?}");
 
         for template in templates {
             trace!("Reading template content from {:?}", template.content);
@@ -230,8 +220,7 @@ impl CommandTrait for ActivateCommand {
                     )
                 })?;
 
-            let final_directory =
-                get_linkable_directory(&resulting_templates_dir, &template.name, &template.path)?;
+            let final_directory = get_linkable_directory(&template.name, &template.path)?;
 
             links.insert(generation_dst_location, final_directory);
         }
@@ -271,6 +260,43 @@ impl CommandTrait for ActivateCommand {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn runtime_directory() -> Result<String> {
+    env::var("XDG_RUNTIME_DIR").wrap_err("$XDG_RUNTIME_DIR is not set")
+}
+
+#[cfg(target_os = "macos")]
+fn runtime_directory() -> Result<String> {
+    let getconf = Command::new("getconf")
+        .arg("DARWIN_USER_TEMP_DIR")
+        .output()
+        .wrap_err("Failed to execute getconf")?;
+
+    if !getconf.status.success() {
+        let stderr = String::from_utf8_lossy(&getconf.stderr);
+        return Err(eyre!("Getconf failed to execute")).wrap_err_with(|| stderr.trim().to_owned());
+    }
+
+    let output = String::from_utf8(getconf.stdout)
+        .wrap_err("Runtime directory contains invalid characters")?;
+
+    let result: &str = output.trim_end_matches(|c: char| c == ' ' || c == '\t' || c == '\n');
+
+    Ok(result)
+}
+
+fn get_generation_directory(module_system: &ModuleSystem, base_dir: &str) -> Result<PathBuf> {
+    match module_system {
+        ModuleSystem::HomeManager => {
+            let runtime_dir = runtime_directory()?;
+
+            let result = PathBuf::from(runtime_dir.replace("{{RUNTIME_DIR}}", &runtime_dir));
+            Ok(result)
+        }
+        ModuleSystem::Nixos | ModuleSystem::NixDarwin => Ok(PathBuf::from(base_dir)),
+    }
+}
+
 fn replace_template_keys(hashes: &HashMap<&str, &String>, content: &str) -> Result<String> {
     let keys: Vec<&&str> = hashes.keys().collect();
     let mut result = String::with_capacity(content.len());
@@ -290,23 +316,13 @@ fn replace_template_keys(hashes: &HashMap<&str, &String>, content: &str) -> Resu
     Ok(result)
 }
 
-fn get_linkable_directory(base: &Path, name: &str, path: &Path) -> Result<PathBuf> {
-    if path == base.join(name) {
-        trace!("Using default path for linkable `{}`", &name);
-        Ok(base.join(name))
-    } else {
-        if path.starts_with(base) {
-            warn!(
-                "Extraction inside the decrypted directory detected. It is recommend to specify `name` instead of `path`"
-            );
-        }
-        trace!(
-            "Using specified path for linkable `{}` ({})",
-            name,
-            path.display()
-        );
-        Ok(path.to_path_buf())
-    }
+fn get_linkable_directory(name: &str, path: &Path) -> Result<PathBuf> {
+    trace!(
+        "Using specified path for linkable `{}` ({})",
+        name,
+        path.display()
+    );
+    Ok(path.to_path_buf())
 }
 
 fn deploy_linkable(from: &Path, to: &Path) -> Result<()> {
@@ -455,9 +471,23 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
 }
 
 #[cfg(target_os = "linux")]
-fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
+fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()> {
     use rustix::mount::{MountFlags, mount};
 
+    trace!("Creating mount point `{}`", mountpoint.display());
+    fs::create_dir_all(mountpoint).wrap_err_with(|| {
+        format!(
+            "Failed to create the decrypted mountpoint `{}`",
+            mountpoint.display()
+        )
+    })?;
+
+    if matches!(module_system, ModuleSystem::HomeManager) {
+        trace!("ramfs not supported on home-manager. Skipping."); // TODO: maybe tmpfs?
+        return Ok(());
+    }
+
+    trace!("Creating ramfs");
     let supports_ramfs = File::open("/proc/filesystems").is_ok_and(|file| {
         BufReader::new(file)
             .lines()
@@ -475,14 +505,6 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
     if !supports_ramfs {
         bail!("ramfs not supported! Refusing extract secret since it will write to disk");
     }
-    trace!("Creating mount point `{}`", mountpoint.display());
-    fs::create_dir_all(mountpoint).wrap_err_with(|| {
-        format!(
-            "Failed to create the decrypted mountpoint `{}`",
-            mountpoint.display()
-        )
-    })?;
-    trace!("Creating ramfs");
 
     mount(
         "ramfs",
@@ -518,14 +540,14 @@ fn check_generation_dir_existence(mountpoint: &Path) -> Result<bool> {
     }
 }
 
-fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
+fn init_generation_dir(
+    module_system: &ModuleSystem,
+    base_dir: &str,
+) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
     let mut max = 0;
 
-    let gen_dir = PathBuf::from(if needed_for_users {
-        SECRETS_FOR_USERS_DIR_D
-    } else {
-        SECRETS_DIR_D
-    });
+    let gen_dir = get_generation_directory(module_system, base_dir)
+        .wrap_err("Failed to get generation directory")?;
 
     let mut cleanup: Vec<PathBuf> = Vec::new();
 
@@ -535,7 +557,8 @@ fn init_generation_dir(needed_for_users: bool) -> eyre::Result<(PathBuf, Vec<Pat
         .wrap_err("Failed to check for secret generation existence")?;
 
     if !secret_dir_exists {
-        mount_secret_fs(&gen_dir).wrap_err("Failed to create generation directory")?;
+        mount_secret_fs(&gen_dir, module_system)
+            .wrap_err("Failed to create generation directory")?;
     }
 
     trace!("Base generation directory exists, creating new generation");

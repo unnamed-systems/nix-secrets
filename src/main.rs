@@ -17,12 +17,6 @@ pub(crate) mod utils;
 
 pub type Result<T> = eyre::Result<T, eyre::ErrReport>;
 
-pub static SECRETS_DIR_D: &str = "/run/nix-secrets.d";
-pub static SECRETS_FOR_USERS_DIR_D: &str = "/run/nix-secrets-for-users.d";
-
-pub static SECRETS_DIR: &str = "/run/nix-secrets";
-pub static SECRETS_FOR_USERS_DIR: &str = "/run/nix-secrets-for-users";
-
 pub static SECRETS_EXTENSION: &str = "enc";
 
 #[cfg(target_os = "macos")]
