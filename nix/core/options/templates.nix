@@ -1,7 +1,7 @@
 { lib, ... }:
 let
   templateSubmodule = lib.types.submodule (
-    { name, config, ... }:
+    { name, ... }:
     {
       options = {
 
@@ -42,26 +42,6 @@ let
             TURNSTILE_SECRET="''${config.security.nix-secrets.secrets."forgejo/turnstile/secret"}"
             TURNSTILE_SITEKEY="''${config.security.nix-secrets.secrets."forgejo/turnstile/sitekey"}"
           '';
-        };
-
-        # Mounting
-        path = lib.mkOption {
-          description = ''
-            Path where the rendered template file will be mounted.
-
-            By default, the template is mounted under "/run/nix-secrets/templates", or under
-            "/run/nix-secrets-for-users/templates" when `neededForUsers` is enabled.
-
-            Templates using the default paths are activated atomically together. When a
-            custom path is specified, templates are updated individually and atomicity is
-            only guaranteed for each individual template.
-          '';
-          type = lib.types.str;
-          # Use separate directories because activation scripts with
-          # `beforeUsers = true` and `beforeUsers = false` run independently.
-          default = "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/templates/${config.name}";
-          defaultText = lib.literalExpression ''"/run/nix-secrets''${lib.optionalString config.neededForUsers "-for-users"}/templates/${config.name}"'';
-          example = "/var/lib/forgejo/.env";
         };
 
         mode = lib.mkOption {

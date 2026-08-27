@@ -61,6 +61,11 @@
         nix-secrets = ./nix/nix-darwin/default.nix;
       };
 
+      homeManagerModules = {
+        default = self.homeManagerModules.nix-secrets;
+        nix-secrets = ./nix/home-manager/default.nix;
+      };
+
       packages = eachSystem (
         system: pkgs:
         {
