@@ -1,3 +1,4 @@
+{ moduleSystem }:
 {
   lib,
   config,
@@ -17,6 +18,8 @@ in
     type = lib.types.str;
     default = builtins.toJSON {
       inherit (cfg) storage identityPaths storagePath;
+
+      inherit moduleSystem;
 
       usePlaceholders = cfg.ciMode.enableDangerously && cfg.ciMode.usePlaceholders;
 

@@ -9,7 +9,6 @@ let
 in
 {
   imports = [
-    ./manifest.nix
     ./secrets.nix
     ./templates.nix
     ./neededForUsers.nix
