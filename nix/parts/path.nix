@@ -50,6 +50,7 @@ let
           { config, ... }: {
             options.path = lib.mkOption {
               description = descriptions.${attr};
+              type = lib.types.str;
               # Use separate directories because activation scripts with
               # `beforeUsers = true` and `beforeUsers = false` run independently.
               default =
@@ -75,7 +76,22 @@ let
         )
       );
     };
+
+    runtimeDir = if moduleSystem == "home-manager" then "{{RUNTIME_DIR}}" else "/run";
 in
 {
-  options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath;
+  options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
+    generationsDir = lib.mkOption {
+      description = "TODO";
+      type = lib.types.str;
+      default = "${runtimeDir}/nix-secrets.d";
+      # example = TODO;
+    };
+    generationsForUsersDir = lib.mkOption {
+      description = "TODO";
+      type = lib.types.str;
+      default = "${runtimeDir}/nix-secrets-for-users.d";
+      # example = TODO;
+    };
+  };
 }

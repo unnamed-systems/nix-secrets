@@ -17,7 +17,7 @@ in
     '';
     type = lib.types.str;
     default = builtins.toJSON {
-      inherit (cfg) storage identityPaths storagePath;
+      inherit (cfg) storage identityPaths storagePath generationsDir generationsForUsersDir;
 
       inherit moduleSystem;
 
