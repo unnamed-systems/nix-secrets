@@ -19,8 +19,14 @@ pub fn set_owner_and_group(path: &Path, owner: &OwnerOrGroup, group: &OwnerOrGro
     let uid = owner.get_uid()?;
     let gid = group.get_gid()?;
 
-    chown(path, Some(uid), Some(gid))
-        .wrap_err_with(|| format!("Failed to set file permissions: `{}`", path.display()))?;
+    chown(path, Some(uid), Some(gid)).wrap_err_with(|| {
+        format!(
+            "Failed to set file permissions: `{}` ({}:{})",
+            path.display(),
+            uid,
+            gid
+        )
+    })?;
 
     Ok(())
 }

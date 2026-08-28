@@ -1,9 +1,9 @@
 use std::{
     collections::HashMap,
     env,
-    fs::{self, File, OpenOptions, Permissions},
+    fs::{self, File, OpenOptions},
     io::{BufRead as _, BufReader, ErrorKind, Write as _},
-    os::unix::fs::{self as unix_fs, PermissionsExt as _},
+    os::unix::fs::{self as unix_fs, OpenOptionsExt},
     path::{Path, PathBuf},
     process::{self},
     result, time,
@@ -149,6 +149,7 @@ impl CommandTrait for ActivateCommand {
                 &secret.mode,
                 &secret.owner,
                 &secret.group,
+                &manifest.module_system,
                 secret.needed_for_users,
             )?;
 
@@ -207,6 +208,7 @@ impl CommandTrait for ActivateCommand {
                 &template.mode,
                 &template.owner,
                 &template.group,
+                &manifest.module_system,
                 template.needed_for_users,
             )?;
 
@@ -369,25 +371,24 @@ fn get_linkable_file(
     mode: &str,
     owner: &OwnerOrGroup,
     group: &OwnerOrGroup,
+    _module_system: &ModuleSystem,
     needed_for_users: bool,
 ) -> Result<File> {
     let parsed_mode = utils::parse_permissions_str(mode).wrap_err("Failed to parse permissions")?;
-    let permissions = Permissions::from_mode(parsed_mode);
 
     trace!(
         "Applying file permissions for linkable `{}`: {:o} ({})",
         name,
-        permissions.mode(),
+        parsed_mode,
         dst.display()
     );
     let file = OpenOptions::new()
         .create(true)
         .truncate(true)
         .write(true)
+        .mode(parsed_mode)
         .open(dst)
-        .wrap_err_with(|| format!("Failed to open file: `{}`", dst.display()))?;
-    file.set_permissions(permissions)
-        .wrap_err_with(|| format!("Failed to set file permissions: `{}`", dst.display()))?;
+        .wrap_err_with(|| format!("Failed to create file: `{}`", dst.display()))?;
 
     if !needed_for_users {
         trace!(

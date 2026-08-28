@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    io::Write as _,
-    path::PathBuf,
-};
+use std::{collections::HashMap, io::Write as _, path::PathBuf};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
