@@ -3,10 +3,14 @@
   pkgs,
   lib,
   self,
+  devInputs,
 }:
 let
   nixosModule = self.nixosModules.default;
+  homeManagerModule = self.homeManagerModules.default;
+
   package = self.packages.${system}.default;
+
   shared = {
     outPath = ./shared;
     default = ./shared/default.nix;
@@ -15,14 +19,27 @@ let
     minimalNoActivate = ./shared/minimalNoActivate.nix;
   };
 
-  files = lib.fileset.toList (lib.fileset.fileFilter (file: file.hasExt "nix") ./tests);
+  files = builtins.filter (lib.hasSuffix ".nix") (
+    lib.fileset.toList (
+      lib.fileset.unions [
+        ./home-manager
+        ./nixos
+      ]
+    )
+  );
 in
 lib.genAttrs' files (
   file:
   lib.fix (finalAttrs: {
     name = "test-${lib.removePrefix "vm-test-run-" finalAttrs.value.name}";
     value = pkgs.callPackage file {
-      inherit nixosModule package shared;
+      inherit
+        nixosModule
+        homeManagerModule
+        package
+        shared
+        devInputs
+        ;
     };
   })
 )

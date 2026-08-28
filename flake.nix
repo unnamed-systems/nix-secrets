@@ -79,6 +79,7 @@
             pkgs
             lib
             self
+            devInputs
             ;
         }
       );

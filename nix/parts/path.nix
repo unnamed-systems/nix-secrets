@@ -77,7 +77,7 @@ let
       );
     };
 
-    runtimeDir = if moduleSystem == "home-manager" then "{{RUNTIME_DIR}}" else "/run";
+  runtimeDir = if moduleSystem == "home-manager" then "{{RUNTIME_DIR}}" else "/run";
 in
 {
   options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
