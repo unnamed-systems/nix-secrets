@@ -73,7 +73,11 @@ in
 {
   options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
     baseDir = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Default directory where secrets and templates are mounted.
+
+        Each secret or template without a custom `path` is placed under this directory.
+      '';
       type = lib.types.str;
       default = "${
         if moduleSystem == "home-manager" then
@@ -93,20 +97,37 @@ in
       # example = TODO;
     };
     baseForUsersDir = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Default directory where secrets and templates with `neededForUsers = true`
+        are mounted.
+
+        Serves the same purpose as `baseDir` but for the `neededForUsers`
+        activation phase.
+      '';
       type = lib.types.str;
       default = "${cfg.baseDir}-for-users";
       defaultText = lib.literalExpression ''"''${cfg.baseDir}-for-users"'';
       # example = TODO;
     };
     generationsDir = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Directory where generations are stored for the standard activation phase.
+
+        A generation holds the set of secrets and templates that were active at
+        a given point in time, allowing rollback to a previous state.
+      '';
       type = lib.types.str;
       default = "${runtimeDir}/nix-secrets.d";
       # example = TODO;
     };
     generationsForUsersDir = lib.mkOption {
-      description = "TODO";
+      description = ''
+        Directory where generations are stored for the `neededForUsers`
+        activation phase.
+
+        A generation holds the set of secrets and templates that were active at
+        a given point in time, allowing rollback to a previous state.
+      '';
       type = lib.types.str;
       default = "${runtimeDir}/nix-secrets-for-users.d";
       # example = TODO;
