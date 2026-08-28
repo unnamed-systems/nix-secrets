@@ -88,7 +88,7 @@ in
         if moduleSystem == "home-manager" then
           ''"''${if lib.hasPrefix "~/" config.xdg.dataHome then "''${config.home.homeDirectory}/''${lib.removePrefix "~/" config.xdg.dataHome}" else config.xdg.dataHome}/nix-secrets"''
         else
-          "/run/nix-secrets"
+          ''"/run/nix-secrets"''
       );
       # example = TODO;
     };
