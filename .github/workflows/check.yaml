@@ -42,5 +42,10 @@ jobs:
           purge-last-accessed: P1DT12H
           purge-primary-key: never
 
+      - uses: cachix/cachix-action@v17
+        with:
+          name: nix-secrets
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
       - name: Run flake checks
         run: nix flake check
