@@ -17,6 +17,7 @@ pkgs.testers.runNixOSTest (
 
       users.users.user = {
         isNormalUser = true;
+        linger = true;
         home = "/home/user";
         extraGroups = [ "wheel" ];
       };
@@ -62,6 +63,8 @@ pkgs.testers.runNixOSTest (
             raise AssertionError(
               f"{path} ({fmt})\nexpected: {expected!r}\nactual:   {actual!r}"
             )
+
+        machine.wait_for_unit("default.target")
 
         for check in checks:
           machine.succeed(f"test -f {shlex.quote(check["path"])}")
