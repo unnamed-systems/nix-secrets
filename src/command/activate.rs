@@ -290,7 +290,7 @@ fn get_generation_directory(module_system: &ModuleSystem, base_dir: &str) -> Res
         ModuleSystem::HomeManager => {
             let runtime_dir = runtime_directory()?;
 
-            let result = PathBuf::from(runtime_dir.replace("{{RUNTIME_DIR}}", &runtime_dir));
+            let result = PathBuf::from(base_dir.replace("{{RUNTIME_DIR}}", &runtime_dir));
             Ok(result)
         }
         ModuleSystem::Nixos | ModuleSystem::NixDarwin => Ok(PathBuf::from(base_dir)),
