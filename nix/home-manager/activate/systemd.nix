@@ -7,7 +7,7 @@ in
     lib.mkIf (cfg.enable && cfg.activate.enable && cfg.activate.method == "systemd")
       {
         Unit = {
-          Description = "TODO";
+          Description = "Activate nix-secrets secrets and templates";
         };
         Service = {
           Type = "oneshot";

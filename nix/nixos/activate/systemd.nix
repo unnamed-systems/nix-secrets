@@ -7,6 +7,7 @@ in
     lib.mkIf (cfg.enable && cfg.activate.enable && cfg.activate.method == "systemd")
       {
         nix-secrets-activate = {
+          description = "Activate nix-secrets secrets and templates";
           wantedBy = [ "sysinit.target" ];
           after = [
             "local-fs.target"
@@ -27,6 +28,7 @@ in
         };
 
         nix-secrets-activate-before-users = {
+          description = "Activate nix-secrets secrets and templates before users are created";
           wantedBy = [ "systemd-sysusers.service" ];
           before = [ "systemd-sysusers.service" ];
           unitConfig.DefaultDependencies = "no";

@@ -6,7 +6,7 @@ in
   config.systemd.services.nix-secrets-activate =
     lib.mkIf (cfg.enable && cfg.activate.enable && cfg.activate.method == "systemd")
       {
-        description = "TODO";
+        description = "Activate nix-secrets secrets and templates";
         serviceConfig = {
           Type = "oneshot";
           ExecStart = cfg.activate.command false;
