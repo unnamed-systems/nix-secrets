@@ -105,4 +105,11 @@
 
       formatter = eachSystem (system: _pkgs: treefmtEval.${system}.config.build.wrapper);
     };
+
+  nixConfig = {
+    extra-substituters = [ "https://nix-secrets.cachix.org" ];
+    extra-trusted-public-keys = [
+      "nix-secrets.cachix.org-1:NSwybk1LexO4kPH755itLM1t2NGegVq9YR22KlG8Vp0="
+    ];
+  };
 }
