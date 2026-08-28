@@ -117,6 +117,9 @@ stdenv.mkDerivation {
       optionsDoc { modules = [ self.darwinModules.default ]; }
     } >> docs/src/nix-darwin-configuration-options.md
 
+    # Fix admonitions.
+    sed -i 's/\\\[!\(NOTE\|IMPORTANT\|WARNING\|TIP\|CAUTION\)]/[!\1]/g' docs/src/*-configuration-options.md
+
     mkdir -p "''${TMPDIR}"/nixdoc
 
     for file in ./nix/core/generators/default/*.nix \
