@@ -44,51 +44,6 @@ let
           '';
         };
 
-        mode = lib.mkOption {
-          description = ''
-            Permissions of the file created at `path`.
-          '';
-          type = lib.types.str;
-          default = "0400";
-          example = "0660";
-        };
-
-        owner = lib.mkOption {
-          description = ''
-            Owner of the file created at `path`.
-
-            May be specified as either a user name or a numeric UID.
-
-            Cannot be set when `neededForUsers` is enabled because users and groups are
-            not available at this stage of activation. In this case, the file owner is
-            set to `root`.
-          '';
-          type = lib.types.oneOf [
-            lib.types.int
-            lib.types.str
-          ];
-          default = 0;
-          example = "forgejo";
-        };
-
-        group = lib.mkOption {
-          description = ''
-            Group of the file created at `path`.
-
-            May be specified as either a group name or a numeric GID.
-
-            Cannot be set when `neededForUsers` is enabled because users and groups are
-            not available at this stage of activation. In this case, the file group is
-            set to `root`.
-          '';
-          type = lib.types.oneOf [
-            lib.types.int
-            lib.types.str
-          ];
-          default = 0;
-          example = "users";
-        };
-
       };
     }
   );
