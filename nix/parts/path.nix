@@ -1,6 +1,8 @@
 { moduleSystem }:
-{ lib, pkgs, ... }:
+{ lib, config, ... }:
 let
+  cfg = config.security.nix-secrets;
+
   descriptions = {
     secrets = ''
       Path where the decrypted secret will be mounted.
@@ -53,21 +55,10 @@ let
               type = lib.types.str;
               # Use separate directories because activation scripts with
               # `beforeUsers = true` and `beforeUsers = false` run independently.
-              default =
-                if moduleSystem == "home-manager" then
-                  "${
-                    if pkgs.stdenv.hostPlatform.isDarwin then
-                      "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)"
-                    else
-                      "\${XDG_RUNTIME_DIR}/home/user"
-                  }/nix-secrets/${attr}/${config.name}"
-                else
-                  "/run/nix-secrets${lib.optionalString config.neededForUsers "-for-users"}/${attr}/${config.name}";
-              defaultText =
-                if moduleSystem == "home-manager" then
-                  lib.literalExpression ''"''${if pkgs.stdenv.hostPlatform.isDarwin then "$(''${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" else "\''${XDG_RUNTIME_DIR}"}/nix-secrets/${attr}/${config.name}"''
-                else
-                  lib.literalExpression ''"/run/nix-secrets''${lib.optionalString config.neededForUsers "-for-users"}/${attr}/${config.name}"'';
+              default = "${
+                if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir
+              }/${attr}/${config.name}";
+              defaultText = lib.literalExpression ''"''${if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir}/${attr}/${config.name}"'';
               example = "${if moduleSystem == "home-manager" then "$HOME/.config" else "/var/lib"}/forgejo/${
                 if attr == "secrets" then "token" else ".env"
               }";
@@ -81,6 +72,33 @@ let
 in
 {
   options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
+    baseDir = lib.mkOption {
+      description = "TODO";
+      type = lib.types.str;
+      default = "${
+        if moduleSystem == "home-manager" then
+          if lib.hasPrefix "~/" config.xdg.dataHome then
+            "${config.home.homeDirectory}/${lib.removePrefix "~/" config.xdg.dataHome}"
+          else
+            config.xdg.dataHome
+        else
+          "/run"
+      }/nix-secrets";
+      defaultText = lib.literalExpression (
+        if moduleSystem == "home-manager" then
+          ''"''${if lib.hasPrefix "~/" config.xdg.dataHome then "''${config.home.homeDirectory}/''${lib.removePrefix "~/" config.xdg.dataHome}" else config.xdg.dataHome}/nix-secrets"''
+        else
+          "/run/nix-secrets"
+      );
+      # example = TODO;
+    };
+    baseForUsersDir = lib.mkOption {
+      description = "TODO";
+      type = lib.types.str;
+      default = "${cfg.baseDir}-for-users";
+      defaultText = lib.literalExpression ''"''${cfg.baseDir}-for-users"'';
+      # example = TODO;
+    };
     generationsDir = lib.mkOption {
       description = "TODO";
       type = lib.types.str;
