@@ -6,10 +6,41 @@
   jq,
   nixosOptionsDoc,
   self,
-  callPackage,
+  pkgs,
   ...
 }:
 let
+  mdbook-treesitter = pkgs.callPackage (
+    {
+      lib,
+      rustPlatform,
+      fetchFromGitHub,
+    }:
+    rustPlatform.buildRustPackage rec {
+      pname = "mdbook-treesitter";
+      version = "1.1.0";
+
+      src = fetchFromGitHub {
+        owner = "Corpauration";
+        repo = "mdbook-treesitter";
+        rev = "c37bd2316699b96231576ec6d22c9ebf73f782e5";
+        hash = "sha256-L4Semc9nWb6m5a/4dm93RdveLDlZvLcshmP7i8q6auk=";
+      };
+
+      cargoHash = "sha256-zaJ0eS3QyEJ44T/yoEYwxiP2MFQacS6Uhu18o+CEa+c=";
+
+      meta = {
+        description = "mdBook preprocessor adding tree-sitter highlighting support";
+        homepage = "https://github.com/Corpauration/mdbook-treesitter";
+        license = lib.licenses.mit;
+        maintainers = [ ];
+        mainProgram = "mdbook-treesitter";
+      };
+    }
+  ) { };
+
+  tree-sitter-nix = pkgs.tree-sitter-grammars.tree-sitter-nix;
+
   optionsDoc =
     {
       modules ? [ ],
@@ -20,7 +51,7 @@ let
         modules = modules ++ [
           {
             _module.check = false;
-            _module.args.pkgs.callPackage = callPackage;
+            _module.args.pkgs = pkgs;
           }
         ];
       };
@@ -51,7 +82,7 @@ let
     optionsDoc.optionsCommonMark;
 in
 stdenv.mkDerivation {
-  name = "nix-secrets-book";
+  pname = "nix-secrets-book";
   version = "0.1.0";
 
   src = lib.fileset.toSource {
@@ -67,6 +98,7 @@ stdenv.mkDerivation {
     mdbook
     nixdoc
     jq
+    mdbook-treesitter
   ];
 
   patchPhase = ''
@@ -75,7 +107,12 @@ stdenv.mkDerivation {
       optionsDoc { modules = [ self.nixosModules.default ]; }
     } >> docs/src/nixos-configuration-options.md
 
-    echo "# Nix-Darwin Configuration Options" > docs/src/nix-darwin-configuration-options.md
+    echo "# Home Manager Configuration Options" > docs/src/home-manager-configuration-options.md
+    cat ${
+      optionsDoc { modules = [ self.homeManagerModules.default ]; }
+    } >> docs/src/home-manager-configuration-options.md
+
+    echo "# nix-darwin Configuration Options" > docs/src/nix-darwin-configuration-options.md
     cat ${
       optionsDoc { modules = [ self.darwinModules.default ]; }
     } >> docs/src/nix-darwin-configuration-options.md
@@ -99,8 +136,22 @@ stdenv.mkDerivation {
     cat "''${TMPDIR}"/nixdoc/*.md >> docs/src/generators_reference.md
 
     sed -i \
-        's/config\.security\.nix-secrets\.generators\.//g' \
-        docs/src/generators_reference.md
+      's/config\.security\.nix-secrets\.generators\.//g' \
+      docs/src/generators_reference.md
+
+    mkdir -p docs/treesitter/nix
+
+    cp ${tree-sitter-nix}/parser \
+      docs/treesitter/nix.so
+
+    cp ${tree-sitter-nix}/queries/highlights.scm \
+      docs/treesitter/nix/highlights.scm
+
+    cp ${tree-sitter-nix}/queries/injections.scm \
+      docs/treesitter/nix/injections.scm
+
+    cp ${tree-sitter-nix}/queries/locals.scm \
+      docs/treesitter/nix/locals.scm
   '';
 
   buildPhase = ''
@@ -108,5 +159,7 @@ stdenv.mkDerivation {
     mdbook build
   '';
 
-  installPhase = "cp -r book $out";
+  installPhase = ''
+    cp -r book $out
+  '';
 }

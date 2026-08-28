@@ -13,3 +13,7 @@ edit-url-template = "https://github.com/unnamed-systems/nix-secrets/edit/master/
 
 [output.html.print]
 enable = false
+
+[preprocessor.treesitter]
+command = "mdbook-treesitter"
+languages = ["nix"]
