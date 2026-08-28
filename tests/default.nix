@@ -8,6 +8,7 @@
 let
   nixosModule = self.nixosModules.default;
   homeManagerModule = self.homeManagerModules.default;
+  hjemModule = self.hjemModules.default;
 
   package = self.packages.${system}.default;
 
@@ -22,6 +23,7 @@ let
   files = builtins.filter (lib.hasSuffix ".nix") (
     lib.fileset.toList (
       lib.fileset.unions [
+        ./hjem
         ./home-manager
         ./nixos
       ]
@@ -36,6 +38,7 @@ lib.genAttrs' files (
       inherit
         nixosModule
         homeManagerModule
+        hjemModule
         package
         shared
         devInputs

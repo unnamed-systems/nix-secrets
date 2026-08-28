@@ -289,7 +289,7 @@ fn runtime_directory() -> Result<String> {
 
 fn get_generation_directory(module_system: &ModuleSystem, base_dir: &str) -> Result<PathBuf> {
     match module_system {
-        ModuleSystem::HomeManager => {
+        ModuleSystem::HomeManager | ModuleSystem::Hjem => {
             let runtime_dir = runtime_directory()?;
 
             let result = PathBuf::from(base_dir.replace("{{RUNTIME_DIR}}", &runtime_dir));
@@ -483,8 +483,8 @@ fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()
         )
     })?;
 
-    if matches!(module_system, ModuleSystem::HomeManager) {
-        trace!("ramfs not supported on home-manager. Skipping."); // TODO: maybe tmpfs?
+    if matches!(module_system, ModuleSystem::HomeManager | ModuleSystem::Hjem) {
+        trace!("ramfs not supported on home-manager and hjem. Skipping."); // TODO: maybe tmpfs?
         return Ok(());
     }
 

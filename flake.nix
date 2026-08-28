@@ -66,6 +66,11 @@
         nix-secrets = ./nix/home-manager/default.nix;
       };
 
+      hjemModules = {
+        default = self.hjemModules.nix-secrets;
+        nix-secrets = ./nix/hjem/default.nix;
+      };
+
       packages = eachSystem (
         system: pkgs:
         {

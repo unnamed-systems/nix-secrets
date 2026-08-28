@@ -9,7 +9,7 @@ let
       `users.users.<name>.hashedPasswordFile`.
 
       \> [!NOTE]
-      \> Has no effect in Home Manager and is forced to `false`.
+      \> Only has an effect in NixOS. Forced to `false` in other module systems.
     '';
     templates = ''
       Whether the template must be available before users and groups are created.
@@ -17,7 +17,7 @@ let
       Enable this for templates referenced before or during user creation.
 
       \> [!NOTE]
-      \> Has no effect in Home Manager and is forced to `false`.
+      \> Only has an effect in NixOS. Forced to `false` in other module systems.
     '';
   };
 

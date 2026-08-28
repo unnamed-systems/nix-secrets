@@ -22,6 +22,7 @@ pub struct Manifest {
 #[serde(rename_all = "kebab-case")]
 pub enum ModuleSystem {
     HomeManager,
+    Hjem,
     Nixos,
     NixDarwin,
 }

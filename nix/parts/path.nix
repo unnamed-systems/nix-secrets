@@ -8,7 +8,12 @@ let
       Path where the decrypted secret will be mounted.
 
       ${
-        if moduleSystem == "home-manager" then
+        if
+          builtins.elem moduleSystem [
+            "home-manager"
+            "hjem"
+          ]
+        then
           ''
             By default, the secret is mounted under "''${XDG_RUNTIME_DIR}/nix-secrets/secrets" if
             on non-Darwin systems, or under "$(getconf DARWIN_USER_TEMP_DIR)/nix-secrets/secrets"
@@ -27,7 +32,12 @@ let
       Path where the rendered template will be mounted.
 
       ${
-        if moduleSystem == "home-manager" then
+        if
+          builtins.elem moduleSystem [
+            "home-manager"
+            "hjem"
+          ]
+        then
           ''
             By default, the template is mounted under "''${XDG_RUNTIME_DIR}/nix-secrets/templates" if
             on non-Darwin systems, or under "$(getconf DARWIN_USER_TEMP_DIR)/nix-secrets/templates"
@@ -59,16 +69,33 @@ let
                 if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir
               }/${attr}/${config.name}";
               defaultText = lib.literalExpression ''"''${if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir}/${attr}/${config.name}"'';
-              example = "${if moduleSystem == "home-manager" then "$HOME/.config" else "/var/lib"}/forgejo/${
-                if attr == "secrets" then "token" else ".env"
-              }";
+              example = "${
+                if
+                  builtins.elem moduleSystem [
+                    "home-manager"
+                    "hjem"
+                  ]
+                then
+                  "$HOME/.config"
+                else
+                  "/var/lib"
+              }/forgejo/${if attr == "secrets" then "token" else ".env"}";
             };
           }
         )
       );
     };
 
-  runtimeDir = if moduleSystem == "home-manager" then "{{RUNTIME_DIR}}" else "/run";
+  runtimeDir =
+    if
+      builtins.elem moduleSystem [
+        "home-manager"
+        "hjem"
+      ]
+    then
+      "{{RUNTIME_DIR}}"
+    else
+      "/run";
 in
 {
   options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
@@ -85,12 +112,19 @@ in
             "${config.home.homeDirectory}/${lib.removePrefix "~/" config.xdg.dataHome}"
           else
             config.xdg.dataHome
+        else if moduleSystem == "hjem" then
+          if lib.hasPrefix "$HOME/" config.xdg.data.directory then
+            "${config.directory}/${lib.removePrefix "$HOME/" config.xdg.data.directory}"
+          else
+            config.xdg.data.directory
         else
           "/run"
       }/nix-secrets";
       defaultText = lib.literalExpression (
         if moduleSystem == "home-manager" then
           ''"''${if lib.hasPrefix "~/" config.xdg.dataHome then "''${config.home.homeDirectory}/''${lib.removePrefix "~/" config.xdg.dataHome}" else config.xdg.dataHome}/nix-secrets"''
+        else if moduleSystem == "hjem" then
+          ''"''${if lib.hasPrefix "$HOME/" config.xdg.data.directory then "''${config.directory}/''${lib.removePrefix "$HOME/" config.xdg.data.directory}" else config.xdg.data.directory}/nix-secrets"''
         else
           ''"/run/nix-secrets"''
       );

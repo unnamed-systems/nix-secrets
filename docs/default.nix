@@ -112,6 +112,11 @@ stdenv.mkDerivation {
       optionsDoc { modules = [ self.homeManagerModules.default ]; }
     } >> docs/src/home-manager-configuration-options.md
 
+    echo "# Hjem Configuration Options" > docs/src/hjem-configuration-options.md
+    cat ${
+      optionsDoc { modules = [ self.hjemModules.default ]; }
+    } >> docs/src/hjem-configuration-options.md
+
     echo "# nix-darwin Configuration Options" > docs/src/nix-darwin-configuration-options.md
     cat ${
       optionsDoc { modules = [ self.darwinModules.default ]; }

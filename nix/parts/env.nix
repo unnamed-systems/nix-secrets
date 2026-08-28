@@ -23,6 +23,11 @@ in
           inherit packages;
         };
       }
+    else if moduleSystem == "hjem" then
+      {
+        inherit packages;
+        environment.sessionVariables = variables;
+      }
     else
       {
         environment = {

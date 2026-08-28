@@ -93,9 +93,20 @@ in
         lib.types.int
         lib.types.str
       ];
-      default = if moduleSystem == "home-manager" then config.home.username else 0;
+      default =
+        if moduleSystem == "home-manager" then
+          config.home.username
+        else if moduleSystem == "hjem" then
+          config.user
+        else
+          0;
       defaultText =
-        if moduleSystem == "home-manager" then lib.literalExpression "config.home.username" else 0;
+        if moduleSystem == "home-manager" then
+          lib.literalExpression "config.home.username"
+        else if moduleSystem == "hjem" then
+          lib.literalExpression "config.user"
+        else
+          0;
       example = "forgejo";
     };
 
@@ -117,11 +128,16 @@ in
         if moduleSystem == "home-manager" then
           config._module.specialArgs.osConfig.users.users.${config.home.username}.group
             or (throw "cannot determine the default group in standalone Home Manager: set `security.nix-secrets.defaultGroup` explicitly")
+        else if moduleSystem == "hjem" then
+          config._module.specialArgs.osConfig.users.users.${config.user}.group
+            or (throw "cannot determine the default group in standalone Hjem: set `security.nix-secrets.defaultGroup` explicitly")
         else
           0;
       defaultText =
         if moduleSystem == "home-manager" then
           lib.literalExpression ''config._module.specialArgs.osConfig.users.users.''${config.home.username}.group or (throw "cannot determine the default group in standalone Home Manager: set `security.nix-secrets.defaultGroup` explicitly")''
+        else if moduleSystem == "hjem" then
+          lib.literalExpression ''config._module.specialArgs.osConfig.users.users.''${config.user}.group or (throw "cannot determine the default group in standalone Hjem: set `security.nix-secrets.defaultGroup` explicitly")''
         else
           0;
       example = "users";
