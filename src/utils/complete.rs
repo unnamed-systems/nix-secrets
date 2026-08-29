@@ -26,9 +26,12 @@ fn get_flake_native() -> String {
 
 pub fn complete_secrets(current: &OsStr, regenerate: bool) -> Vec<CompletionCandidate> {
     let f = get_flake_native();
-    let (flake, hostname) = utils::parse_flake(&f, true).unwrap_or_default();
+    let (flake, module_system, hostname) = utils::parse_flake(&f, true).unwrap_or_default();
 
-    let manifest = utils::get_cached_manifest(&format!("{flake}#{hostname}"));
+    let manifest = utils::get_cached_manifest(&format!(
+        "{flake}-{}-{hostname}",
+        module_system.unwrap_or_else(|| "default".to_owned())
+    ));
 
     if let Ok(m) = manifest {
         let filter = current.to_str();
@@ -46,8 +49,14 @@ pub fn complete_secrets(current: &OsStr, regenerate: bool) -> Vec<CompletionCand
 
 pub fn complete_flake(current: &OsStr) -> Vec<CompletionCandidate> {
     let cur = current.to_str().unwrap_or(".");
-    let (flake, hostname) = utils::parse_flake_fallback(cur, "", false).unwrap_or_default();
-    let flake_str = format!("{flake}#{FLAKE_CONFIGURATION_PREFIX}.");
+    let (flake, module_system, hostname) =
+        utils::parse_flake_fallback(cur, "", false).unwrap_or_default();
+
+    let resulting_module_system = module_system
+        .as_deref()
+        .unwrap_or(FLAKE_CONFIGURATION_PREFIX);
+
+    let flake_str = format!("{flake}#{resulting_module_system}.");
 
     let output = Command::new("nix") // TODO: add ability to customize command?
         .args(["eval", &flake_str])

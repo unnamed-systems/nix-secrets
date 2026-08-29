@@ -14,7 +14,7 @@ pub fn parse_flake_fallback(
     flake: &str,
     fallback: &str,
     canonicalize: bool,
-) -> Option<(String, String)> {
+) -> Option<(String, Option<String>, String)> {
     let (path, attr) = match flake.split_once('#') {
         Some((p, "")) => (p, fallback),
         Some((p, a)) => {
@@ -34,10 +34,18 @@ pub fn parse_flake_fallback(
     } else {
         path.to_string()
     };
-    Some((res, attr.to_owned()))
+
+    let (module_system, hostname) = match attr.split_once('.') {
+        Some((module_system, hostname)) if !module_system.is_empty() && !hostname.is_empty() => {
+            (Some(module_system.to_string()), hostname.to_string())
+        }
+        _ => (None, attr.to_string()),
+    };
+
+    Some((res, module_system, hostname))
 }
 
-pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> {
+pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, Option<String>, String)> {
     let uname = uname();
     let hostname = uname.nodename().to_str().ok();
     let fallback = hostname.unwrap_or("default");
@@ -92,10 +100,11 @@ pub fn eval_generator(generator: &str) -> Result<String> {
     Ok(build_output)
 }
 
-pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
+pub fn eval_manifest(flake: &str, module_system: Option<&str>, hostname: &str) -> Result<Manifest> {
     info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
     let resulting_input = format!(
-        "(builtins.getFlake \"{flake}\").{FLAKE_CONFIGURATION_PREFIX}.{hostname}.config.security.nix-secrets.manifest"
+        "(builtins.getFlake \"{flake}\").{}.{hostname}.config.security.nix-secrets.manifest",
+        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX)
     );
 
     let build_output = eval_env_command(
@@ -104,7 +113,7 @@ pub fn eval_manifest(flake: &str, hostname: &str) -> Result<Manifest> {
         &resulting_input,
     )?;
 
-    let manifest: Manifest = manifest::parse_manifest(&build_output)?;
+    let manifest = manifest::parse_manifest(&build_output)?;
     trace!("Retrived manifest for {flake}#{hostname}");
 
     utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
@@ -127,14 +136,14 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_both() -> Result<()> {
         let actual = parse_flake("foo#bar", false);
-        let expected = Some(("foo".to_string(), "bar".to_string()));
+        let expected = Some(("foo".to_string(), None, "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
     #[test]
     fn parse_flake_spaces() -> Result<()> {
         let actual = parse_flake("foo bar#buzz", false);
-        let expected = Some(("foo bar".to_string(), "buzz".to_string()));
+        let expected = Some(("foo bar".to_string(), None, "buzz".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -142,7 +151,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_host_sharp() -> Result<()> {
         let actual = parse_flake("foo#", false);
-        let expected = Some(("foo".to_string(), get_attr_fallback()));
+        let expected = Some(("foo".to_string(), None, get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -150,7 +159,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_host() -> Result<()> {
         let actual = parse_flake("foo", false);
-        let expected = Some(("foo".to_string(), get_attr_fallback()));
+        let expected = Some(("foo".to_string(), None, get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -158,7 +167,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_attr() -> Result<()> {
         let actual = parse_flake("#bar", false);
-        let expected = Some(("".to_string(), "bar".to_string()));
+        let expected = Some(("".to_string(), None, "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -166,7 +175,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_empty() -> Result<()> {
         let actual = parse_flake("", false);
-        let expected = Some(("".to_string(), get_attr_fallback()));
+        let expected = Some(("".to_string(), None, get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }

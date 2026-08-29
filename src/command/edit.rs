@@ -69,7 +69,7 @@ pub struct EditCommand {
 
 impl CommandTrait for EditCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        let (flake, hostname) =
+        let (flake, module_system, hostname) =
             utils::parse_flake(&root.flake, true).ok_or_eyre("Failed to parse flake")?;
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
@@ -77,7 +77,7 @@ impl CommandTrait for EditCommand {
         let editor = env::var("EDITOR").wrap_err(eyre!("$EDITOR is not set"))?;
         trace!("Using editor: {}", editor);
 
-        let manifest = utils::eval_manifest(&flake, &hostname)?;
+        let manifest = utils::eval_manifest(&flake, module_system.as_deref(), &hostname)?;
         let storage_path = self
             .storage
             .as_ref()
