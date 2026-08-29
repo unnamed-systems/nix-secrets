@@ -2,7 +2,7 @@
   pkgs,
   homeManagerModule,
   shared,
-  devInputs,
+  inputs,
   ...
 }:
 pkgs.testers.runNixOSTest (
@@ -12,7 +12,7 @@ pkgs.testers.runNixOSTest (
 
     nodes.machine = {
       imports = [
-        devInputs.home-manager.nixosModules.home-manager
+        inputs.home-manager.nixosModules.home-manager
       ];
 
       users.users.user = {

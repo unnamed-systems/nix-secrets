@@ -160,7 +160,6 @@ let
           '';
           type = lib.types.functionTo lib.types.str;
           readOnly = true;
-          internal = true;
           default = self: self.templateKey;
           defaultText = lib.literalExpression "self: self.templateKey";
           # SHA-256 hash of the string "secret"
