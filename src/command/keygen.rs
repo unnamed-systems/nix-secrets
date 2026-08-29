@@ -15,6 +15,10 @@ pub struct KeygenCommand {
     /// Convert an identity file to a recipient
     #[arg(value_hint = ValueHint::FilePath)]
     #[arg(short = 'y', long = "convert")]
+    #[expect(
+        clippy::option_option,
+        reason = "Allows for providing just the argument"
+    )]
     input: Option<Option<String>>,
 }
 
