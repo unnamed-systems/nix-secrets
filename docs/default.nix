@@ -7,6 +7,8 @@
   nixosOptionsDoc,
   self,
   pkgs,
+  mdbook-pagetoc,
+  mdbook-plugins,
   ...
 }:
 let
@@ -89,6 +91,7 @@ stdenv.mkDerivation {
     root = ../.;
     fileset = lib.fileset.unions [
       ./src
+      ./theme
       ./book.toml
       ../nix/core/generators/default
     ];
@@ -99,6 +102,8 @@ stdenv.mkDerivation {
     nixdoc
     jq
     mdbook-treesitter
+    mdbook-pagetoc
+    mdbook-plugins
   ];
 
   patchPhase = ''
