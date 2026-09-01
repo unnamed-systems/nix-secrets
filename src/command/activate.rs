@@ -20,7 +20,10 @@ use age::cli_common::file_io::InputReader;
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
-use nix::sys::statfs::{FsType, statfs};
+use nix::sys::statfs::statfs;
+
+#[cfg(target_os = "linux")]
+use nix::sys::statfs::FsType;
 
 #[cfg(target_os = "linux")]
 const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
@@ -269,6 +272,8 @@ fn runtime_directory() -> Result<String> {
 
 #[cfg(target_os = "macos")]
 fn runtime_directory() -> Result<String> {
+    use std::process::Command;
+
     let getconf = Command::new("getconf")
         .arg("DARWIN_USER_TEMP_DIR")
         .output()
@@ -483,7 +488,10 @@ fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()
         )
     })?;
 
-    if matches!(module_system, ModuleSystem::HomeManager | ModuleSystem::Hjem) {
+    if matches!(
+        module_system,
+        ModuleSystem::HomeManager | ModuleSystem::Hjem
+    ) {
         trace!("ramfs not supported on home-manager and hjem. Skipping."); // TODO: maybe tmpfs?
         return Ok(());
     }
