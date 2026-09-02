@@ -1,8 +1,10 @@
+#[cfg(target_os = "linux")]
+use std::io::{BufRead as _, BufReader};
 use std::{
     collections::HashMap,
     env,
     fs::{self, File, OpenOptions},
-    io::{BufRead as _, BufReader, ErrorKind, Write as _},
+    io::{ErrorKind, Write as _},
     os::unix::fs::{self as unix_fs, OpenOptionsExt},
     path::{Path, PathBuf},
     process::{self},
@@ -19,8 +21,7 @@ use crate::{
 use age::cli_common::file_io::InputReader;
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
-use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, bail, eyre};
-use nix::sys::statfs::statfs;
+use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, eyre};
 
 #[cfg(target_os = "linux")]
 use nix::sys::statfs::FsType;
@@ -272,6 +273,8 @@ fn runtime_directory() -> Result<String> {
 
 #[cfg(target_os = "macos")]
 fn runtime_directory() -> Result<String> {
+    use std::process::Command;
+
     let getconf = Command::new("getconf")
         .arg("DARWIN_USER_TEMP_DIR")
         .output()
@@ -287,7 +290,7 @@ fn runtime_directory() -> Result<String> {
 
     let result: &str = output.trim_end_matches(|c: char| c == ' ' || c == '\t' || c == '\n');
 
-    Ok(result)
+    Ok(result.to_string())
 }
 
 fn get_generation_directory(module_system: &ModuleSystem, base_dir: &str) -> Result<PathBuf> {
@@ -405,7 +408,7 @@ fn get_linkable_file(
 }
 
 #[cfg(target_os = "macos")]
-fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
+fn mount_secret_fs(mountpoint: &Path, _module_system: &ModuleSystem) -> Result<()> {
     use std::process::Command;
 
     trace!("Creating mount point `{}`", mountpoint.display());
@@ -476,6 +479,7 @@ fn mount_secret_fs(mountpoint: &Path) -> Result<()> {
 
 #[cfg(target_os = "linux")]
 fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()> {
+    use eyre::bail;
     use rustix::mount::{MountFlags, mount};
 
     trace!("Creating mount point `{}`", mountpoint.display());
@@ -532,6 +536,8 @@ fn check_generation_dir_existence(mountpoint: &Path) -> Result<bool> {
         result::Result::Ok(_) => {
             #[cfg(target_os = "linux")]
             {
+                use nix::sys::statfs::statfs;
+
                 let buf =
                     statfs(mountpoint).wrap_err("Failed to get statfs for secret mountpoint")?;
                 let magic = buf.filesystem_type();
