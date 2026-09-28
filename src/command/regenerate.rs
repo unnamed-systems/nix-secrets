@@ -84,7 +84,7 @@ impl CommandTrait for RegenerateCommand {
                     "Evaluating generator from derivation: {}",
                     generator.derivation
                 );
-                utils::eval_generator(&generator.derivation)?;
+                utils::eval_derivation(&generator.derivation)?;
                 trace!("Evaluated generator. Binary: {}", generator.executable);
 
                 let output = Command::new(&generator.executable)

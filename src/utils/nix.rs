@@ -97,7 +97,7 @@ pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String>
     Ok(output)
 }
 
-pub fn eval_generator(generator: &str) -> Result<String> {
+pub fn eval_derivation(generator: &str) -> Result<String> {
     trace!("Evaluating generator: `{generator}`");
 
     let build_output = eval_env_command(

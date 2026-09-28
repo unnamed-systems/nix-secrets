@@ -71,7 +71,7 @@ pub struct Secret {
     pub group: OwnerOrGroup,
     pub mode: String,
     pub name: String,
-    pub placeholder: PathBuf,
+    pub placeholder: String,
     pub generator: Option<Generator>,
     pub path: PathBuf,
     pub recipients: Vec<String>,
