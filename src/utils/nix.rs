@@ -101,7 +101,7 @@ pub fn eval_generator(generator: &str) -> Result<String> {
     trace!("Evaluating generator: `{generator}`");
 
     let build_output = eval_env_command(
-        "NIX_SECRETS_GENERATOR_BUILD_COMMAND",
+        "NIX_SECRETS_DERIVATION_BUILD_COMMAND",
         "nix-store --realise {{input}}",
         generator,
     )?;

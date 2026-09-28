@@ -64,11 +64,11 @@
             test-activate
             test-decrypt
             test-decryptRejectsUnmanagedSecrets
+            test-derivationBuildCommandEnv
+            test-derivationBuildCommandEnvStandalone
+            test-derivationBuildCommandEnvUnset
             test-edit
             test-generator
-            test-generatorBuildCommandEnv
-            test-generatorBuildCommandEnvStandalone
-            test-generatorBuildCommandEnvUnset
             test-hjem-activate
             test-home-manager-activate
             test-installPackageFalse

@@ -5,7 +5,7 @@
   ...
 }:
 pkgs.testers.runNixOSTest {
-  name = "generatorBuildCommandEnvUnset";
+  name = "derivationBuildCommandEnvUnset";
 
   nodes.machine = {
     imports = [
@@ -13,10 +13,10 @@ pkgs.testers.runNixOSTest {
       shared.minimalNoActivate
     ];
 
-    security.nix-secrets.generatorBuildCommand = null;
+    security.nix-secrets.derivationBuildCommand = null;
   };
 
   testScript = ''
-    machine.fail("printenv $NIX_SECRETS_GENERATOR_BUILD_COMMAND")
+    machine.fail("printenv $NIX_SECRETS_DERIVATION_BUILD_COMMAND")
   '';
 }

@@ -9,7 +9,7 @@ let
     in
     {
       NIX_SECRETS_NIX_EVAL_COMMAND = mkIfNotNull cfg.nixEvalCommand;
-      NIX_SECRETS_GENERATOR_BUILD_COMMAND = mkIfNotNull cfg.generatorBuildCommand;
+      NIX_SECRETS_DERIVATION_BUILD_COMMAND = mkIfNotNull cfg.derivationBuildCommand;
     };
 
   packages = lib.optional cfg.installPackage cfg.package;

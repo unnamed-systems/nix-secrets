@@ -15,12 +15,12 @@
       # example = TODO;
     };
 
-    generatorBuildCommand = lib.mkOption {
+    derivationBuildCommand = lib.mkOption {
       description = ''
-        Command used by the nix-secrets CLI to build secret generators.
+        Command used by the nix-secrets CLI to build derivations used in generators and placeholders.
 
         The command must contain the `{{input}}` placeholder, which is replaced with
-        the derivation path of the generator.
+        the derivation path.
       '';
       type = lib.types.nullOr lib.types.str;
       default = "${config.nix.package}/bin/nix-store --realise {{input}}";
