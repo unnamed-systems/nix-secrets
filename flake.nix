@@ -77,6 +77,7 @@
             test-nixEvalCommandEnv
             test-nixEvalCommandEnvStandalone
             test-nixEvalCommandEnvUnset
+            test-placeholder
             test-rekey
             test-storagePathEnvStandalone
             test-templateNoRecursiveSecretRendering
