@@ -85,10 +85,10 @@ impl CommandTrait for ActivateCommand {
                         "Using placeholder for secret `{}` ({:?})",
                         s.name, s.placeholder
                     );
-                    let placeholder = fs::read_to_string(
-                        utils::eval_derivation(&s.placeholder)
-                            .wrap_err("Failed to evaluate placeholder")?,
-                    )
+                    let placeholder = fs::read_to_string(utils::eval_derivation(
+                        &manifest.derivation_build_command,
+                        &s.placeholder,
+                    )?)
                     .wrap_err("Failed to read placeholder content")?;
                     return Ok((s, placeholder));
                 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{Result, manifest, utils};
-use eyre::{Context, OptionExt as _, bail};
+use eyre::{Context, OptionExt, bail};
 use rustix::system::uname;
 
 use crate::FLAKE_CONFIGURATION_PREFIX;
@@ -97,12 +97,12 @@ pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String>
     Ok(output)
 }
 
-pub fn eval_derivation(generator: &str) -> Result<String> {
+pub fn eval_derivation(manifest_command: &str, generator: &str) -> Result<String> {
     trace!("Evaluating generator: `{generator}`");
 
     let build_output = eval_env_command(
         "NIX_SECRETS_DERIVATION_BUILD_COMMAND",
-        "nix-store --realise {{input}}",
+        manifest_command,
         generator,
     )?;
 
