@@ -38,7 +38,7 @@ To define secrets, as you may've learned from the README, you have to set the `s
 
 The `name` option is important, as `nix-secrets` is the one managing your secret placement, unlike in `sops-nix` or `agenix`. Think of the name as the path in the storage directory too — if you have a secret named `cloudflare/dnsToken` it will end up in `./cloudflare/dnsToken.enc` inside your storage directory.
 
-Refer to the [section above](#recipients) regarding `recipients`.
+Refer to the [section below](#recipients) regarding `recipients`.
 
 Now, let's talk about options you will use most often first.
 
