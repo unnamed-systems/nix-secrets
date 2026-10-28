@@ -54,6 +54,7 @@ To enable the module itself, create a `secrets` directory and enable the followi
 ```nix
 {
   security.nix-secrets = {
+    enable = true;
     storage = ../secrets; # Relative path to your `secrets` (copied to /nix/store)
     identityPaths = [ 
       "/home/user/keys.txt" # Path to your age private key
