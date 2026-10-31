@@ -6,5 +6,6 @@
     ./ciMode.nix
     ./defaultRecipients.nix
     ./env.nix
+    ./checks
   ];
 }
