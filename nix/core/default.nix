@@ -1,6 +1,7 @@
 {
   imports = [
     ./activate
+    ./checks
     ./generators
     ./options
     ./ciMode.nix
