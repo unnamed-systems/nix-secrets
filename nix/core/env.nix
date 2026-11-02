@@ -10,8 +10,8 @@
         the flake reference provided to the CLI followed by the manifest option path.
       '';
       type = lib.types.nullOr lib.types.str;
-      default = "${config.nix.package}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'";
-      defaultText = lib.literalExpression ''"''${config.nix.package}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'"'';
+      default = "${lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"}nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'";
+      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'"'';
       # example = TODO;
     };
 
@@ -23,8 +23,8 @@
         the derivation path.
       '';
       type = lib.types.nullOr lib.types.str;
-      default = "${config.nix.package}/bin/nix-store --realise {{input}}";
-      defaultText = lib.literalExpression ''"''${config.nix.package}/bin/nix-store --realise {{input}}"'';
+      default = "${lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"}nix-store --realise {{input}}";
+      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}nix-store --realise {{input}}"'';
       # example = TODO;
     };
 
