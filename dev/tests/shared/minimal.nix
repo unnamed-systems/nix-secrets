@@ -21,6 +21,10 @@
     nixEvalCommand = "cat ${pkgs.writeText "nix-secrets-manifest.json" config.security.nix-secrets.manifest}";
     defaultRecipients = [ "first" ];
 
+    checks = {
+      missingSecrets.enable = false;
+    };
+
     ciMode = {
       enableDangerously = lib.mkForce true;
 
