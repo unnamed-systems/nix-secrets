@@ -41,25 +41,25 @@ in
 
           usePlaceholders = cfg.ciMode.enableDangerously && cfg.ciMode.usePlaceholders;
 
-          secrets = lib.mapAttrsToList (
-            _name: value:
-            {
-              inherit (value)
-                name
-                recipients
-                placeholder
-                neededForUsers
-                path
-                owner
-                group
-                mode
-                templateKey
-                ;
-            }
-            // lib.optionalAttrs (builtins.elem value.name withGenerators || withAllGenerators) {
-              inherit (value) generator;
-            }
-          ) enabledSecrets;
+          secrets = lib.mapAttrsToList (_name: value: {
+            inherit (value)
+              name
+              recipients
+              placeholder
+              neededForUsers
+              path
+              owner
+              group
+              mode
+              templateKey
+              ;
+
+            generator =
+              if builtins.elem value.name withGenerators || withAllGenerators then
+                value.generator
+              else
+                builtins.unsafeDiscardStringContext value.generator;
+          }) enabledSecrets;
 
           templates = lib.mapAttrsToList (_name: value: {
             inherit (value)
