@@ -23,7 +23,8 @@ in
   options.security.nix-secrets.checks.missingSecrets.enable = lib.mkOption {
     description = "Whether to check that every enabled secret has a corresponding encrypted file.";
     type = lib.types.bool;
-    default = true;
+    default = !cfg.ciMode.enableDangerously || !cfg.ciMode.usePlaceholders;
+    defaultText = lib.literalExpression "!cfg.ciMode.enableDangerously || !cfg.ciMode.usePlaceholders";
   };
 
   config.assertions = lib.optionals cfg.checks.missingSecrets.enable (
