@@ -28,8 +28,10 @@ in
       type = lib.types.functionTo lib.types.str;
       default =
         neededForUsers:
-        "${lib.getExe cfg.package} activate ${pkgs.writeText "nix-secrets-manifest.json" cfg.manifest} --needed-for-users ${lib.boolToString neededForUsers}";
-      defaultText = lib.literalExpression ''neededForUsers: "''${lib.getExe cfg.package} activate ''${builtins.toJSON "nix-secrets-manifest.json" cfg.manifest} --needed-for-users ''${lib.boolToString neededForUsers}"'';
+        "${lib.getExe cfg.package} activate ${
+          pkgs.writeText "nix-secrets-manifest.json" (cfg.manifest { })
+        } --needed-for-users ${lib.boolToString neededForUsers}";
+      defaultText = lib.literalExpression ''neededForUsers: "''${lib.getExe cfg.package} activate ''${builtins.toJSON "nix-secrets-manifest.json" (cfg.manifest { })} --needed-for-users ''${lib.boolToString neededForUsers}"'';
       # example = TODO;
     };
   };
