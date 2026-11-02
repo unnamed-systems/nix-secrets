@@ -56,7 +56,10 @@
       packages = eachSystem (
         system: pkgs: {
           default = self.packages.${system}.nix-secrets;
-          nix-secrets = pkgs.callPackage ./package.nix { };
+          nix-secrets-unwrapped = pkgs.callPackage ./packages/nix-secrets-unwrapped.nix { };
+          nix-secrets = pkgs.callPackage ./packages/nix-secrets.nix {
+            inherit (self.packages.${system}) nix-secrets-unwrapped;
+          };
           docs = pkgs.callPackage ./docs { inherit self; };
 
           # nix eval --impure --raw .#debug.flake.packages.x86_64-linux --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'

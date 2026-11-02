@@ -5,22 +5,22 @@
   debugBuild ? false,
 }:
 let
-  cargoFile = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+  cargoFile = builtins.fromTOML (builtins.readFile ../Cargo.toml);
 in
 rustPlatform.buildRustPackage {
   pname = cargoFile.package.name;
   version = cargoFile.package.version;
 
   src = lib.fileset.toSource {
-    root = ./.;
+    root = ../.;
     fileset = lib.fileset.unions [
-      ./src
-      ./Cargo.toml
-      ./Cargo.lock
+      ../src
+      ../Cargo.toml
+      ../Cargo.lock
     ];
   };
 
-  cargoLock.lockFile = ./Cargo.lock;
+  cargoLock.lockFile = ../Cargo.lock;
 
   buildType = if debugBuild then "debug" else "release";
 

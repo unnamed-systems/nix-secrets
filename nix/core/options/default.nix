@@ -63,8 +63,11 @@ in
         `security.nix-secrets.installPackage`, which is enabled by default.
       '';
       type = lib.types.package;
-      default = pkgs.callPackage ../../../package.nix {
-        debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
+      default = pkgs.callPackage ../../../packages/nix-secrets.nix {
+        inherit (cfg) nixBuildCommand;
+        nix-secrets-unwrapped = pkgs.callPackage ../../../packages/nix-secrets-unwrapped.nix {
+          debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
+        };
       };
       # example = TODO;
     };
