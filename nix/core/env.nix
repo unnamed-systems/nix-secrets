@@ -3,8 +3,8 @@
   options.security.nix-secrets = {
     nixBuildCommand = lib.mkOption {
       description = ''
-        Command used by the nix-secrets CLI to build the manifests for the
-        `security.nix-secrets.manifests` option.
+        Command used by the nix-secrets CLI to build the manifest for the
+        `security.nix-secrets.manifest` option.
 
         The command must contain the `{{input}}` placeholder, which is replaced with
         the Nix expression used to retrieve the manifest from the flake reference

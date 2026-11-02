@@ -66,7 +66,8 @@ let
                 value:
                 if builtins.isPath value then
                   value
-                else value.drvPath or (builtins.toFile "nix-secrets-placeholder" value);
+                else
+                  value.drvPath or (builtins.toFile "nix-secrets-placeholder" value);
             in
             lib.types.coercedTo inputType transformFunction outputType;
           default = "REPLACE WITH YOUR SECRET"; # TODO: generator
