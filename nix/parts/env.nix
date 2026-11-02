@@ -3,15 +3,6 @@
 let
   cfg = config.security.nix-secrets;
 
-  variables =
-    let
-      mkIfNotNull = value: lib.mkIf (value != null) value;
-    in
-    {
-      NIX_SECRETS_NIX_EVAL_COMMAND = mkIfNotNull cfg.nixEvalCommand;
-      NIX_SECRETS_DERIVATION_BUILD_COMMAND = mkIfNotNull cfg.derivationBuildCommand;
-    };
-
   packages = lib.optional cfg.installPackage cfg.package;
 in
 {
@@ -19,21 +10,16 @@ in
     if moduleSystem == "home-manager" then
       {
         home = {
-          sessionVariables = variables;
           inherit packages;
         };
       }
     else if moduleSystem == "hjem" then
       {
         inherit packages;
-        environment.sessionVariables = variables;
       }
     else
       {
-        environment = {
-          inherit variables;
-          systemPackages = packages;
-        };
+        environment.systemPackages = packages;
       }
   );
 }

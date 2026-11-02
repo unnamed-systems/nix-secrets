@@ -1,30 +1,20 @@
 { lib, config, ... }:
 {
   options.security.nix-secrets = {
-    nixEvalCommand = lib.mkOption {
+    nixBuildCommand = lib.mkOption {
       description = ''
-        Command used by the nix-secrets CLI to evaluate the
-        `security.nix-secrets.manifest` option.
+        Command used by the nix-secrets CLI to build the manifests for the
+        `security.nix-secrets.manifests` option.
 
         The command must contain the `{{input}}` placeholder, which is replaced with
-        the flake reference provided to the CLI followed by the manifest option path.
+        the Nix expression used to retrieve the manifest from the flake reference
+        provided to the CLI.
       '';
       type = lib.types.nullOr lib.types.str;
-      default = "${lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"}nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'";
-      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'"'';
-      # example = TODO;
-    };
-
-    derivationBuildCommand = lib.mkOption {
-      description = ''
-        Command used by the nix-secrets CLI to build derivations used in generators and placeholders.
-
-        The command must contain the `{{input}}` placeholder, which is replaced with
-        the derivation path.
-      '';
-      type = lib.types.nullOr lib.types.str;
-      default = "${lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"}nix-store --realise {{input}}";
-      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}nix-store --realise {{input}}"'';
+      default = "${
+        lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"
+      }nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'";
+      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'"'';
       # example = TODO;
     };
 
