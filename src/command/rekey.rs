@@ -32,7 +32,12 @@ impl CommandTrait for RekeyCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
-        let manifest = utils::eval_manifest(&flake, module_system.as_deref(), &hostname)?;
+        let manifest = utils::eval_manifest(
+            &flake,
+            module_system.as_deref(),
+            &hostname,
+            Default::default(),
+        )?;
         let storage_path = self
             .storage
             .as_ref()

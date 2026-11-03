@@ -1,9 +1,13 @@
 use std::{
-    env,
+    env, fs,
     process::{Command, Stdio},
 };
 
-use crate::{Result, manifest, utils};
+use crate::{
+    Result,
+    manifest::{self, ManifestOptions},
+    utils,
+};
 use eyre::{Context, OptionExt, bail};
 use rustix::system::uname;
 
@@ -64,7 +68,7 @@ pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, Option<St
     parse_flake_fallback(flake, fallback, canonicalize)
 }
 
-pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String> {
+pub fn eval_build_command(var: &str, default: &str, input: &str) -> Result<String> {
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
         .replace("{{input}}", input);
@@ -97,34 +101,37 @@ pub fn eval_env_command(var: &str, default: &str, input: &str) -> Result<String>
     Ok(output)
 }
 
-pub fn eval_derivation(manifest_command: &str, generator: &str) -> Result<String> {
-    trace!("Evaluating generator: `{generator}`");
-
-    let build_output = eval_env_command(
-        "NIX_SECRETS_DERIVATION_BUILD_COMMAND",
-        manifest_command,
-        generator,
-    )?;
-
-    trace!("Retrived generator binary: {}", build_output);
-
-    Ok(build_output)
-}
-
-pub fn eval_manifest(flake: &str, module_system: Option<&str>, hostname: &str) -> Result<Manifest> {
+pub fn eval_manifest(
+    flake: &str,
+    module_system: Option<&str>,
+    hostname: &str,
+    options: ManifestOptions,
+) -> Result<Manifest> {
     info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+    let options_json =
+        serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
+
     let resulting_input = format!(
-        "(builtins.getFlake \"{flake}\").{}.{hostname}.config.security.nix-secrets.manifest",
-        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX)
+        r#"(builtins.getFlake "{flake}").{}.{hostname}.config.security.nix-secrets.manifest (builtins.fromJSON "{}")"#,
+        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
+        options_json
     );
 
-    let build_output = eval_env_command(
-        "NIX_SECRETS_NIX_EVAL_COMMAND",
-        "nix-instantiate --extra-experimental-features 'flakes' --eval --raw --expr '{{input}}'",
+    trace!("Got resulting manifest input: {}", resulting_input);
+
+    let build_output = eval_build_command(
+        "NIX_SECRETS_NIX_BUILD_COMMAND",
+        "nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'",
         &resulting_input,
     )?;
 
-    let manifest = manifest::parse_manifest(&build_output)?;
+    trace!("Evaluating manifest from: {}", build_output.trim());
+    let contents =
+        fs::read_to_string(build_output.trim()).wrap_err("Failed to read manifest contents")?;
+
+    trace!("Got contents: {}", contents);
+
+    let manifest = manifest::parse_manifest(&contents)?;
     trace!("Retrived manifest for {flake}#{hostname}");
 
     utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;

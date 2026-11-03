@@ -40,7 +40,12 @@ impl CommandTrait for RegenerateCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
-        let manifest = utils::eval_manifest(&flake, module_system.as_deref(), &hostname)?;
+        let manifest = utils::eval_manifest(
+            &flake,
+            module_system.as_deref(),
+            &hostname,
+            Default::default(),
+        )?;
         let storage_path = self
             .storage
             .as_ref()
@@ -80,28 +85,20 @@ impl CommandTrait for RegenerateCommand {
                     bail!("Secret generator is undefined");
                 };
 
-                trace!(
-                    "Evaluating generator from derivation: {}",
-                    generator.derivation
-                );
-                utils::eval_derivation(&manifest.derivation_build_command, &generator.derivation)?;
-                trace!("Evaluated generator. Binary: {}", generator.executable);
+                trace!("Evaluated generator. Binary: {}", generator.display());
 
-                let output = Command::new(&generator.executable)
+                let output = Command::new(&generator)
                     .current_dir("/")
                     .output()
                     .wrap_err_with(|| {
-                        format!("Failed to spawn the generator: {}", generator.executable)
+                        format!("Failed to spawn the generator: {}", generator.display())
                     })?;
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
 
-                    return Err(eyre!(
-                        "Generator execution failed: {}",
-                        generator.executable
-                    ))
-                    .wrap_err_with(|| stderr.trim().to_owned());
+                    return Err(eyre!("Generator execution failed: {}", generator.display()))
+                        .wrap_err_with(|| stderr.trim().to_owned());
                 }
 
                 trace!("Got generator output");

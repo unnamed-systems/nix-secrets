@@ -16,7 +16,15 @@ pub struct Manifest {
     pub module_system: ModuleSystem,
     pub generations_dir: String,
     pub generations_for_users_dir: String,
-    pub derivation_build_command: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ManifestOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with_all_generators: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with_generators: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -73,18 +81,11 @@ pub struct Secret {
     pub mode: String,
     pub name: String,
     pub placeholder: String,
-    pub generator: Option<Generator>,
+    pub generator: Option<PathBuf>,
     pub path: PathBuf,
     pub recipients: Vec<String>,
     pub template_key: String,
     pub needed_for_users: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
-#[serde(rename_all = "camelCase")]
-pub struct Generator {
-    pub derivation: String,
-    pub executable: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
