@@ -27,7 +27,7 @@ in
     defaultText = lib.literalExpression "!cfg.ciMode.enableDangerously || !cfg.ciMode.usePlaceholders";
   };
 
-  config.assertions = lib.optionals cfg.checks.missingSecrets.enable (
+  config.assertions = lib.optionals (cfg.enable && cfg.checks.missingSecrets.enable) (
     lib.mapAttrsToList mkCheck cfg.secrets
   );
 }
