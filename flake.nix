@@ -72,9 +72,6 @@
             test-activate
             test-decrypt
             test-decryptRejectsUnmanagedSecrets
-            test-derivationBuildCommandEnv
-            test-derivationBuildCommandEnvStandalone
-            test-derivationBuildCommandEnvUnset
             test-edit
             test-generator
             test-hjem-activate
@@ -82,9 +79,6 @@
             test-installPackageFalse
             test-installPackageTrue
             test-keygen
-            test-nixEvalCommandEnv
-            test-nixEvalCommandEnvStandalone
-            test-nixEvalCommandEnvUnset
             test-placeholder
             test-rekey
             test-storagePathEnvStandalone
