@@ -31,7 +31,12 @@
       } ./dev/config.nix;
     in
     {
-      inherit (devOutputs) debug checks formatter;
+      inherit (devOutputs)
+        debug
+        devShells
+        checks
+        formatter
+        ;
 
       nixosModules = {
         default = self.nixosModules.nix-secrets;
