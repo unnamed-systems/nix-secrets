@@ -58,7 +58,7 @@ in
               if builtins.elem value.name withGenerators || withAllGenerators then
                 value.generator
               else
-                builtins.unsafeDiscardStringContext value.generator;
+                lib.mapNullable builtins.unsafeDiscardStringContext value.generator;
           }) enabledSecrets;
 
           templates = lib.mapAttrsToList (_name: value: {
