@@ -83,59 +83,25 @@ let
             - a generator name from `config.security.nix-secrets.generators`,
             - an attribute set with a single attribute, where the attribute name selects
               a generator from `config.security.nix-secrets.generators` and its value is
-              passed to that generator,
-            - an attribute set containing `derivation` and optionally `executable`.
-              `derivation` can be either a derivation or a path to a `.drv` file.
-              `executable` can be either a derivation or a path to an executable file.
+              passed to that generator.
           '';
           type = lib.types.nullOr (
             lib.types.oneOf [
-              lib.types.attrs
-              lib.types.path
+              lib.types.package
               lib.types.str
+              lib.types.attrs
             ]
           );
           apply =
             let
-              isRaw =
-                value:
-                builtins.isAttrs value
-                && builtins.elem (builtins.attrNames value) [
-                  [ "derivation" ]
-                  [
-                    "derivation"
-                    "executable"
-                  ]
-                ];
-
               isGenerator = value: builtins.isAttrs value && builtins.length (builtins.attrNames value) == 1;
 
-              isGeneratorName = value: builtins.isString value || value ? outPath || value ? __toString;
+              isGeneratorName = value: builtins.isString value;
 
               func =
                 value:
-                if isRaw value then
-                  {
-                    derivation =
-                      let
-                        v = value.derivation;
-                      in
-                      v.drvPath or (toString v);
-
-                    executable =
-                      let
-                        v =
-                          value.executable or (
-                            if lib.isDerivation value.derivation then
-                              value.derivation
-                            else
-                              abort "`executable` is required when `derivation` is a path rather than a derivation."
-                          );
-                      in
-                      if v ? meta.mainProgram then lib.getExe' v v.meta.mainProgram else toString v;
-                  }
-                else if lib.isDerivation value then
-                  func { derivation = value; }
+                if lib.types.package.check value then
+                  value
                 else if isGenerator value then
                   let
                     name = builtins.head (builtins.attrNames value);
@@ -144,7 +110,7 @@ let
                 else if isGeneratorName value then
                   func (cfg.generators.${toString value} { })
                 else
-                  abort "expected a derivation, generator name, generator attribute set, or raw generator specification.";
+                  abort "expected a derivation, generator name, or generator attribute set.";
             in
             lib.mapNullable func;
           default = null;
