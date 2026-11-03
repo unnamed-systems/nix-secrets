@@ -12,6 +12,7 @@ in
           ExecStart = cfg.activate.command false;
           RemainAfterExit = true;
         };
+        path = cfg.extraPackages;
         wantedBy = [ "default.target" ];
       };
 }
