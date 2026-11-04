@@ -30,7 +30,10 @@ let
             For example, the secret named `"forgejo/token"` is stored as
             `forgejo/token.enc` in the storage.
           '';
-          type = lib.types.str;
+          type = lib.types.addCheck (lib.types.pathWith {
+            absolute = false;
+            inStore = false;
+          }) (value: builtins.isString value && "/" + value == toString (/. + value));
           default = name;
           example = "forgejo/token";
         };
