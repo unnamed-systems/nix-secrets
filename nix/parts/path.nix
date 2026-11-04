@@ -54,38 +54,54 @@ let
     '';
   };
 
-  mkPath =
+  mkOptions =
     attr:
     lib.mkOption {
       type = lib.types.attrsOf (
         lib.types.submodule (
           { config, ... }: {
-            options.path = lib.mkOption {
-              description = descriptions.${attr};
-              type = lib.types.pathWith {
-                absolute = true;
-                inStore = false;
+            options = {
+              path = lib.mkOption {
+                description = descriptions.${attr};
+                type = lib.types.pathWith {
+                  absolute = true;
+                  inStore = false;
+                };
+                # Use separate directories because activation scripts with
+                # `beforeUsers = true` and `beforeUsers = false` run independently.
+                default = "${
+                  if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir
+                }/${attr}/${config.name}";
+                defaultText = lib.literalExpression ''"''${if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir}/${attr}/${config.name}"'';
+                # nix-repl> toString (/. + "/etc/passwd/../../.././etc/shadow////.//.")
+                # "/etc/shadow"
+                apply = value: toString (/. + value);
+                example = "${
+                  if
+                    builtins.elem moduleSystem [
+                      "home-manager"
+                      "hjem"
+                    ]
+                  then
+                    "$HOME/.config"
+                  else
+                    "/var/lib"
+                }/forgejo/${if attr == "secrets" then "token" else ".env"}";
               };
-              # Use separate directories because activation scripts with
-              # `beforeUsers = true` and `beforeUsers = false` run independently.
-              default = "${
-                if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir
-              }/${attr}/${config.name}";
-              defaultText = lib.literalExpression ''"''${if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir}/${attr}/${config.name}"'';
-              # nix-repl> toString (/. + "/etc/passwd/../../.././etc/shadow////.//.")
-              # "/etc/shadow"
-              apply = value: toString (/. + value);
-              example = "${
-                if
-                  builtins.elem moduleSystem [
-                    "home-manager"
-                    "hjem"
-                  ]
-                then
-                  "$HOME/.config"
-                else
-                  "/var/lib"
-              }/forgejo/${if attr == "secrets" then "token" else ".env"}";
+
+              isSymlink = lib.mkOption {
+                description = ''
+                  Whether to symlink the decrypted secret to its `path` (the recommended default
+                  behavior), or write the decrypted secret content directly to that path.
+
+                  Do not set this option unless you know exactly what you are doing. This option
+                  is mainly intended for secrets that must be persisted on disk independently of
+                  the nix-secrets activation state.
+                '';
+                type = lib.types.bool;
+                default = true;
+                example = false;
+              };
             };
           }
         )
@@ -104,7 +120,7 @@ let
       "/run";
 in
 {
-  options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkPath // {
+  options.security.nix-secrets = lib.genAttrs [ "secrets" "templates" ] mkOptions // {
     baseDir = lib.mkOption {
       description = ''
         Default directory where secrets and templates are mounted.
