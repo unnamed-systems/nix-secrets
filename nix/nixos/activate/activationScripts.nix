@@ -3,12 +3,8 @@ let
   cfg = config.security.nix-secrets;
   getActivationCommand = finalCommand: ''
     (
-    ${lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (n: v: "  export ${n}='${v}'") {
-        PATH = lib.makeBinPath cfg.extraPackages;
-      }
-    )}
-      ${finalCommand}
+      export PATH=${lib.escapeShellArg (lib.makeBinPath cfg.extraPackages)};
+      ${finalCommand} $([ "$NIXOS_ACTION" = "dry-activate" ] && echo "--dry")
     )
   '';
 in
