@@ -26,7 +26,7 @@ in
         withGenerators ? [ ],
         withAllGenerators ? false,
       }:
-      assert withGenerators != [ ] -> withAllGenerators;
+      assert withGenerators != [ ] -> !withAllGenerators;
       pkgs.writeText "nix-secrets_manifest.json" (
         builtins.toJSON {
           inherit (cfg)
