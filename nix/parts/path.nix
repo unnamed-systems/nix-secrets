@@ -62,13 +62,19 @@ let
           { config, ... }: {
             options.path = lib.mkOption {
               description = descriptions.${attr};
-              type = lib.types.str;
+              type = lib.types.pathWith {
+                absolute = true;
+                inStore = false;
+              };
               # Use separate directories because activation scripts with
               # `beforeUsers = true` and `beforeUsers = false` run independently.
               default = "${
                 if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir
               }/${attr}/${config.name}";
               defaultText = lib.literalExpression ''"''${if config.neededForUsers then cfg.baseForUsersDir else cfg.baseDir}/${attr}/${config.name}"'';
+              # nix-repl> toString (/. + "/etc/passwd/../../.././etc/shadow////.//.")
+              # "/etc/shadow"
+              apply = value: toString (/. + value);
               example = "${
                 if
                   builtins.elem moduleSystem [
