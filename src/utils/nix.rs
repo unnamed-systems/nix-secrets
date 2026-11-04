@@ -68,10 +68,24 @@ pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, Option<St
     parse_flake_fallback(flake, fallback, canonicalize)
 }
 
-pub fn eval_build_command(var: &str, default: &str, input: &str) -> Result<String> {
+pub fn eval_build_command(
+    var: &str,
+    default: &str,
+    flake_path: &str,
+    output_name: &str,
+    configuration_name: &str,
+    manifest_args: &str,
+) -> Result<String> {
+    let flake = shlex::try_quote(flake_path)?;
+    let output = shlex::try_quote(output_name)?;
+    let configuration = shlex::try_quote(configuration_name)?;
+    let manifest = shlex::try_quote(manifest_args)?;
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
-        .replace("{{input}}", input);
+        .replace("{{flakePath}}", &flake)
+        .replace("{{outputName}}", &output)
+        .replace("{{configurationName}}", &configuration)
+        .replace("{{manifestArgs}}", &manifest);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
@@ -111,18 +125,13 @@ pub fn eval_manifest(
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
 
-    let resulting_input = format!(
-        r#"(builtins.getFlake "{flake}").{}.{hostname}.config.security.nix-secrets.manifest (builtins.fromJSON "{}")"#,
-        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
-        options_json.replace('"', r#"\""#)
-    );
-
-    trace!("Got resulting manifest input: {}", resulting_input);
-
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
-        "nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'",
-        &resulting_input,
+        "nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.security.nix-secrets.manifest (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}",
+        &flake,
+        &module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
+        &hostname,
+        &options_json,
     )?;
 
     trace!("Evaluating manifest from: {}", build_output.trim());
