@@ -36,6 +36,10 @@ const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";
 #[command(hide = true, hide_possible_values = true)]
 /// Activate secrets for host
 pub struct ActivateCommand {
+    /// Whether or not to use dry activation logic
+    #[arg(long, action = clap::ArgAction::Set, value_parser = clap::value_parser!(bool))]
+    pub dry: bool,
+
     /// Path to the manifest file
     #[arg(value_hint = ValueHint::FilePath)]
     pub manifest: PathBuf,
@@ -53,7 +57,6 @@ impl CommandTrait for ActivateCommand {
         let contents =
             fs::read_to_string(&self.manifest).wrap_err("Failed to read manifest content")?;
         let manifest = manifest::parse_manifest(&contents)?;
-        let is_dry = env::var("NIXOS_ACTION").is_ok_and(|val| val == "dry-activate");
 
         let secrets: Vec<Secret> = manifest
             .secrets
@@ -238,7 +241,7 @@ impl CommandTrait for ActivateCommand {
 
         #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
         for (from, to) in links {
-            if is_dry {
+            if self.dry {
                 trace!("Dry, skipping linking ({from:?} -> {to:?})");
                 continue;
             }
@@ -249,13 +252,13 @@ impl CommandTrait for ActivateCommand {
         for directory in cleanup {
             trace!(
                 "{} old generation ({directory:?})",
-                if is_dry {
+                if self.dry {
                     "Would delete (dry)"
                 } else {
                     "Deleting"
                 }
             );
-            if !is_dry {
+            if !self.dry {
                 fs::remove_dir_all(&directory).wrap_err_with(|| {
                     format!(
                         "Failed to remove old generation directory: `{}`",
