@@ -1,4 +1,9 @@
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 let
   cfg = config.security.nix-secrets;
 
@@ -59,15 +64,23 @@ let
           '';
           type =
             let
-              inputType = lib.types.either lib.types.str lib.types.path;
+              inputType = lib.types.oneOf [
+                lib.types.str
+                lib.types.path
+                lib.types.package
+              ];
               outputType = lib.types.path;
 
               transformFunction =
                 value:
-                if builtins.isPath value then
+                if lib.types.package.check value then
                   value
+                else if lib.types.path.check value then
+                  value
+                else if builtins.getContext value == { } then
+                  builtins.toFile "nix-secrets-placeholder" value
                 else
-                  value.drvPath or (builtins.toFile "nix-secrets-placeholder" value);
+                  pkgs.writeText "nix-secrets-placeholder" value;
             in
             lib.types.coercedTo inputType transformFunction outputType;
           default = "REPLACE WITH YOUR SECRET"; # TODO: generator
