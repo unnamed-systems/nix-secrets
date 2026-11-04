@@ -29,8 +29,8 @@ in
       assert withGenerators != [ ] -> !withAllGenerators;
       pkgs.writeText "nix-secrets_manifest.json" (
         builtins.toJSON {
+          storage = /. + builtins.unsafeDiscardStringContext cfg.storage;
           inherit (cfg)
-            storage
             identityPaths
             storagePath
             generationsDir
