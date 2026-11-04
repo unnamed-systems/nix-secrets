@@ -8,7 +8,7 @@ use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    manifest::Secret,
+    manifest::{ManifestOptions, Secret},
     utils::{self, PathBufExt as _, check_secret_name, encrypt_stream},
 };
 
@@ -40,11 +40,17 @@ impl CommandTrait for RegenerateCommand {
 
         trace!("Parsed flake: {}, hostname: {}", flake, hostname);
 
+        let manifest_options = if self.all {
+            ManifestOptions::WithAllGenerators
+        } else {
+            ManifestOptions::WithGenerators(self.secrets.clone())
+        };
+
         let manifest = utils::eval_manifest(
             &flake,
             module_system.as_deref(),
             &hostname,
-            Default::default(),
+            manifest_options,
         )?;
         let storage_path = self
             .storage

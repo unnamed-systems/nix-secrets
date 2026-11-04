@@ -1,7 +1,7 @@
 use crate::Result;
 use eyre::Context;
 use nix::unistd::{Gid, Group, Uid, User};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use std::{fmt, path::PathBuf};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -18,13 +18,36 @@ pub struct Manifest {
     pub generations_for_users_dir: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ManifestOptions {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    with_all_generators: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    with_generators: Option<Vec<String>>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum ManifestOptions {
+    WithAllGenerators,
+    WithGenerators(Vec<String>),
+    #[default]
+    Default,
+}
+
+impl Serialize for ManifestOptions {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            ManifestOptions::WithAllGenerators => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry("withAllGenerators", &true)?;
+                map.end()
+            }
+            ManifestOptions::WithGenerators(vec) => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry("withGenerators", vec)?;
+                map.end()
+            }
+            ManifestOptions::Default => {
+                let map = serializer.serialize_map(Some(0))?;
+                map.end()
+            }
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]

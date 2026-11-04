@@ -114,7 +114,7 @@ pub fn eval_manifest(
     let resulting_input = format!(
         r#"(builtins.getFlake "{flake}").{}.{hostname}.config.security.nix-secrets.manifest (builtins.fromJSON "{}")"#,
         module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
-        options_json
+        options_json.replace('"', r#"\""#)
     );
 
     trace!("Got resulting manifest input: {}", resulting_input);
