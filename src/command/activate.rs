@@ -37,7 +37,7 @@ const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";
 /// Activate secrets for host
 pub struct ActivateCommand {
     /// Whether or not to use dry activation logic
-    #[arg(long, action = clap::ArgAction::Set, value_parser = clap::value_parser!(bool))]
+    #[arg(long, action = clap::ArgAction::SetTrue, value_parser = clap::value_parser!(bool))]
     pub dry: bool,
 
     /// Path to the manifest file
