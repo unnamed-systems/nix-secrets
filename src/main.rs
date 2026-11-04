@@ -5,6 +5,7 @@ use clap::CommandFactory;
 use clap_complete::CompleteEnv;
 use eyre::Ok;
 use tracing::level_filters::LevelFilter;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::{
     Layer, Registry, fmt, layer::SubscriberExt as _, util::SubscriberInitExt,
 };
@@ -32,16 +33,13 @@ fn main() -> Result<()> {
         init_logger();
     }
 
-    if let Err(err) = Args::run() {
-        error!("{}", err);
-        std::process::exit(1);
-    }
+    Args::run()?;
 
     Ok(())
 }
 
 pub fn init_logger() {
-    let _ = simple_eyre::install();
+    let _ = color_eyre::install();
     let is_debug = cfg!(debug_assertions);
     let default_level = if is_debug {
         LevelFilter::TRACE
@@ -67,6 +65,7 @@ pub fn init_logger() {
 
     Registry::default()
         .with(filter)
+        .with(ErrorLayer::default())
         .with(fmt_layer_final)
         .init();
 

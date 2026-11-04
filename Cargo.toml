@@ -9,8 +9,9 @@ aho-corasick = "1.1.5"
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 clap = { version = "4.6.4", features = ["derive", "env"] }
 clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
+color-eyre = "0.6.5"
 dirs = "6.0.0"
-eyre = "0.6.12"
+eyre = { version = "0.6.12", features = ["track-caller"] }
 nix = { version = "0.31.3", features = ["user", "hostname", "fs"] }
 rustix = { version = "1.1.4", features = ["fs", "mount", "system"] }
 scopeguard = "1.2.0"
@@ -18,9 +19,9 @@ serde = { version = "1.0.229", features = [ "derive" ] }
 serde_json = "1.0.151"
 sha2 = "0.10.0"
 shlex = { version = "2.0.1", default-features = false }
-simple-eyre = "0.3.1"
 thiserror = "2.0.19"
 tracing = { version = "0.1.44", features = ["max_level_trace"] }
+tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [profile.dev]
