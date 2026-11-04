@@ -48,6 +48,8 @@ pub struct ActivateCommand {
 impl CommandTrait for ActivateCommand {
     #[allow(clippy::too_many_lines)]
     fn execute(&self, _root: &Args) -> eyre::Result<()> {
+        trace!("Initiating activation");
+        trace!("Manifest argument: {}", self.manifest.display());
         let contents =
             fs::read_to_string(&self.manifest).wrap_err("Failed to read manifest content")?;
         let manifest = manifest::parse_manifest(&contents)?;
