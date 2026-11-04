@@ -2,6 +2,7 @@
   imports = [
     ../core/default.nix
 
+    (lib.modules.importApply ../parts/checks/activate.nix { moduleSystem = "nixos"; })
     (lib.modules.importApply ../parts/env.nix { moduleSystem = "nixos"; })
     (lib.modules.importApply ../parts/manifest.nix { moduleSystem = "nixos"; })
     (lib.modules.importApply ../parts/neededForUsers.nix { moduleSystem = "nixos"; })
