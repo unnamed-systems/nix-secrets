@@ -6,15 +6,17 @@
         Command used by the nix-secrets CLI to build the manifest for the
         `security.nix-secrets.manifest` option.
 
-        The command must contain the `{{input}}` placeholder, which is replaced with
-        the Nix expression used to retrieve the manifest from the flake reference
-        provided to the CLI.
+        The placeholders listed below are replaced by the CLI and escaped as shell arguments:
+        - `{{flakePath}}` - absolute path to the flake passed into `--flake`,
+        - `{{outputName}}` - name of the output, e.g. `"nixosConfigurations"`,
+        - `{{configurationName}}` - name of the configuration in `outputName` passed after `"#"` in the `--flake` argument,
+        - `{{manifestArgs}}` - JSON-string with arguments for generating the manifest.
       '';
       type = lib.types.nullOr lib.types.str;
       default = "${
         lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"
-      }nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'";
-      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{{input}}'"'';
+      }nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).\${outputName}.\${configurationName}.config.security.nix-secrets.manifest (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}";
+      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).\''${outputName}.\''${configurationName}.config.security.nix-secrets.manifest (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}"'';
       # example = TODO;
     };
 
