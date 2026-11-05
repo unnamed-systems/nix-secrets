@@ -52,6 +52,7 @@ in
               group
               mode
               templateKey
+              isSymlink
               ;
 
             generator =
@@ -70,6 +71,7 @@ in
               owner
               group
               mode
+              isSymlink
               ;
           }) enabledTemplates;
         }

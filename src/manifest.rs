@@ -109,6 +109,7 @@ pub struct Secret {
     pub recipients: Vec<String>,
     pub template_key: String,
     pub needed_for_users: bool,
+    pub is_symlink: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
@@ -121,6 +122,7 @@ pub struct Template {
     pub path: PathBuf,
     pub needed_for_users: bool,
     pub content: PathBuf,
+    pub is_symlink: bool,
 }
 
 pub fn parse_manifest(input: &str) -> eyre::Result<Manifest> {
