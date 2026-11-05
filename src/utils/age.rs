@@ -33,7 +33,9 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
         .filter_map(|path| File::open(path).map(BufReader::new).ok())
         .try_fold(Vec::new(), |mut acc, mut reader| {
             // Parses both age native identities and plugins
-            if let Ok(file) = IdentityFile::from_buffer(&mut reader) {
+            if let Ok(file) =
+                IdentityFile::from_buffer(&mut reader).map(|i| i.with_callbacks(UiCallbacks))
+            {
                 acc.extend(
                     file.into_identities()
                         .wrap_err("Failed to read identities from file")?,
@@ -46,7 +48,7 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
 
                 if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
                     trace!("Parsed an ssh identity");
-                    acc.push(Box::new(identity));
+                    acc.push(Box::new(identity.with_callbacks(UiCallbacks)));
                 } else {
                     trace!("Failed to parse the identity");
                 }
