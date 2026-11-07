@@ -77,6 +77,7 @@ impl CommandTrait for ActivateCommand {
             return Ok(());
         }
 
+        // TODO: isIdentity
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
         let identities = utils::get_identities(&identity_paths)?;
@@ -126,7 +127,7 @@ impl CommandTrait for ActivateCommand {
         let secret_generation_dir = generation_dir.join("secrets");
         trace!("Initialized generation directory {generation_dir:?}");
 
-        let mut links: HashMap<PathBuf, PathBuf> = HashMap::new();
+        let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
 
         for secret in &secrets {
             let raw_content = plain
@@ -175,7 +176,10 @@ impl CommandTrait for ActivateCommand {
 
             let final_directory = get_linkable_directory(&secret.name, &secret.path)?;
 
-            links.insert(generation_dst_location, final_directory);
+            links.insert(
+                generation_dst_location,
+                (final_directory, secret.is_symlink),
+            );
         }
 
         let templates_generation_dir = generation_dir.join("templates");
@@ -234,18 +238,21 @@ impl CommandTrait for ActivateCommand {
 
             let final_directory = get_linkable_directory(&template.name, &template.path)?;
 
-            links.insert(generation_dst_location, final_directory);
+            links.insert(
+                generation_dst_location,
+                (final_directory, template.is_symlink),
+            );
         }
 
         info!("Finished linkable creation, linking");
 
         #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
-        for (from, to) in links {
+        for (from, (to, link)) in links {
             if self.dry {
                 trace!("Dry, skipping linking ({from:?} -> {to:?})");
                 continue;
             }
-            deploy_linkable(&from, &to)?;
+            deploy_linkable(&from, &to, link)?;
         }
         info!("Linked everything, cleaning up");
 
@@ -339,7 +346,7 @@ fn get_linkable_directory(name: &str, path: &Path) -> Result<PathBuf> {
     Ok(path.to_path_buf())
 }
 
-fn deploy_linkable(from: &Path, to: &Path) -> Result<()> {
+fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
     trace!("Creating a temporary directory for linkable");
     let parent = to.parent().ok_or_eyre("Path to secret is a directory")?;
     let temp_name = format!(
@@ -356,14 +363,24 @@ fn deploy_linkable(from: &Path, to: &Path) -> Result<()> {
     fs::create_dir_all(parent)
         .wrap_err_with(|| eyre!("Failed to create secret parent directory ({parent:?})"))?;
 
-    trace!("Symlinking {from:?} -> {to:?} ({temp_path:?})");
-    unix_fs::symlink(from, &temp_path).wrap_err_with(|| {
-        format!(
-            "Failed to symlink linkable ({} -> {})",
-            from.display(),
-            temp_path.display()
-        )
-    })?;
+    trace!("Linking {from:?} -> {to:?} ({temp_path:?})");
+    if link {
+        unix_fs::symlink(from, &temp_path).wrap_err_with(|| {
+            format!(
+                "Failed to symlink linkable ({} -> {})",
+                from.display(),
+                temp_path.display()
+            )
+        })?;
+    } else {
+        std::fs::copy(from, &temp_path).wrap_err_with(|| {
+            format!(
+                "Failed to copy file contents ({} -> {})",
+                from.display(),
+                temp_path.display()
+            )
+        })?;
+    }
     fs::rename(&temp_path, to).wrap_err_with(|| {
         format!(
             "Failed to move temp linkable to the final path ({} -> {})",
