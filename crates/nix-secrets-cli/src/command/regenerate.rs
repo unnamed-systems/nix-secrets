@@ -1,15 +1,20 @@
+use age::cli_common::file_io::{OutputFormat, OutputWriter};
+use nix_secrets_core::{
+    Result,
+    age::encrypt_stream,
+    model::{ManifestOptions, Secret},
+};
+
 use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command};
 
-use age::cli_common::file_io::{OutputFormat, OutputWriter};
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
-    Result, SECRETS_EXTENSION,
+    SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    manifest::{ManifestOptions, Secret},
-    utils::{self, PathBufExt as _, check_secret_name, encrypt_stream},
+    utils::{self, PathBufExt as _, check_secret_name},
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]

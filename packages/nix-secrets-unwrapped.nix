@@ -8,13 +8,13 @@ let
   cargoFile = builtins.fromTOML (builtins.readFile ../Cargo.toml);
 in
 rustPlatform.buildRustPackage {
-  pname = cargoFile.package.name;
-  version = cargoFile.package.version;
+  pname = cargoFile.workspace.package.name;
+  version = cargoFile.workspace.package.version;
 
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.unions [
-      ../src
+      ../crates
       ../Cargo.toml
       ../Cargo.lock
     ];
@@ -45,6 +45,6 @@ rustPlatform.buildRustPackage {
       lib.maintainers.bananad3v
       lib.maintainers.yunfachi
     ];
-    mainProgram = cargoFile.package.name;
+    mainProgram = cargoFile.workspace.package.name;
   };
 }

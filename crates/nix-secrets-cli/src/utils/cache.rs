@@ -1,12 +1,12 @@
+use nix_secrets_core::{
+    Result,
+    model::{Manifest, parse_manifest},
+};
+
 use std::{fs, path::PathBuf};
 
 use eyre::{OptionExt, bail};
 use sha2::{Digest as _, Sha256};
-
-use crate::{
-    Result,
-    manifest::{self, Manifest},
-};
 
 fn get_cached_manifest_file_location(flake: &str) -> Result<PathBuf> {
     let state_directory = dirs::cache_dir().ok_or_eyre("Failed to get state directory")?;
@@ -33,7 +33,7 @@ pub fn get_cached_manifest(flake: &str) -> Result<Manifest> {
 
     if file_location.is_file() {
         let content = fs::read_to_string(file_location)?;
-        let manifest = manifest::parse_manifest(&content)?;
+        let manifest = parse_manifest(&content)?;
         return Ok(manifest);
     }
 

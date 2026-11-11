@@ -7,6 +7,7 @@ use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail};
+use nix_secrets_core::age::{decrypt, decrypt_stream, get_identities};
 use std::{
     io::{self},
     path::PathBuf,
@@ -73,18 +74,19 @@ impl CommandTrait for DecryptCommand {
 
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities = utils::get_identities(&identity_paths)?;
+        let identities = get_identities(&identity_paths)?;
         trace!(
             "Decrypting the secret at {resulting_path:?} with {} identities",
             identities.len()
         );
 
         if let Some(output) = &self.output {
-            utils::decrypt(&resulting_path, output, &identities)?;
+            decrypt(&resulting_path, output, &identities)?;
         } else {
             let stdout = io::stdout().lock();
             let input = InputReader::new(resulting_path.to_str().map(str::to_owned))?;
-            utils::decrypt_stream(input, stdout, &identities)?;
+
+            decrypt_stream(input, stdout, &identities)?;
         }
         trace!("Decrypted secret successfully");
 

@@ -11,11 +11,10 @@ use std::{
     result, time,
 };
 
-use crate::{Result, manifest::ModuleSystem, utils::PathBufExt as _};
+use crate::{Result, utils::PathBufExt as _};
 use crate::{
     SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    manifest::{self, OwnerOrGroup, Secret, Template},
     utils,
 };
 use age::cli_common::file_io::InputReader;
@@ -25,6 +24,10 @@ use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, eyre};
 
 #[cfg(target_os = "linux")]
 use nix::sys::statfs::FsType;
+use nix_secrets_core::{
+    age::{decrypt_stream, get_identities},
+    model::{ModuleSystem, OwnerOrGroup, Secret, Template, parse_manifest},
+};
 
 #[cfg(target_os = "linux")]
 const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
@@ -56,7 +59,7 @@ impl CommandTrait for ActivateCommand {
         trace!("Manifest argument: {}", self.manifest.display());
         let contents =
             fs::read_to_string(&self.manifest).wrap_err("Failed to read manifest content")?;
-        let manifest = manifest::parse_manifest(&contents)?;
+        let manifest = parse_manifest(&contents)?;
 
         let secrets: Vec<Secret> = manifest
             .secrets
@@ -80,7 +83,7 @@ impl CommandTrait for ActivateCommand {
         // TODO: isIdentity
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities = utils::get_identities(&identity_paths)?;
+        let identities = get_identities(&identity_paths)?;
         trace!("Found identities ({})", identities.len());
 
         let plain: HashMap<&Secret, String> = secrets
@@ -109,7 +112,7 @@ impl CommandTrait for ActivateCommand {
                 let input_reader = InputReader::new(Some(path_str))
                     .wrap_err("Failed to create an input reader")?;
                 let mut decrypted = Vec::new();
-                utils::decrypt_stream(input_reader, &mut decrypted, &identities)?;
+                decrypt_stream(input_reader, &mut decrypted, &identities)?;
                 trace!("Successfully decrypted secret `{}`", &s.name);
 
                 Ok((s, String::from_utf8(decrypted)?))
@@ -503,7 +506,7 @@ fn mount_secret_fs(mountpoint: &Path, _module_system: &ModuleSystem) -> Result<(
 #[cfg(target_os = "linux")]
 fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()> {
     use eyre::bail;
-    use rustix::mount::{MountFlags, mount};
+    use nix::mount::{MsFlags, mount};
 
     trace!("Creating mount point `{}`", mountpoint.display());
     fs::create_dir_all(mountpoint).wrap_err_with(|| {
@@ -541,11 +544,11 @@ fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()
     }
 
     mount(
-        "ramfs",
+        Some("ramfs"),
         mountpoint,
-        "ramfs",
-        MountFlags::NOSUID | MountFlags::RELATIME,
-        Some(c"mode=751"),
+        Some("ramfs"),
+        MsFlags::MS_NOSUID | MsFlags::MS_RELATIME,
+        Some("mode=751"),
     )
     .wrap_err("Ramfs creation failed")?;
 

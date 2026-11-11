@@ -75,7 +75,7 @@ impl fmt::Display for OwnerOrGroup {
     }
 }
 impl OwnerOrGroup {
-    pub(crate) fn get_uid(&self) -> Result<Uid> {
+    pub fn get_uid(&self) -> Result<Uid> {
         match self {
             Self::Left(name) => {
                 let uid = User::from_name(name)?.map_or_else(|| Uid::from_raw(0), |u| u.uid);
@@ -85,7 +85,7 @@ impl OwnerOrGroup {
         }
     }
 
-    pub(crate) fn get_gid(&self) -> Result<Gid> {
+    pub fn get_gid(&self) -> Result<Gid> {
         match self {
             Self::Left(name) => {
                 let gid = Group::from_name(name)?.map_or_else(|| Gid::from_raw(0), |g| g.gid);

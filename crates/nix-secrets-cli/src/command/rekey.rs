@@ -3,12 +3,15 @@ use std::{collections::HashMap, io::Write as _, path::PathBuf};
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail};
+use nix_secrets_core::{
+    age::{get_identities, rekey_stream},
+    model::Secret,
+};
 
 use crate::{
     Result, SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    manifest::Secret,
-    utils::{self, PathBufExt as _, check_secret_name, rekey_stream},
+    utils::{self, PathBufExt as _, check_secret_name},
 };
 use clap::{Parser, ValueHint};
 
@@ -56,7 +59,7 @@ impl CommandTrait for RekeyCommand {
 
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities = utils::get_identities(&identity_paths)?;
+        let identities = get_identities(&identity_paths)?;
 
         let rekeyed: HashMap<&Secret, Vec<u8>> = secrets
             .iter()

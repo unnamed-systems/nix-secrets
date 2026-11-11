@@ -1,0 +1,20 @@
+[package]
+name                   = "nix-secrets-core"
+description            = "core nix-secrets library"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+repository.workspace   = true
+readme                 = "README.md"
+
+[dependencies]
+age.workspace = true
+tracing.workspace = true 
+tracing-error.workspace = true 
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+eyre.workspace = true
+nix.workspace = true
+serde.workspace = true
+serde_json.workspace = true

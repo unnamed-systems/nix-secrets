@@ -1,12 +1,11 @@
 use eyre::{Context as _, Result, eyre};
 use nix::unistd::chown;
+use nix_secrets_core::model::OwnerOrGroup;
 use sha2::{Digest, Sha256};
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
-
-use crate::manifest::OwnerOrGroup;
 
 pub fn hash_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let mut file = File::open(path)?;

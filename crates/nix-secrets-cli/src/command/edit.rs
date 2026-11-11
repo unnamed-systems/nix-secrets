@@ -15,6 +15,7 @@ use crate::{
 use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, OptionExt as _, bail, eyre};
+use nix_secrets_core::age::{decrypt, encrypt, get_identities};
 use scopeguard::defer;
 
 fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
@@ -128,12 +129,12 @@ impl CommandTrait for EditCommand {
             trace!("Secret already exists, editing");
             let identity_paths: Vec<PathBuf> =
                 manifest.identity_paths.iter().map(PathBuf::from).collect();
-            let identities = utils::get_identities(&identity_paths)?;
+            let identities = get_identities(&identity_paths)?;
             trace!(
                 "Decrypting the secret at {resulting_path:?} with {} identities",
                 identities.len()
             );
-            utils::decrypt(&resulting_path, &input_path, &identities)?;
+            decrypt(&resulting_path, &input_path, &identities)?;
             trace!("Decrypted secret successfully ({input_path:?})");
 
             let pre_edit_hash = utils::hash_file(&input_path).wrap_err_with(|| {
@@ -174,7 +175,7 @@ impl CommandTrait for EditCommand {
             eyre!("Failed to create secret parent directory ({final_parent:?})")
         })?;
 
-        utils::encrypt(&input_path, &resulting_path, &secret.recipients)?;
+        encrypt(&input_path, &resulting_path, &secret.recipients)?;
 
         info!("Done");
         Ok(())

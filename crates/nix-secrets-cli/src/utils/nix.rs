@@ -3,16 +3,15 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{
-    Result,
-    manifest::{self, ManifestOptions},
-    utils,
-};
+use crate::utils;
 use eyre::{Context, OptionExt, bail};
-use rustix::system::uname;
+use nix::sys::utsname::uname;
 
 use crate::FLAKE_CONFIGURATION_PREFIX;
-use crate::manifest::Manifest;
+use nix_secrets_core::{
+    Result,
+    model::{Manifest, ManifestOptions, parse_manifest},
+};
 
 static MODULE_SYSTEMS: &[&str] = &[
     "nixosConfigurations",
@@ -61,11 +60,12 @@ pub fn parse_flake_fallback(
 }
 
 pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, Option<String>, String)> {
-    let uname = uname();
-    let hostname = uname.nodename().to_str().ok();
-    let fallback = hostname.unwrap_or("default");
+    let hostname = uname()
+        .ok()
+        .and_then(|v| v.nodename().to_str().map(String::from));
+    let fallback = hostname.unwrap_or(String::from("default"));
 
-    parse_flake_fallback(flake, fallback, canonicalize)
+    parse_flake_fallback(flake, &fallback, canonicalize)
 }
 
 pub fn eval_build_command(
@@ -75,6 +75,7 @@ pub fn eval_build_command(
     output_name: &str,
     configuration_name: &str,
     manifest_args: &str,
+    manifest_name: &str,
 ) -> Result<String> {
     let flake = shlex::try_quote(flake_path)?;
     let output = shlex::try_quote(output_name)?;
@@ -84,6 +85,7 @@ pub fn eval_build_command(
         .unwrap_or_else(|_| default.to_owned())
         .replace("{{flakePath}}", &flake)
         .replace("{{outputName}}", &output)
+        .replace("{{manifestName}}", &manifest_name)
         .replace("{{configurationName}}", &configuration)
         .replace("{{manifestArgs}}", &manifest);
     trace!("Parsed base eval command: {env_cmd_str:?}");
@@ -132,6 +134,7 @@ pub fn eval_manifest(
         &module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
         &hostname,
         &options_json,
+        "",
     )?;
 
     trace!("Evaluating manifest from: {}", build_output.trim());
@@ -140,7 +143,7 @@ pub fn eval_manifest(
 
     trace!("Got contents: {}", contents);
 
-    let manifest = manifest::parse_manifest(&contents)?;
+    let manifest = parse_manifest(&contents)?;
     trace!("Retrived manifest for {flake}#{hostname}");
 
     utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
@@ -154,10 +157,12 @@ mod test_flake_parsing {
     use super::*;
 
     fn get_attr_fallback() -> String {
-        let uname = uname();
-        let hostname = uname.nodename().to_str().ok();
-        let fallback = hostname.unwrap_or("default");
-        fallback.to_string()
+        let hostname = uname()
+            .ok()
+            .and_then(|v| v.nodename().to_str().map(String::from));
+        let fallback = hostname.unwrap_or(String::from("default"));
+
+        fallback
     }
 
     #[test]

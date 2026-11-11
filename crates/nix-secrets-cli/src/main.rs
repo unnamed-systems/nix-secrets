@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate tracing;
 
+use nix_secrets_core::Result;
+
 use clap::CommandFactory;
 use clap_complete::CompleteEnv;
 use eyre::Ok;
@@ -13,10 +15,7 @@ use tracing_subscriber::{
 use crate::command::Args;
 
 pub(crate) mod command;
-pub(crate) mod manifest;
 pub(crate) mod utils;
-
-pub type Result<T> = eyre::Result<T, eyre::ErrReport>;
 
 pub static SECRETS_EXTENSION: &str = "enc";
 

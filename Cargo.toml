@@ -1,24 +1,24 @@
-[package]
+[workspace.package]
 name = "nix-secrets"
 version = "0.5.0"
+rust-version = "1.94.0"
+license = "EUPL-1.2"
 edition = "2024"
+repository = "https://github.com/unnamed-systems/nix-secrets"
 
-[dependencies]
-age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
-aho-corasick = "1.1.5"
-chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
-clap = { version = "4.6.4", features = ["derive", "env"] }
-clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
-color-eyre = "0.6.5"
-dirs = "6.0.0"
-eyre = { version = "0.6.12", features = ["track-caller"] }
-nix = { version = "0.31.3", features = ["user", "hostname", "fs"] }
-rustix = { version = "1.1.4", features = ["fs", "mount", "system"] }
-scopeguard = "1.2.0"
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.dependencies]
+nix-secrets-core = { path = "./crates/nix-secrets-core" }
+
 serde = { version = "1.0.229", features = [ "derive" ] }
 serde_json = "1.0.151"
-sha2 = "0.10.0"
-shlex = { version = "2.0.1", default-features = false }
+
+age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
+eyre = { version = "0.6.12", features = ["track-caller"] }
+nix = { version = "0.31.3", features = ["user", "hostname", "fs", "mount"] }
 thiserror = "2.0.19"
 tracing = { version = "0.1.44", features = ["max_level_trace"] }
 tracing-error = "0.2.1"
@@ -36,9 +36,12 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
-[lints.clippy]
+[workspace.lints.clippy]
 nursery = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
+perf       = { level = "warn", priority = -1 }
+style      = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
 
 unwrap_used = "deny"
 expect_used = "deny"
