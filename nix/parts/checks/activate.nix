@@ -9,8 +9,11 @@ let
   cfg = config.security.nix-secrets;
 
   script = ''
-    ${cfg.activate.command false} --dry
-    ${cfg.activate.command true} --dry
+    (
+      export PATH=${lib.escapeShellArg (lib.makeBinPath cfg.extraPackages)};
+      ${cfg.activate.command false} --dry
+      ${cfg.activate.command true} --dry
+    )
   '';
 in
 {
