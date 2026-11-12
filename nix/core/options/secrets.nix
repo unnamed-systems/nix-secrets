@@ -57,6 +57,35 @@ let
           ];
         };
 
+        value =
+          let
+            host = config.networking.hostName or "idk";
+            home = "/tmp";
+
+            # This uses IFD which sucks. But how else could a decrypted secret be evaluated in the config?
+            decrypted =
+              # The ability to directly pass the manifest to nix-secrets could be nice here
+              pkgs.runCommand "nix-secrets-vars-${name}" { nativeBuildInputs = [ cfg.package ]; } ''
+                export HOME=${home} \
+                  HOST=${host} \
+                  NIX_SECRETS_NIX_BUILD_COMMAND='echo "${builtins.toJSON (cfg.manifest { })}"' \
+                  NIX_SECRETS_STORAGE_PATH=${cfg.storage}
+                nix-secrets decrypt ${config.name}
+              '';
+          in
+          lib.mkOption {
+            description = ''
+              This variable's value. CAN and WILL end up in the nix store.
+            '';
+            type = lib.types.str;
+            readOnly = true;
+            default =
+              assert config.isVar;
+              if cfg.ciMode.usePlaceholders then config.placeholder else (builtins.readFile decrypted);
+            defaultText = lib.literalExpression "if cfg.ciMode.usePlaceholders then self.placeholder else (builtins.readFile (decrypted self))";
+            example = "somevariable";
+          };
+
         placeholder = lib.mkOption {
           description = ''
             Placeholder content used instead of decrypting secret.
@@ -140,7 +169,11 @@ let
           '';
           type = lib.types.str;
           readOnly = true;
-          default = "{{NIX_SECRETS-${builtins.hashString "sha256" config.name}}}";
+          default =
+            if config.isVar then
+              config.value
+            else
+              "{{NIX_SECRETS-${builtins.hashString "sha256" config.name}}}";
           defaultText = lib.literalExpression ''"{{NIX_SECRETS-''${builtins.hashString "sha256" config.name}}}"'';
           # SHA-256 hash of the string "secret"
           example = "{{NIX_SECRETS-2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b}}";
@@ -158,6 +191,21 @@ let
           example = "{{NIX_SECRETS-2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b}}";
         };
 
+        isVar = lib.mkOption {
+          description = ''
+            Whether to add this secret (and dedicated identity) to the secrets storage
+            location and therefore make it world-readable as plain text in the nix store.
+
+            Secrets marked as variables may be accessed through their `value` attribute.
+
+            Do not set this option unless you know exactly what you are doing. This option
+            is mainly intended for values that must be available in the nix store without
+            them being committed in plain text to their public git repositories.
+          '';
+          type = lib.types.bool;
+          default = false;
+          example = true;
+        };
       };
 
       config = {
