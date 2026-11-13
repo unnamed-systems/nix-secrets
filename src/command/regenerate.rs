@@ -1,4 +1,9 @@
-use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command};
+use std::{
+    collections::HashMap,
+    io::Write as _,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use age::cli_common::file_io::{OutputFormat, OutputWriter};
 use clap::{Parser, ValueHint};
@@ -27,12 +32,16 @@ pub struct RegenerateCommand {
     /// regenerate all secrets
     #[arg(short, long)]
     all: bool,
+
+    /// regenerate missing secrets
+    #[arg(short, long)]
+    missing: bool,
 }
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if self.secrets.is_empty() != self.all {
-            bail!("Provide either secret names to regenerate or `--all`");
+        if self.secrets.is_empty() != self.all | self.missing {
+            bail!("Provide either secret names to regenerate, `--missing` or `--all`");
         }
 
         let (flake, module_system, hostname) =
@@ -65,7 +74,19 @@ impl CommandTrait for RegenerateCommand {
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
-            .filter(|s| (self.secrets.contains(&s.name) || self.all) && s.generator.is_some())
+            .filter(|s| {
+                (self.secrets.contains(&s.name)
+                    || self.all
+                    || (self.missing
+                        && !Path::new(
+                            &storage_path
+                                .join(&s.name)
+                                .append_extension(SECRETS_EXTENSION)
+                                .into_os_string(),
+                        )
+                        .exists()))
+                    && s.generator.is_some()
+            })
             .collect();
 
         if secrets.is_empty() {
