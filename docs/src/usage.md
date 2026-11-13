@@ -31,3 +31,15 @@ nix-secrets rekey --storage <STORAGE> [SECRETS]
 The `--storage` argument is the same as with the [edit](#editing-secrets) command.
 
 The `SECRETS` argument is a list of secret names you want to rekey separated by spaces, for example, `cloudflare/dnsToken password`. If omitted, will rekey all secrets in your config.
+
+## Generating
+
+To generate a secret, use the `nix-secrets regenerate` command.
+
+```bash
+nix-secrets regenerate --storage <STORAGE> <SECRETS>
+# or
+nix-secrets regenerate --storage <STORAGE> [--dry-run] <--all|--missing>
+```
+
+You can either specify which secrets you want to regenerate, or use the special flags `--all` to regenerate all, or `--missing` to bootstrap only missing secrets.
