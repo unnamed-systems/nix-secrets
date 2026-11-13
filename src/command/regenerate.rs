@@ -33,6 +33,10 @@ pub struct RegenerateCommand {
     #[arg(short, long)]
     all: bool,
 
+    /// show which secrets would be regenerated
+    #[arg(short = 'n', long = "dry-run")]
+    dry: bool,
+
     /// regenerate missing secrets
     #[arg(short, long)]
     missing: bool,
@@ -91,6 +95,26 @@ impl CommandTrait for RegenerateCommand {
 
         if secrets.is_empty() {
             bail!("No secrets to regenerate.");
+        }
+
+        if self.dry {
+            info!(
+                "The following secrets would have been regenerated:\n{}",
+                secrets
+                    .iter()
+                    .map(|s| format!(
+                        "\t- `{}` ({})",
+                        s.name,
+                        s.generator
+                            .as_ref()
+                            .expect("Secret generator is undefined")
+                            .display()
+                    ))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+
+            return Ok(());
         }
 
         let regenerated: HashMap<&Secret, Vec<u8>> = secrets
