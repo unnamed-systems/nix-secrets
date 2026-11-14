@@ -1,3 +1,8 @@
+#[macro_use]
+extern crate tracing;
+
+pub mod utils;
+
 #[cfg(target_os = "linux")]
 use std::io::{BufRead as _, BufReader};
 use std::{
@@ -11,23 +16,21 @@ use std::{
     result, time,
 };
 
-use crate::{Result, utils::PathBufExt as _};
-use crate::{
-    SECRETS_EXTENSION,
-    command::{Args, CommandTrait},
-    utils,
-};
 use age::cli_common::file_io::InputReader;
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, eyre};
+use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _, log::init_logger};
 
 #[cfg(target_os = "linux")]
 use nix::sys::statfs::FsType;
 use nix_secrets_core::{
+    Result,
     age::{decrypt_stream, get_identities},
     model::{ModuleSystem, OwnerOrGroup, Secret, Template, parse_manifest},
 };
+
+use crate::utils::set_owner_and_group;
 
 #[cfg(target_os = "linux")]
 const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
@@ -36,9 +39,8 @@ const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
 const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-#[command(hide = true, hide_possible_values = true)]
 /// Activate secrets for host
-pub struct ActivateCommand {
+pub struct Args {
     /// Whether or not to use dry activation logic
     #[arg(long, action = clap::ArgAction::SetTrue, value_parser = clap::value_parser!(bool))]
     pub dry: bool,
@@ -52,234 +54,234 @@ pub struct ActivateCommand {
     pub needed_for_users: bool,
 }
 
-impl CommandTrait for ActivateCommand {
-    #[allow(clippy::too_many_lines)]
-    fn execute(&self, _root: &Args) -> eyre::Result<()> {
-        trace!("Initiating activation");
-        trace!("Manifest argument: {}", self.manifest.display());
-        let contents =
-            fs::read_to_string(&self.manifest).wrap_err("Failed to read manifest content")?;
-        let manifest = parse_manifest(&contents)?;
+#[allow(clippy::too_many_lines)]
+fn main() -> Result<()> {
+    init_logger();
 
-        let secrets: Vec<Secret> = manifest
-            .secrets
-            .into_iter()
-            .filter(|i| i.needed_for_users == self.needed_for_users)
-            .collect();
-        trace!("Filtered secrets ({})", secrets.len());
+    trace!("Initiating activation");
+    let args = Args::parse();
 
-        let templates: Vec<Template> = manifest
-            .templates
-            .into_iter()
-            .filter(|i| i.needed_for_users == self.needed_for_users)
-            .collect();
-        trace!("Filtered templates ({})", templates.len());
+    trace!("Manifest argument: {}", args.manifest.display());
+    let contents =
+        fs::read_to_string(&args.manifest).wrap_err("Failed to read manifest content")?;
+    let manifest = parse_manifest(&contents)?;
 
-        if secrets.is_empty() && templates.is_empty() {
-            info!("Nothing to deploy");
-            return Ok(());
-        }
+    let secrets: Vec<Secret> = manifest
+        .secrets
+        .into_iter()
+        .filter(|i| i.needed_for_users == args.needed_for_users)
+        .collect();
+    trace!("Filtered secrets ({})", secrets.len());
 
-        // TODO: isIdentity
-        let identity_paths: Vec<PathBuf> =
-            manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities = get_identities(&identity_paths)?;
-        trace!("Found identities ({})", identities.len());
+    let templates: Vec<Template> = manifest
+        .templates
+        .into_iter()
+        .filter(|i| i.needed_for_users == args.needed_for_users)
+        .collect();
+    trace!("Filtered templates ({})", templates.len());
 
-        let plain: HashMap<&Secret, String> = secrets
-            .iter()
-            .map(|s| {
-                if manifest.use_placeholders {
-                    trace!(
-                        "Using placeholder for secret `{}` ({:?})",
-                        s.name, s.placeholder
-                    );
-
-                    let placeholder = fs::read_to_string(&s.placeholder)
-                        .wrap_err("Failed to read placeholder content")?;
-                    return Ok((s, placeholder));
-                }
-
-                let path_str = manifest
-                    .storage
-                    .join(&s.name)
-                    .append_extension(SECRETS_EXTENSION)
-                    .into_os_string()
-                    .into_string()
-                    .map_err(|e| eyre!("Invalid unicode path provided: {e:?}"))?;
-                trace!("Reading secret `{}` ({})", &s.name, path_str);
-
-                let input_reader = InputReader::new(Some(path_str))
-                    .wrap_err("Failed to create an input reader")?;
-                let mut decrypted = Vec::new();
-                decrypt_stream(input_reader, &mut decrypted, &identities)?;
-                trace!("Successfully decrypted secret `{}`", &s.name);
-
-                Ok((s, String::from_utf8(decrypted)?))
-            })
-            .collect::<eyre::Result<_>>()?;
-
-        let (generation_dir, cleanup) = init_generation_dir(
-            &manifest.module_system,
-            if self.needed_for_users {
-                &manifest.generations_for_users_dir
-            } else {
-                &manifest.generations_dir
-            },
-        )?;
-        let secret_generation_dir = generation_dir.join("secrets");
-        trace!("Initialized generation directory {generation_dir:?}");
-
-        let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
-
-        for secret in &secrets {
-            let raw_content = plain
-                .get(secret)
-                .wrap_err_with(|| eyre!("Decrypted content not found"))?;
-
-            let generation_dst_location = secret_generation_dir.join(&secret.name);
-            let generation_dst_parent = generation_dst_location
-                .parent()
-                .ok_or_eyre("Path to secret has no parent")?;
-
-            trace!(
-                "Ensuring secret directory {generation_dst_parent:?} inside generation directory exists"
-            );
-            fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-                eyre!(
-                    "Failed to create secret generation directory: `{}",
-                    generation_dst_parent.display()
-                )
-            })?;
-
-            info!(
-                "Secret `{}` -> {}",
-                secret.name,
-                generation_dst_location.display()
-            );
-            let mut the_file = get_linkable_file(
-                &generation_dst_location,
-                &secret.name,
-                &secret.mode,
-                &secret.owner,
-                &secret.group,
-                &manifest.module_system,
-                secret.needed_for_users,
-            )?;
-
-            trace!("Writing secret content `{}`", secret.name);
-            the_file
-                .write_all(raw_content.as_bytes())
-                .wrap_err_with(|| {
-                    format!(
-                        "Failed to write secret content: `{}`",
-                        generation_dst_location.display()
-                    )
-                })?;
-
-            let final_directory = get_linkable_directory(&secret.name, &secret.path)?;
-
-            links.insert(
-                generation_dst_location,
-                (final_directory, secret.is_symlink),
-            );
-        }
-
-        let templates_generation_dir = generation_dir.join("templates");
-        trace!("Initialized generation directory {generation_dir:?}");
-
-        let hashes: HashMap<&str, &String> =
-            plain.iter().map(|(k, v)| (&*k.template_key, v)).collect();
-
-        for template in templates {
-            trace!("Reading template content from {:?}", template.content);
-            let content = fs::read_to_string(&template.content).wrap_err_with(|| {
-                format!(
-                    "Failed to read template content: `{}`",
-                    template.content.display()
-                )
-            })?;
-            trace!("Replacing secret hashes");
-            let raw_content = replace_template_keys(&hashes, &content)?;
-
-            let generation_dst_location = templates_generation_dir.join(&template.name);
-            let generation_dst_parent = generation_dst_location
-                .parent()
-                .ok_or_eyre("Path to secret has no parent")?;
-
-            trace!(
-                "Ensuring template directory {generation_dst_parent:?} inside generation directory exists"
-            );
-            fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-                eyre!("Failed to create secret generation directory ({generation_dst_parent:?})")
-            })?;
-
-            info!(
-                "Template `{}` -> {}",
-                template.name,
-                generation_dst_location.display()
-            );
-            let mut the_file = get_linkable_file(
-                &generation_dst_location,
-                &template.name,
-                &template.mode,
-                &template.owner,
-                &template.group,
-                &manifest.module_system,
-                template.needed_for_users,
-            )?;
-
-            trace!("Writing template content `{}`", template.name);
-            the_file
-                .write_all(raw_content.as_bytes())
-                .wrap_err_with(|| {
-                    format!(
-                        "Failed to write template content: `{}`",
-                        generation_dst_location.display()
-                    )
-                })?;
-
-            let final_directory = get_linkable_directory(&template.name, &template.path)?;
-
-            links.insert(
-                generation_dst_location,
-                (final_directory, template.is_symlink),
-            );
-        }
-
-        info!("Finished linkable creation, linking");
-
-        #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
-        for (from, (to, link)) in links {
-            if self.dry {
-                trace!("Dry, skipping linking ({from:?} -> {to:?})");
-                continue;
-            }
-            deploy_linkable(&from, &to, link)?;
-        }
-        info!("Linked everything, cleaning up");
-
-        for directory in cleanup {
-            trace!(
-                "{} old generation ({directory:?})",
-                if self.dry {
-                    "Would delete (dry)"
-                } else {
-                    "Deleting"
-                }
-            );
-            if !self.dry {
-                fs::remove_dir_all(&directory).wrap_err_with(|| {
-                    format!(
-                        "Failed to remove old generation directory: `{}`",
-                        directory.display()
-                    )
-                })?;
-            }
-        }
-
-        Ok(())
+    if secrets.is_empty() && templates.is_empty() {
+        info!("Nothing to deploy");
+        return Ok(());
     }
+
+    // TODO: isIdentity
+    let identity_paths: Vec<PathBuf> = manifest.identity_paths.iter().map(PathBuf::from).collect();
+    let identities = get_identities(&identity_paths)?;
+    trace!("Found identities ({})", identities.len());
+
+    let plain: HashMap<&Secret, String> = secrets
+        .iter()
+        .map(|s| {
+            if manifest.use_placeholders {
+                trace!(
+                    "Using placeholder for secret `{}` ({:?})",
+                    s.name, s.placeholder
+                );
+
+                let placeholder = fs::read_to_string(&s.placeholder)
+                    .wrap_err("Failed to read placeholder content")?;
+                return Ok((s, placeholder));
+            }
+
+            let path_str = manifest
+                .storage
+                .join(&s.name)
+                .append_extension(SECRETS_EXTENSION)
+                .into_os_string()
+                .into_string()
+                .map_err(|e| eyre!("Invalid unicode path provided: {e:?}"))?;
+            trace!("Reading secret `{}` ({})", &s.name, path_str);
+
+            let input_reader =
+                InputReader::new(Some(path_str)).wrap_err("Failed to create an input reader")?;
+            let mut decrypted = Vec::new();
+            decrypt_stream(input_reader, &mut decrypted, &identities)?;
+            trace!("Successfully decrypted secret `{}`", &s.name);
+
+            Ok((s, String::from_utf8(decrypted)?))
+        })
+        .collect::<eyre::Result<_>>()?;
+
+    let (generation_dir, cleanup) = init_generation_dir(
+        &manifest.module_system,
+        if args.needed_for_users {
+            &manifest.generations_for_users_dir
+        } else {
+            &manifest.generations_dir
+        },
+    )?;
+    let secret_generation_dir = generation_dir.join("secrets");
+    trace!("Initialized generation directory {generation_dir:?}");
+
+    let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
+
+    for secret in &secrets {
+        let raw_content = plain
+            .get(secret)
+            .wrap_err_with(|| eyre!("Decrypted content not found"))?;
+
+        let generation_dst_location = secret_generation_dir.join(&secret.name);
+        let generation_dst_parent = generation_dst_location
+            .parent()
+            .ok_or_eyre("Path to secret has no parent")?;
+
+        trace!(
+            "Ensuring secret directory {generation_dst_parent:?} inside generation directory exists"
+        );
+        fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
+            eyre!(
+                "Failed to create secret generation directory: `{}",
+                generation_dst_parent.display()
+            )
+        })?;
+
+        info!(
+            "Secret `{}` -> {}",
+            secret.name,
+            generation_dst_location.display()
+        );
+        let mut the_file = get_linkable_file(
+            &generation_dst_location,
+            &secret.name,
+            &secret.mode,
+            &secret.owner,
+            &secret.group,
+            &manifest.module_system,
+            secret.needed_for_users,
+        )?;
+
+        trace!("Writing secret content `{}`", secret.name);
+        the_file
+            .write_all(raw_content.as_bytes())
+            .wrap_err_with(|| {
+                format!(
+                    "Failed to write secret content: `{}`",
+                    generation_dst_location.display()
+                )
+            })?;
+
+        let final_directory = get_linkable_directory(&secret.name, &secret.path)?;
+
+        links.insert(
+            generation_dst_location,
+            (final_directory, secret.is_symlink),
+        );
+    }
+
+    let templates_generation_dir = generation_dir.join("templates");
+    trace!("Initialized generation directory {generation_dir:?}");
+
+    let hashes: HashMap<&str, &String> = plain.iter().map(|(k, v)| (&*k.template_key, v)).collect();
+
+    for template in templates {
+        trace!("Reading template content from {:?}", template.content);
+        let content = fs::read_to_string(&template.content).wrap_err_with(|| {
+            format!(
+                "Failed to read template content: `{}`",
+                template.content.display()
+            )
+        })?;
+        trace!("Replacing secret hashes");
+        let raw_content = replace_template_keys(&hashes, &content)?;
+
+        let generation_dst_location = templates_generation_dir.join(&template.name);
+        let generation_dst_parent = generation_dst_location
+            .parent()
+            .ok_or_eyre("Path to secret has no parent")?;
+
+        trace!(
+            "Ensuring template directory {generation_dst_parent:?} inside generation directory exists"
+        );
+        fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
+            eyre!("Failed to create secret generation directory ({generation_dst_parent:?})")
+        })?;
+
+        info!(
+            "Template `{}` -> {}",
+            template.name,
+            generation_dst_location.display()
+        );
+        let mut the_file = get_linkable_file(
+            &generation_dst_location,
+            &template.name,
+            &template.mode,
+            &template.owner,
+            &template.group,
+            &manifest.module_system,
+            template.needed_for_users,
+        )?;
+
+        trace!("Writing template content `{}`", template.name);
+        the_file
+            .write_all(raw_content.as_bytes())
+            .wrap_err_with(|| {
+                format!(
+                    "Failed to write template content: `{}`",
+                    generation_dst_location.display()
+                )
+            })?;
+
+        let final_directory = get_linkable_directory(&template.name, &template.path)?;
+
+        links.insert(
+            generation_dst_location,
+            (final_directory, template.is_symlink),
+        );
+    }
+
+    info!("Finished linkable creation, linking");
+
+    #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
+    for (from, (to, link)) in links {
+        if args.dry {
+            trace!("Dry, skipping linking ({from:?} -> {to:?})");
+            continue;
+        }
+        deploy_linkable(&from, &to, link)?;
+    }
+    info!("Linked everything, cleaning up");
+
+    for directory in cleanup {
+        trace!(
+            "{} old generation ({directory:?})",
+            if args.dry {
+                "Would delete (dry)"
+            } else {
+                "Deleting"
+            }
+        );
+        if !args.dry {
+            fs::remove_dir_all(&directory).wrap_err_with(|| {
+                format!(
+                    "Failed to remove old generation directory: `{}`",
+                    directory.display()
+                )
+            })?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(target_os = "linux")]
@@ -427,7 +429,7 @@ fn get_linkable_file(
             "Applying ownership for linkable `{}`: {}:{}",
             name, owner, group
         );
-        utils::set_owner_and_group(dst, owner, group)?;
+        set_owner_and_group(dst, owner, group)?;
     }
 
     Ok(file)

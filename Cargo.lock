@@ -1318,15 +1318,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "nix-secrets-cli"
+name = "nix-secrets-activate"
 version = "0.5.0"
 dependencies = [
  "age",
  "aho-corasick",
+ "clap",
+ "clap_complete",
+ "eyre",
+ "nix",
+ "nix-secrets-core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "nix-secrets-cli"
+version = "0.5.0"
+dependencies = [
+ "age",
  "chrono",
  "clap",
  "clap_complete",
- "color-eyre",
  "dirs",
  "eyre",
  "nix",
@@ -1347,6 +1364,7 @@ name = "nix-secrets-core"
 version = "0.5.0"
 dependencies = [
  "age",
+ "color-eyre",
  "eyre",
  "nix",
  "serde",

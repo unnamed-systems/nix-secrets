@@ -8,14 +8,18 @@ use std::{
 };
 
 use crate::{
-    Result, SECRETS_EXTENSION,
+    Result,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _, check_secret_name},
+    utils::{self},
 };
 use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, OptionExt as _, bail, eyre};
-use nix_secrets_core::age::{decrypt, encrypt, get_identities};
+use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _};
+use nix_secrets_core::{
+    age::{decrypt, encrypt, get_identities},
+    file::check_secret_name,
+};
 use scopeguard::defer;
 
 fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {

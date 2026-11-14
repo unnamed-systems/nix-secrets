@@ -85,7 +85,7 @@ pub fn eval_build_command(
         .unwrap_or_else(|_| default.to_owned())
         .replace("{{flakePath}}", &flake)
         .replace("{{outputName}}", &output)
-        .replace("{{manifestName}}", &manifest_name)
+        .replace("{{manifestName}}", manifest_name)
         .replace("{{configurationName}}", &configuration)
         .replace("{{manifestArgs}}", &manifest);
     trace!("Parsed base eval command: {env_cmd_str:?}");
@@ -130,9 +130,9 @@ pub fn eval_manifest(
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
         "nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.security.nix-secrets.manifest (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}",
-        &flake,
-        &module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
-        &hostname,
+        flake,
+        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
+        hostname,
         &options_json,
         "",
     )?;

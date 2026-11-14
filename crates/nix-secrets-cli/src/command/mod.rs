@@ -2,7 +2,6 @@ use clap::{Parser, Subcommand};
 use clap_complete::ArgValueCompleter;
 use eyre::Ok;
 
-use activate::ActivateCommand;
 use edit::EditCommand;
 use keygen::KeygenCommand;
 use regenerate::RegenerateCommand;
@@ -10,7 +9,6 @@ use rekey::RekeyCommand;
 
 use crate::{command::decrypt::DecryptCommand, utils};
 
-mod activate;
 mod decrypt;
 mod edit;
 mod keygen;
@@ -32,7 +30,6 @@ pub struct Args {
 
 #[derive(Subcommand, PartialEq, Debug)]
 enum Command {
-    Activate(ActivateCommand),
     Edit(EditCommand),
     Decrypt(DecryptCommand),
     Rekey(RekeyCommand),
@@ -43,7 +40,6 @@ enum Command {
 impl CommandTrait for Command {
     fn execute(&self, root: &Args) -> eyre::Result<()> {
         match &self {
-            Self::Activate(cmd) => cmd.execute(root)?,
             Self::Keygen(cmd) => cmd.execute(root)?,
             Self::Edit(cmd) => cmd.execute(root)?,
             Self::Decrypt(cmd) => cmd.execute(root)?,

@@ -1,13 +1,16 @@
 use crate::{
-    SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _, check_secret_name},
+    utils::{self},
 };
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail};
-use nix_secrets_core::age::{decrypt, decrypt_stream, get_identities};
+use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _};
+use nix_secrets_core::{
+    age::{decrypt, decrypt_stream, get_identities},
+    file::check_secret_name,
+};
 use std::{
     io::{self},
     path::PathBuf,

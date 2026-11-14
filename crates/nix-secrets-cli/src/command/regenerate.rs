@@ -1,7 +1,8 @@
 use age::cli_common::file_io::{OutputFormat, OutputWriter};
 use nix_secrets_core::{
-    Result,
+    Result, SECRETS_EXTENSION,
     age::encrypt_stream,
+    file::{PathBufExt as _, check_secret_name},
     model::{ManifestOptions, Secret},
 };
 
@@ -12,9 +13,8 @@ use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
 
 use crate::{
-    SECRETS_EXTENSION,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _, check_secret_name},
+    utils::{self},
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -98,7 +98,7 @@ impl CommandTrait for RegenerateCommand {
 
                 trace!("Evaluated generator. Binary: {}", generator.display());
 
-                let output = Command::new(&generator)
+                let output = Command::new(generator)
                     .current_dir("/")
                     .output()
                     .wrap_err_with(|| {

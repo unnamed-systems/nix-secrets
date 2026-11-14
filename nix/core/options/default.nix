@@ -57,7 +57,7 @@ in
 
     package = lib.mkOption {
       description = ''
-        nix-secrets package used by activation scripts and services.
+        nix-secrets package for the CLI.
 
         It can also be installed into the system by enabling
         `security.nix-secrets.installPackage`, which is enabled by default.
@@ -68,6 +68,17 @@ in
         nix-secrets-unwrapped = pkgs.callPackage ../../../packages/nix-secrets-unwrapped.nix {
           debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
         };
+      };
+      # example = TODO;
+    };
+
+    activationPackage = lib.mkOption {
+      description = ''
+        nix-secrets package used by activation scripts.
+      '';
+      type = lib.types.package;
+      default = pkgs.callPackage ../../../packages/nix-secrets-activate.nix {
+        debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
       };
       # example = TODO;
     };

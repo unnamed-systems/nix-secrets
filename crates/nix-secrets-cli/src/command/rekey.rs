@@ -4,14 +4,16 @@ use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail};
 use nix_secrets_core::{
+    SECRETS_EXTENSION,
     age::{get_identities, rekey_stream},
+    file::{PathBufExt as _, check_secret_name},
     model::Secret,
 };
 
 use crate::{
-    Result, SECRETS_EXTENSION,
+    Result,
     command::{Args, CommandTrait},
-    utils::{self, PathBufExt as _, check_secret_name},
+    utils::{self},
 };
 use clap::{Parser, ValueHint};
 
