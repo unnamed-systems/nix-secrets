@@ -26,11 +26,11 @@ pub struct RegenerateCommand {
     storage: Option<PathBuf>,
 
     /// secrets to regenerate
-    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)))]
+    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)), conflicts_with_all = ["missing", "all"])]
     secrets: Vec<String>,
 
     /// regenerate all secrets
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "missing")]
     all: bool,
 
     /// regenerate missing secrets
@@ -44,10 +44,6 @@ pub struct RegenerateCommand {
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if self.secrets.is_empty() != (self.all ^ self.missing) {
-            bail!("Provide either secret names to regenerate, `--missing` or `--all`");
-        }
-
         let manifest_options = if self.all {
             ManifestOptions::WithAllGenerators
         } else {
