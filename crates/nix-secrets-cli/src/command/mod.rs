@@ -7,7 +7,7 @@ use keygen::KeygenCommand;
 use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
 
-use crate::{command::decrypt::DecryptCommand, utils};
+use crate::{FLAKE_CONFIGURATION_PREFIX, command::decrypt::DecryptCommand, utils};
 
 mod decrypt;
 mod edit;
@@ -25,7 +25,22 @@ pub struct Args {
     #[clap(short, long, default_value = ".")]
     #[arg(add = ArgValueCompleter::new(utils::complete_flake), global = true)]
     /// path to the flake containing secrets
-    flake: String,
+    pub(crate) flake: String,
+
+    /// module system for this host
+    #[clap(short, long, default_value = FLAKE_CONFIGURATION_PREFIX)]
+    #[arg(global = true)]
+    pub(crate) module_system: String,
+
+    /// whether to use the home-manager profile inside the nixos configuration
+    #[clap(long, conflicts_with = "hj")]
+    #[arg(global = true)]
+    pub(crate) hm: Option<String>,
+
+    /// whether to use the hjem profile inside the nixos configuration
+    #[clap(long)]
+    #[arg(global = true)]
+    pub(crate) hj: Option<String>,
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
@@ -39,12 +54,15 @@ enum Command {
 
 impl CommandTrait for Command {
     fn execute(&self, root: &Args) -> eyre::Result<()> {
-        match &self {
+        match self {
             Self::Keygen(cmd) => cmd.execute(root)?,
-            Self::Edit(cmd) => cmd.execute(root)?,
-            Self::Decrypt(cmd) => cmd.execute(root)?,
-            Self::Rekey(cmd) => cmd.execute(root)?,
-            Self::Regenerate(cmd) => cmd.execute(root)?,
+            _ => match self {
+                Self::Edit(cmd) => cmd.execute(root)?,
+                Self::Decrypt(cmd) => cmd.execute(root)?,
+                Self::Rekey(cmd) => cmd.execute(root)?,
+                Self::Regenerate(cmd) => cmd.execute(root)?,
+                _ => {}
+            },
         }
         Ok(())
     }

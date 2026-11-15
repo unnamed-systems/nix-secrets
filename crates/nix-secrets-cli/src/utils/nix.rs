@@ -3,29 +3,21 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::utils;
+use crate::{command::Args, utils};
 use eyre::{Context, OptionExt, bail};
 use nix::sys::utsname::uname;
 
-use crate::FLAKE_CONFIGURATION_PREFIX;
 use nix_secrets_core::{
     Result,
     model::{Manifest, ManifestOptions, parse_manifest},
 };
 
-static MODULE_SYSTEMS: &[&str] = &[
-    "nixosConfigurations",
-    "darwinConfigurations",
-    "homeConfigurations",
-    "hjemConfigurations",
-];
-
 pub fn parse_flake_fallback(
     flake: &str,
     fallback: &str,
     canonicalize: bool,
-) -> Option<(String, Option<String>, String)> {
-    let (path, attr) = match flake.split_once('#') {
+) -> Option<(String, String)> {
+    let (path, hostname) = match flake.split_once('#') {
         Some((p, "")) => (p, fallback),
         Some((p, a)) => {
             if a.contains('#') || a.contains(char::is_whitespace) {
@@ -45,21 +37,10 @@ pub fn parse_flake_fallback(
         path.to_string()
     };
 
-    let (module_system, hostname) = match attr.split_once('.') {
-        Some((module_system, hostname))
-            if !module_system.is_empty()
-                && !hostname.is_empty()
-                && MODULE_SYSTEMS.contains(&module_system) =>
-        {
-            (Some(module_system.to_string()), hostname.to_string())
-        }
-        _ => (None, attr.to_string()),
-    };
-
-    Some((res, module_system, hostname))
+    Some((res, hostname.to_owned()))
 }
 
-pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, Option<String>, String)> {
+pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> {
     let hostname = uname()
         .ok()
         .and_then(|v| v.nodename().to_str().map(String::from));
@@ -75,7 +56,7 @@ pub fn eval_build_command(
     output_name: &str,
     configuration_name: &str,
     manifest_args: &str,
-    manifest_name: &str,
+    manifest_path: &str,
 ) -> Result<String> {
     let flake = shlex::try_quote(flake_path)?;
     let output = shlex::try_quote(output_name)?;
@@ -85,7 +66,7 @@ pub fn eval_build_command(
         .unwrap_or_else(|_| default.to_owned())
         .replace("{{flakePath}}", &flake)
         .replace("{{outputName}}", &output)
-        .replace("{{manifestName}}", manifest_name)
+        .replace("{{manifestPath}}", manifest_path)
         .replace("{{configurationName}}", &configuration)
         .replace("{{manifestArgs}}", &manifest);
     trace!("Parsed base eval command: {env_cmd_str:?}");
@@ -117,24 +98,30 @@ pub fn eval_build_command(
     Ok(output)
 }
 
-pub fn eval_manifest(
-    flake: &str,
-    module_system: Option<&str>,
-    hostname: &str,
-    options: ManifestOptions,
-) -> Result<Manifest> {
-    info!("Evaluating flake: {}", format!("{}#{}", flake, hostname));
+pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> {
+    info!("Evaluating flake: {}", args.flake);
+    let (flake, hostname) =
+        utils::parse_flake(&args.flake, true).ok_or_eyre("Failed to parse flake")?;
+
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
 
+    let manifest_path = if let Some(user) = &args.hm {
+        format!("home-manager.users.{user}.security.nix-secrets.manifest")
+    } else if let Some(user) = &args.hj {
+        format!("hjem.users.{user}.security.nix-secrets.manifest")
+    } else {
+        String::from("security.nix-secrets.manifest")
+    };
+
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
-        "nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.security.nix-secrets.manifest (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}",
-        flake,
-        module_system.unwrap_or(FLAKE_CONFIGURATION_PREFIX),
-        hostname,
+        r#"nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}"#,
+        &flake,
+        &args.module_system,
+        &hostname,
         &options_json,
-        "",
+        &manifest_path,
     )?;
 
     trace!("Evaluating manifest from: {}", build_output.trim());
@@ -168,14 +155,14 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_both() -> Result<()> {
         let actual = parse_flake("foo#bar", false);
-        let expected = Some(("foo".to_string(), None, "bar".to_string()));
+        let expected = Some(("foo".to_string(), "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
     #[test]
     fn parse_flake_spaces() -> Result<()> {
         let actual = parse_flake("foo bar#buzz", false);
-        let expected = Some(("foo bar".to_string(), None, "buzz".to_string()));
+        let expected = Some(("foo bar".to_string(), "buzz".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -183,7 +170,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_host_sharp() -> Result<()> {
         let actual = parse_flake("foo#", false);
-        let expected = Some(("foo".to_string(), None, get_attr_fallback()));
+        let expected = Some(("foo".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -191,7 +178,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_host() -> Result<()> {
         let actual = parse_flake("foo", false);
-        let expected = Some(("foo".to_string(), None, get_attr_fallback()));
+        let expected = Some(("foo".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -199,7 +186,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_attr() -> Result<()> {
         let actual = parse_flake("#bar", false);
-        let expected = Some(("".to_string(), None, "bar".to_string()));
+        let expected = Some(("".to_string(), "bar".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -207,7 +194,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_empty() -> Result<()> {
         let actual = parse_flake("", false);
-        let expected = Some(("".to_string(), None, get_attr_fallback()));
+        let expected = Some(("".to_string(), get_attr_fallback()));
         assert_eq!(actual, expected);
         Ok(())
     }
@@ -215,7 +202,7 @@ mod test_flake_parsing {
     #[test]
     fn parse_flake_macos() -> Result<()> {
         let actual = parse_flake("#laptop.local", false);
-        let expected = Some(("".to_string(), None, "laptop.local".to_string()));
+        let expected = Some(("".to_string(), "laptop.local".to_string()));
         assert_eq!(actual, expected);
         Ok(())
     }

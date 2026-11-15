@@ -34,11 +34,11 @@ pub struct RegenerateCommand {
     all: bool,
 
     /// regenerate missing secrets
-    #[arg(short, long)]
+    #[arg(long)]
     missing: bool,
 
     /// show which secrets would be regenerated
-    #[arg(short, long)]
+    #[arg(long)]
     dry: bool,
 }
 
@@ -48,23 +48,13 @@ impl CommandTrait for RegenerateCommand {
             bail!("Provide either secret names to regenerate, `--missing` or `--all`");
         }
 
-        let (flake, module_system, hostname) =
-            utils::parse_flake(&root.flake, true).ok_or_eyre("Failed to parse flake")?;
-
-        trace!("Parsed flake: {}, hostname: {}", flake, hostname);
-
         let manifest_options = if self.all {
             ManifestOptions::WithAllGenerators
         } else {
             ManifestOptions::WithGenerators(self.secrets.clone())
         };
 
-        let manifest = utils::eval_manifest(
-            &flake,
-            module_system.as_deref(),
-            &hostname,
-            manifest_options,
-        )?;
+        let manifest = utils::eval_manifest(root, manifest_options)?;
         let storage_path = self
             .storage
             .as_ref()

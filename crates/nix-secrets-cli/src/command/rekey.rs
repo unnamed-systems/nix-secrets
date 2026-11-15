@@ -32,17 +32,7 @@ pub struct RekeyCommand {
 
 impl CommandTrait for RekeyCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        let (flake, module_system, hostname) =
-            utils::parse_flake(&root.flake, true).ok_or_eyre("Failed to parse flake")?;
-
-        trace!("Parsed flake: {}, hostname: {}", flake, hostname);
-
-        let manifest = utils::eval_manifest(
-            &flake,
-            module_system.as_deref(),
-            &hostname,
-            Default::default(),
-        )?;
+        let manifest = utils::eval_manifest(root, Default::default())?;
         let storage_path = self
             .storage
             .as_ref()
