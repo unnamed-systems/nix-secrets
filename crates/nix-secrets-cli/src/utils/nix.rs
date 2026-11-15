@@ -106,9 +106,9 @@ pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> 
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
 
-    let manifest_path = if let Some(user) = &args.hm {
+    let manifest_path = if let Some(user) = &args.home_manager {
         format!("home-manager.users.{user}.security.nix-secrets.manifest")
-    } else if let Some(user) = &args.hj {
+    } else if let Some(user) = &args.hjem {
         format!("hjem.users.{user}.security.nix-secrets.manifest")
     } else {
         String::from("security.nix-secrets.manifest")

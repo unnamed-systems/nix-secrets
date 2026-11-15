@@ -24,23 +24,23 @@ pub struct Args {
 
     #[clap(short, long, default_value = ".")]
     #[arg(add = ArgValueCompleter::new(utils::complete_flake), global = true)]
-    /// path to the flake containing secrets
+    /// Path to the flake containing secrets
     pub(crate) flake: String,
 
-    /// module system for this host
+    /// Module system for this host
     #[clap(short, long, default_value = FLAKE_CONFIGURATION_PREFIX)]
     #[arg(global = true)]
     pub(crate) module_system: String,
 
-    /// whether to use the home-manager profile inside the nixos configuration
-    #[clap(long, conflicts_with = "hj")]
-    #[arg(global = true)]
-    pub(crate) hm: Option<String>,
+    /// Whether to use the home-manager profile inside the nixos configuration
+    #[clap(long, conflicts_with = "hjem", value_name = "user")]
+    #[arg(global = true, visible_alias = "hm")]
+    pub(crate) home_manager: Option<String>,
 
-    /// whether to use the hjem profile inside the nixos configuration
+    /// Whether to use the hjem profile inside the nixos configuration
     #[clap(long)]
-    #[arg(global = true)]
-    pub(crate) hj: Option<String>,
+    #[arg(global = true, visible_alias = "hj", value_name = "user")]
+    pub(crate) hjem: Option<String>,
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
