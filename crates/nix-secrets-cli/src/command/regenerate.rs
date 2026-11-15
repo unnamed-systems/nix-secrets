@@ -32,12 +32,20 @@ pub struct RegenerateCommand {
     /// regenerate all secrets
     #[arg(short, long)]
     all: bool,
+
+    /// regenerate missing secrets
+    #[arg(short, long)]
+    missing: bool,
+
+    /// show which secrets would be regenerated
+    #[arg(short, long)]
+    dry: bool,
 }
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        if self.secrets.is_empty() != self.all {
-            bail!("Provide either secret names to regenerate or `--all`");
+        if self.secrets.is_empty() != (self.all ^ self.missing) {
+            bail!("Provide either secret names to regenerate, `--missing` or `--all`");
         }
 
         let (flake, module_system, hostname) =
@@ -70,11 +78,39 @@ impl CommandTrait for RegenerateCommand {
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
-            .filter(|s| (self.secrets.contains(&s.name) || self.all) && s.generator.is_some())
+            .filter(|s| {
+                (self.secrets.contains(&s.name)
+                    || self.all
+                    || (self.missing
+                        && !storage_path
+                            .join(&s.name)
+                            .append_extension(SECRETS_EXTENSION)
+                            .try_exists()
+                            .unwrap_or(false)))
+                    && s.generator.is_some()
+            })
             .collect();
 
         if secrets.is_empty() {
             bail!("No secrets to regenerate.");
+        }
+
+        if self.dry {
+            info!(
+                "The following secrets would have been regenerated:\n{}",
+                secrets
+                    .into_iter()
+                    .map(|s| format!(
+                        "\t- `{}` ({})",
+                        s.name,
+                        s.generator
+                            .and_then(|p| p.into_os_string().into_string().ok())
+                            .unwrap_or(String::from("Secret generator is undefined"))
+                    ))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            );
+            return Ok(());
         }
 
         let regenerated: HashMap<&Secret, Vec<u8>> = secrets
