@@ -23,12 +23,10 @@ in
     default = true;
   };
 
-  config = lib.mkIf (cfg.enable && cfg.checks.activate.enable) (
-    {
+  config = lib.mkIf (cfg.enable && cfg.checks.activate.enable) {
       nixos = {
         system.preSwitchChecks.nix-secrets-activate-check = script;
       };
     }
-    .${moduleSystem}
-  );
+    .${moduleSystem};
 }
