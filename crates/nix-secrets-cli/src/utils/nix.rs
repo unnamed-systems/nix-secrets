@@ -130,11 +130,17 @@ pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> 
 
     trace!("Got contents: {}", contents);
 
-    let manifest = parse_manifest(&contents)?;
+    let mut manifest = parse_manifest(&contents)?;
     trace!("Retrived manifest for {flake}#{hostname}");
 
     utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
     trace!("Cached manifest");
+
+    manifest.identity_paths.extend(args.identities.clone());
+    trace!(
+        "Extended manifest identiies with {} new ones",
+        args.identities.len()
+    );
 
     Ok(manifest)
 }

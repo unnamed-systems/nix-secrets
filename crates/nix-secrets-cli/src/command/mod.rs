@@ -41,6 +41,11 @@ pub struct Args {
     #[clap(long)]
     #[arg(global = true, visible_alias = "hj", value_name = "user")]
     pub(crate) hjem: Option<String>,
+
+    /// Extra identities to use when decrypting secrets
+    #[clap(long, short)]
+    #[arg(global = true)]
+    pub(crate) identities: Vec<String>,
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
