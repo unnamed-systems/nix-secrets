@@ -45,7 +45,7 @@ pub struct Args {
     /// Extra identities to use when decrypting secrets
     #[clap(long, short)]
     #[arg(global = true)]
-    pub(crate) identities: Vec<String>,
+    pub(crate) identity: Vec<String>,
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
