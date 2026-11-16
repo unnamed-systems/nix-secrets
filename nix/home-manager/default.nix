@@ -3,6 +3,7 @@
     ../core/default.nix
 
     (lib.modules.importApply ../parts/env.nix { moduleSystem = "home-manager"; })
+    (lib.modules.importApply ../parts/identityPaths.nix { moduleSystem = "home-manager"; })
     (lib.modules.importApply ../parts/manifest.nix { moduleSystem = "home-manager"; })
     (lib.modules.importApply ../parts/neededForUsers.nix { moduleSystem = "home-manager"; })
     (lib.modules.importApply ../parts/path.nix { moduleSystem = "home-manager"; })

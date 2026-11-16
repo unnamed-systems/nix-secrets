@@ -36,25 +36,6 @@ in
       example = lib.literalExpression "inputs.my-secrets + /storage";
     };
 
-    identityPaths = lib.mkOption {
-      description = ''
-        Paths to identity files used for secret encryption and decryption.
-
-        For security reasons, identity files are kept outside of the Nix store.
-      '';
-      type = lib.types.listOf (
-        lib.types.pathWith {
-          inStore = if cfg.ciMode.enableDangerously && cfg.ciMode.storePathIdentities then null else false;
-          absolute = null;
-        }
-      );
-      default = [ ];
-      example = [
-        "/home/user/keys.txt"
-        "/home/user/.ssh/id_ed25519"
-      ];
-    };
-
     package = lib.mkOption {
       description = ''
         nix-secrets package for the CLI.
