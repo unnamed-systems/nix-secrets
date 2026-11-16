@@ -33,6 +33,7 @@
     {
       inherit (devOutputs)
         debug
+        apps
         devShells
         checks
         formatter
