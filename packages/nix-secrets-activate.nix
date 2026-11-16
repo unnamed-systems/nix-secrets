@@ -1,7 +1,6 @@
 {
   lib,
   rustPlatform,
-  installShellFiles,
   debugBuild ? false,
 }:
 let
@@ -19,8 +18,14 @@ rustPlatform.buildRustPackage {
       ../Cargo.lock
     ];
   };
-  cargoFlags = [ "-p" "nix-secrets-activate" ];
-  cargoTestFlags = [ "-p" "nix-secrets-activate" ];
+  cargoFlags = [
+    "-p"
+    "nix-secrets-activate"
+  ];
+  cargoTestFlags = [
+    "-p"
+    "nix-secrets-activate"
+  ];
 
   cargoLock.lockFile = ../Cargo.lock;
 
