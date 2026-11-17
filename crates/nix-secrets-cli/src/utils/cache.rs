@@ -9,14 +9,14 @@ use eyre::{OptionExt, bail};
 use sha2::{Digest as _, Sha256};
 
 fn get_cached_manifest_file_location(flake: &str) -> Result<PathBuf> {
-    let state_directory = dirs::cache_dir().ok_or_eyre("Failed to get state directory")?;
+    let cache_directory = dirs::cache_dir().ok_or_eyre("Failed to get the cache directory")?;
 
     let mut hasher = Sha256::new();
     hasher.update(flake);
     let hash_result = hasher.finalize();
     let hashed_flake = format!("{hash_result:x}");
 
-    let manifest_location = state_directory
+    let manifest_location = cache_directory
         .join("nix-secrets")
         .join(hashed_flake)
         .with_extension("json");
@@ -37,7 +37,7 @@ pub fn get_cached_manifest(flake: &str) -> Result<Manifest> {
         return Ok(manifest);
     }
 
-    bail!("Manifest not found");
+    bail!("No cached manifest found for `{flake}`");
 }
 
 pub fn save_manifest(flake: &str, manifest: &Manifest) -> Result<()> {

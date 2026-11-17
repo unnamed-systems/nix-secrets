@@ -2,7 +2,7 @@ use std::{collections::HashMap, io::Write as _, path::PathBuf};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
-use eyre::{Ok, OptionExt as _, bail};
+use eyre::{Context as _, Ok, OptionExt as _, bail};
 use nix_secrets_core::{
     SECRETS_EXTENSION,
     age::{get_identities, rekey_stream},
@@ -20,12 +20,12 @@ use clap::{Parser, ValueHint};
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Rekey all or selected encrypted secrets
 pub struct RekeyCommand {
-    /// path to the secrets directory
+    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
     #[arg(short, long)]
     #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
-    /// secrets to rekey. All if empty
+    /// Secrets to rekey (rekeys all secrets when empty)
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     secrets: Vec<String>,
 }
@@ -40,7 +40,10 @@ impl CommandTrait for RekeyCommand {
             .ok_or_eyre("No storage path provided")?;
 
         if !storage_path.is_dir() {
-            bail!("Invalid directory path");
+            bail!(
+                "Storage path `{}` is not a directory",
+                storage_path.display()
+            );
         }
 
         let secrets: Vec<Secret> = manifest
@@ -57,25 +60,27 @@ impl CommandTrait for RekeyCommand {
             .iter()
             .map(|s| {
                 if !check_secret_name(&s.name) {
-                    bail!("Secret name `{}` contains illegal values", s.name)
+                    bail!("Secret name `{}` contains illegal path components", s.name)
                 }
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
-                    .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
+                    .map_err(|e| eyre::eyre!("Secret path contains invalid Unicode: {e:?}"))?;
 
                 trace!("Reading secret `{}` ({})", &s.name, path_str);
 
                 let mut plaintext_buffer = Vec::new();
-                let input_reader = InputReader::new(Some(path_str))?;
+                let input_reader = InputReader::new(Some(path_str))
+                    .wrap_err_with(|| format!("Failed to open the secret `{}`", s.name))?;
                 rekey_stream(
                     input_reader,
                     &mut plaintext_buffer,
                     &identities,
                     &s.recipients,
-                )?;
+                )
+                .wrap_err_with(|| format!("Failed to rekey the secret `{}`", s.name))?;
 
                 info!("Successfully rekeyed secret `{}`", &s.name);
                 Ok((s, plaintext_buffer))
@@ -90,8 +95,13 @@ impl CommandTrait for RekeyCommand {
                 .join(&secret.name)
                 .append_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
-            let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)?;
-            writer.write_all(&rekey)?; // TODO: atomic
+            let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)
+                .wrap_err_with(|| {
+                    format!("Failed to open the secret `{}` for writing", secret.name)
+                })?;
+            writer
+                .write_all(&rekey)
+                .wrap_err_with(|| format!("Failed to write the secret `{}`", secret.name))?; // TODO: atomic
         }
 
         info!("Done");

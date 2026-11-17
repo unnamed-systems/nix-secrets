@@ -5,7 +5,7 @@ use crate::{
 use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
-use eyre::{Ok, OptionExt as _, bail};
+use eyre::{Ok, OptionExt as _, bail, eyre};
 use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _};
 use nix_secrets_core::{
     age::{decrypt, decrypt_stream, get_identities},
@@ -17,17 +17,17 @@ use std::{
 };
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-/// Decrypt a secret
+/// Decrypt a secret and print it to stdout
 pub struct DecryptCommand {
-    /// Path to the secrets directory
+    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
     #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
-    /// Secret name
+    /// Name of the secret to decrypt
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
 
-    /// Path to the output file
+    /// Write the decrypted secret to this file instead of stdout
     #[arg(short, long)]
     #[arg(value_hint = ValueHint::FilePath)]
     output: Option<PathBuf>,
@@ -43,17 +43,28 @@ impl CommandTrait for DecryptCommand {
             .ok_or_eyre("No storage path provided")?;
 
         if !storage_path.is_dir() {
-            bail!("Invalid directory path");
+            bail!(
+                "Storage path `{}` is not a directory",
+                storage_path.display()
+            );
         }
 
         let secret = manifest
             .secrets
             .iter()
             .find(|s| s.name.eq(&self.name))
-            .ok_or_eyre("Secret not present in nix config.")?;
+            .ok_or_else(|| {
+                eyre!(
+                    "Secret `{}` is not present in the Nix configuration",
+                    self.name
+                )
+            })?;
 
         if !check_secret_name(&secret.name) {
-            bail!("Secret name `{}` contains illegal values", secret.name)
+            bail!(
+                "Secret name `{}` contains illegal path components",
+                secret.name
+            )
         }
 
         let resulting_path = storage_path
@@ -62,7 +73,11 @@ impl CommandTrait for DecryptCommand {
         trace!("Got secret path: {}", resulting_path.display());
 
         if !resulting_path.exists() {
-            bail!("Secret {} does not exist", self.name);
+            bail!(
+                "Secret `{}` does not exist at `{}`",
+                self.name,
+                resulting_path.display()
+            );
         }
 
         let identity_paths: Vec<PathBuf> =

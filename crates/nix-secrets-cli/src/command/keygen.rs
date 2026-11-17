@@ -7,12 +7,12 @@ use std::io::Write as _;
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Generate an age keypair
 pub struct KeygenCommand {
-    /// Path to the output directory
+    /// Write the key to this file instead of stdout
     #[arg(short, long)]
-    #[arg(value_hint = ValueHint::DirPath)]
+    #[arg(value_hint = ValueHint::FilePath)]
     output: Option<String>,
 
-    /// Convert an identity file to a recipient
+    /// Convert the given identity file to a recipients file instead of generating a new keypair
     #[arg(value_hint = ValueHint::FilePath)]
     #[arg(short = 'y', long = "convert")]
     #[expect(
@@ -29,17 +29,20 @@ impl CommandTrait for KeygenCommand {
             self.output.clone(),
             false,
             file_io::OutputFormat::Text,
-            // We should be able to write and read
+            // Only the user should be able to read and write this file
             0o600,
             false,
         )?;
 
         if let Some(input) = self.input.clone() {
             trace!("Converting an existing identity");
-            let file = age::IdentityFile::from_input_reader(file_io::InputReader::new(input)?)?;
+            let reader =
+                file_io::InputReader::new(input).wrap_err("Failed to open the identity file")?;
+            let file = age::IdentityFile::from_input_reader(reader)
+                .wrap_err("Failed to parse the identity file")?;
 
             file.write_recipients_file(output)
-                .wrap_err("Failed to write the recipients output")?;
+                .wrap_err("Failed to write the recipients file")?;
         } else {
             trace!("Generating a new keypair");
             let sk = x25519::Identity::generate();

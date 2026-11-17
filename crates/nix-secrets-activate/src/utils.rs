@@ -24,7 +24,7 @@ pub fn set_owner_and_group(
 
     chown(path, Some(uid), Some(gid)).wrap_err_with(|| {
         format!(
-            "Failed to set file permissions: `{}` ({}:{})",
+            "Failed to set file ownership: `{}` ({}:{})",
             path.display(),
             uid,
             gid

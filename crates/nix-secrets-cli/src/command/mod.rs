@@ -16,35 +16,35 @@ mod regenerate;
 mod rekey;
 
 #[derive(Parser, PartialEq, Debug)]
-#[command(author, version, about, long_about = None)]
-/// A postmodern secrets manager for NixOS.
+#[command(author, version, long_about = None)]
+/// A postmodern secrets manager for NixOS
 pub struct Args {
     #[command(subcommand)]
     command: Command,
 
     #[clap(short, long, default_value = ".")]
     #[arg(add = ArgValueCompleter::new(utils::complete_flake), global = true)]
-    /// Path to the flake containing secrets
+    /// Path to the flake containing the secrets
     pub(crate) flake: String,
 
-    /// Module system for this host
+    /// Flake output containing the host (e.g. nixosConfigurations)
     #[clap(short, long, default_value = FLAKE_CONFIGURATION_PREFIX)]
     #[arg(global = true)]
     pub(crate) module_system: String,
 
-    /// Whether to use the home-manager profile inside the nixos configuration
+    /// Use the home-manager profile of the given user inside the host configuration
     #[clap(long, conflicts_with = "hjem", value_name = "user")]
     #[arg(global = true, visible_alias = "hm")]
     pub(crate) home_manager: Option<String>,
 
-    /// Whether to use the hjem profile inside the nixos configuration
-    #[clap(long)]
-    #[arg(global = true, visible_alias = "hj", value_name = "user")]
+    /// Use the hjem profile of the given user inside the host configuration
+    #[clap(long, value_name = "user")]
+    #[arg(global = true, visible_alias = "hj")]
     pub(crate) hjem: Option<String>,
 
-    /// Extra identities to use when decrypting secrets
-    #[clap(long, short)]
-    #[arg(global = true)]
+    /// Extra paths to identity files used to decrypt secrets
+    #[clap(long, short, value_name = "path")]
+    #[arg(global = true, value_hint = clap::ValueHint::FilePath)]
     pub(crate) identity: Vec<String>,
 }
 

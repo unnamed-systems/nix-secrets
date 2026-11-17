@@ -27,13 +27,13 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
     if utils::is_stdin(editor) {
         let mut src = io::stdin();
         let mut dst = OpenOptions::new()
-            // Stdin should be able to write and read
+            // Only the user should be able to read and write this file
             .mode(0o600)
             .create(true)
             .truncate(true)
             .write(true)
             .open(path)
-            .wrap_err("Failed to open stdin")?;
+            .wrap_err("Failed to open the input file")?;
         io::copy(&mut src, &mut dst)?;
     } else {
         let (editor_bin, args) = utils::split_editor(editor)?;
@@ -44,13 +44,13 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
             .stdout(process::Stdio::inherit())
             .stderr(process::Stdio::piped())
             .output()
-            .wrap_err_with(|| format!("Failed to spawn editor '{editor}'"))?;
+            .wrap_err_with(|| format!("Failed to spawn editor `{editor}`"))?;
 
         if !cmd.status.success() {
             let stderr = String::from_utf8_lossy(&cmd.stderr);
 
             return Err(eyre!(
-                "Editor '{}' exited with non-zero status code",
+                "Editor `{}` exited with a non-zero status code",
                 &editor_bin
             ))
             .wrap_err_with(|| stderr.trim().to_owned());
@@ -61,13 +61,13 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-/// Edit an encrypted secret
+/// Edit an encrypted secret in $EDITOR
 pub struct EditCommand {
-    /// Path to the secrets directory
+    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
     #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
-    /// Secret name
+    /// Name of the secret to edit
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
 }
@@ -85,17 +85,28 @@ impl CommandTrait for EditCommand {
             .ok_or_eyre("No storage path provided")?;
 
         if !storage_path.is_dir() {
-            bail!("Invalid directory path");
+            bail!(
+                "Storage path `{}` is not a directory",
+                storage_path.display()
+            );
         }
 
         let secret = manifest
             .secrets
             .iter()
             .find(|s| s.name.eq(&self.name))
-            .ok_or_eyre("Secret not present in nix config.")?;
+            .ok_or_else(|| {
+                eyre!(
+                    "Secret `{}` is not present in the Nix configuration",
+                    self.name
+                )
+            })?;
 
         if !check_secret_name(&secret.name) {
-            bail!("Secret name `{}` contains illegal values", secret.name)
+            bail!(
+                "Secret name `{}` contains illegal path components",
+                secret.name
+            )
         }
 
         let resulting_path = storage_path
@@ -149,7 +160,7 @@ impl CommandTrait for EditCommand {
 
             if pre_edit_hash == post_edit_hash {
                 info!(
-                    "Secret {} wasn't changed, skipping re-encryption",
+                    "Secret at `{}` wasn't changed, skipping re-encryption",
                     resulting_path.display()
                 );
                 fs::remove_file(&input_path)?;

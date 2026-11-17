@@ -39,9 +39,9 @@ const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
 const DARWIN_ANCHOR_NAME: &str = "nix-secrets-anchor";
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-/// Activate secrets for host
+/// Activate nix-secrets configuration for the host
 pub struct Args {
-    /// Whether or not to use dry activation logic
+    /// Perform a dry activation without deploying secrets and templates
     #[arg(long, action = clap::ArgAction::SetTrue, value_parser = clap::value_parser!(bool))]
     pub dry: bool,
 
@@ -49,7 +49,7 @@ pub struct Args {
     #[arg(value_hint = ValueHint::FilePath)]
     pub manifest: PathBuf,
 
-    /// Whether or not to setup secrets before the users are created
+    /// Only activate secrets and templates with `neededForUsers` matching this value
     #[arg(long, action = clap::ArgAction::Set, value_parser = clap::value_parser!(bool))]
     pub needed_for_users: bool,
 }
@@ -110,13 +110,14 @@ fn main() -> Result<()> {
                 .append_extension(SECRETS_EXTENSION)
                 .into_os_string()
                 .into_string()
-                .map_err(|e| eyre!("Invalid unicode path provided: {e:?}"))?;
+                .map_err(|e| eyre!("Secret path contains invalid Unicode: {e:?}"))?;
             trace!("Reading secret `{}` ({})", &s.name, path_str);
 
-            let input_reader =
-                InputReader::new(Some(path_str)).wrap_err("Failed to create an input reader")?;
+            let input_reader = InputReader::new(Some(path_str))
+                .wrap_err_with(|| format!("Failed to open the secret `{}`", s.name))?;
             let mut decrypted = Vec::new();
-            decrypt_stream(input_reader, &mut decrypted, &identities)?;
+            decrypt_stream(input_reader, &mut decrypted, &identities)
+                .wrap_err_with(|| format!("Failed to decrypt the secret `{}`", s.name))?;
             trace!("Successfully decrypted secret `{}`", &s.name);
 
             Ok((s, String::from_utf8(decrypted)?))
@@ -151,7 +152,7 @@ fn main() -> Result<()> {
         );
         fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
             eyre!(
-                "Failed to create secret generation directory: `{}",
+                "Failed to create secret generation directory `{}`",
                 generation_dst_parent.display()
             )
         })?;
@@ -208,13 +209,13 @@ fn main() -> Result<()> {
         let generation_dst_location = templates_generation_dir.join(&template.name);
         let generation_dst_parent = generation_dst_location
             .parent()
-            .ok_or_eyre("Path to secret has no parent")?;
+            .ok_or_eyre("Path to template has no parent")?;
 
         trace!(
             "Ensuring template directory {generation_dst_parent:?} inside generation directory exists"
         );
         fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-            eyre!("Failed to create secret generation directory ({generation_dst_parent:?})")
+            eyre!("Failed to create template generation directory ({generation_dst_parent:?})")
         })?;
 
         info!(
@@ -300,7 +301,7 @@ fn runtime_directory() -> Result<String> {
 
     if !getconf.status.success() {
         let stderr = String::from_utf8_lossy(&getconf.stderr);
-        return Err(eyre!("Getconf failed to execute")).wrap_err_with(|| stderr.trim().to_owned());
+        return Err(eyre!("Failed to execute getconf")).wrap_err_with(|| stderr.trim().to_owned());
     }
 
     let output = String::from_utf8(getconf.stdout)
@@ -353,7 +354,9 @@ fn get_linkable_directory(name: &str, path: &Path) -> Result<PathBuf> {
 
 fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
     trace!("Creating a temporary directory for linkable");
-    let parent = to.parent().ok_or_eyre("Path to secret is a directory")?;
+    let parent = to
+        .parent()
+        .ok_or_eyre("Path to the linkable has no parent")?;
     let temp_name = format!(
         ".tmp_symlink_{}_{}",
         process::id(),
@@ -542,7 +545,7 @@ fn mount_secret_fs(mountpoint: &Path, module_system: &ModuleSystem) -> Result<()
     });
 
     if !supports_ramfs {
-        bail!("ramfs not supported! Refusing extract secret since it will write to disk");
+        bail!("ramfs not supported! Refusing to extract secrets since it would write to disk");
     }
 
     mount(
@@ -609,7 +612,7 @@ fn init_generation_dir(
         .and_then(|mut o| {
             o.try_for_each(|en| {
                 let d =
-                    en.wrap_err_with(|| eyre!("Failed to enter generation directory subdir"))?;
+                    en.wrap_err_with(|| eyre!("Failed to read a generation directory entry"))?;
                 match str::parse::<usize>(d.file_name().to_string_lossy().to_string().as_str()) {
                     Err(e) => Err(eyre!("Failed to parse generation: {e}")),
                     result::Result::Ok(res) => {
@@ -626,7 +629,7 @@ fn init_generation_dir(
                 }
             })
         })
-        .wrap_err("Failed to read secrets directory")?;
+        .wrap_err("Failed to read the generation directory")?;
 
     trace!("Calculated new generation id: {}", max);
     trace!("{} old generation directories to remove", cleanup.len());

@@ -8,13 +8,13 @@ pub fn is_stdin(editor: &str) -> bool {
 }
 
 pub fn split_editor(editor: &str) -> Result<(String, Option<Vec<String>>)> {
-    let mut splitted: Vec<String> = shlex::split(editor).ok_or_eyre("Could not parse editor")?;
+    let mut parts: Vec<String> = shlex::split(editor).ok_or_eyre("Could not parse editor")?;
 
-    if splitted.is_empty() {
+    if parts.is_empty() {
         Err(eyre!("Editor is empty"))
     } else {
-        let binary = splitted.remove(0);
-        let args = (!splitted.is_empty()).then_some(splitted);
+        let binary = parts.remove(0);
+        let args = (!parts.is_empty()).then_some(parts);
         Ok((binary, args))
     }
 }

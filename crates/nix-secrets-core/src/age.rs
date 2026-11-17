@@ -44,7 +44,9 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
             } else {
                 use std::io::Seek;
                 trace!("Failed to parse a native identity, trying ssh");
-                reader.rewind().wrap_err("Failed to rewind secret buffer")?;
+                reader
+                    .rewind()
+                    .wrap_err("Failed to rewind identity file buffer")?;
 
                 if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
                     trace!("Parsed an ssh identity");
@@ -119,7 +121,7 @@ where
         reason = "dyn Recipient + Send -> dyn Recipient"
     )]
     let recipient_refs = recipients.iter().map(|r| r.as_ref() as &dyn age::Recipient);
-    let encryptor = age::Encryptor::with_recipients(recipient_refs)?; // TODO: cant combine pq and non-pq
+    let encryptor = age::Encryptor::with_recipients(recipient_refs)?; // TODO: can't combine pq and non-pq
 
     let mut output_writer = encryptor
         .wrap_output(

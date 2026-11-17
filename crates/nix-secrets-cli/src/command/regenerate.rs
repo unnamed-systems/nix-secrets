@@ -20,24 +20,24 @@ use crate::{
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Regenerate all or selected encrypted secrets with generators
 pub struct RegenerateCommand {
-    /// path to the secrets directory
+    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
     #[arg(short, long)]
     #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
-    /// secrets to regenerate
+    /// Secrets to regenerate
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)), conflicts_with_all = ["missing", "all"])]
     secrets: Vec<String>,
 
-    /// regenerate all secrets
+    /// Regenerate all secrets with generators
     #[arg(short, long, conflicts_with = "missing")]
     all: bool,
 
-    /// regenerate missing secrets
+    /// Regenerate only secrets that don't exist yet
     #[arg(long)]
     missing: bool,
 
-    /// show which secrets would be regenerated
+    /// Show which secrets would be regenerated without writing anything
     #[arg(long)]
     dry: bool,
 }
@@ -58,7 +58,10 @@ impl CommandTrait for RegenerateCommand {
             .ok_or_eyre("No storage path provided")?;
 
         if !storage_path.is_dir() {
-            bail!("Invalid directory path");
+            bail!(
+                "Storage path `{}` is not a directory",
+                storage_path.display()
+            );
         }
 
         let secrets: Vec<Secret> = manifest
@@ -78,7 +81,7 @@ impl CommandTrait for RegenerateCommand {
             .collect();
 
         if secrets.is_empty() {
-            bail!("No secrets to regenerate.");
+            bail!("No secrets to regenerate");
         }
 
         if self.dry {
@@ -103,14 +106,14 @@ impl CommandTrait for RegenerateCommand {
             .iter()
             .map(|s| {
                 if !check_secret_name(&s.name) {
-                    bail!("Secret name `{}` contains illegal values", s.name)
+                    bail!("Secret name `{}` contains illegal path components", s.name)
                 }
                 let path_str = storage_path
                     .join(&s.name)
                     .append_extension(SECRETS_EXTENSION)
                     .into_os_string()
                     .into_string()
-                    .map_err(|e| eyre::eyre!("Invalid unicode path provided: {e:?}"))?;
+                    .map_err(|e| eyre::eyre!("Secret path contains invalid Unicode: {e:?}"))?;
 
                 trace!("Reading secret `{}` ({})", &s.name, path_str);
 
@@ -124,40 +127,45 @@ impl CommandTrait for RegenerateCommand {
                     .current_dir("/")
                     .output()
                     .wrap_err_with(|| {
-                        format!("Failed to spawn the generator: {}", generator.display())
+                        format!("Failed to spawn generator `{}`", generator.display())
                     })?;
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
 
-                    return Err(eyre!("Generator execution failed: {}", generator.display()))
-                        .wrap_err_with(|| stderr.trim().to_owned());
+                    return Err(eyre!(
+                        "Failed to execute generator `{}`",
+                        generator.display()
+                    ))
+                    .wrap_err_with(|| stderr.trim().to_owned());
                 }
 
                 trace!("Got generator output");
 
                 let mut plaintext_buffer = Vec::new();
-                encrypt_stream(&*output.stdout, &mut plaintext_buffer, &s.recipients)?;
+                encrypt_stream(&*output.stdout, &mut plaintext_buffer, &s.recipients)
+                    .wrap_err_with(|| format!("Failed to encrypt the secret `{}`", s.name))?;
 
                 info!("Successfully regenerated secret `{}`", &s.name);
                 Ok((s, plaintext_buffer))
             })
             .collect::<eyre::Result<_>>()?;
 
-        trace!("Rekeyed all secrets, writing");
+        trace!("Regenerated all secrets, writing");
 
         #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
-        for (secret, rekey) in regenerated {
+        for (secret, plaintext) in regenerated {
             let resulting_path = storage_path
                 .join(&secret.name)
                 .append_extension(SECRETS_EXTENSION);
             let output = resulting_path.to_str().map(String::from);
-            let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)?;
-            writer.write_all(&rekey).wrap_err(format!(
-                "Failed to write the secret `{}` ({})",
-                secret.name,
-                secret.path.display()
-            ))?; // TODO: atomic
+            let mut writer = OutputWriter::new(output, true, OutputFormat::Text, 0o644, false)
+                .wrap_err_with(|| {
+                    format!("Failed to open the secret `{}` for writing", secret.name)
+                })?;
+            writer
+                .write_all(&plaintext)
+                .wrap_err_with(|| format!("Failed to write the secret `{}`", secret.name))?; // TODO: atomic
         }
 
         info!("Done");

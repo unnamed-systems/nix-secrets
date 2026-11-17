@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{command::Args, utils};
-use eyre::{Context, OptionExt, bail};
+use eyre::{Context, OptionExt, bail, eyre};
 use nix::sys::utsname::uname;
 
 use nix_secrets_core::{
@@ -71,8 +71,10 @@ pub fn eval_build_command(
         .replace("{{manifestArgs}}", &manifest);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
-    let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse nix command")?;
-    let program = cmd.first().ok_or_eyre("No binary provided")?;
+    let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse the nix build command")?;
+    let program = cmd
+        .first()
+        .ok_or_eyre("No binary provided in the nix build command")?;
     let args = cmd.get(1..).unwrap_or(&[]);
 
     let mut eval_command = Command::new(program);
@@ -81,27 +83,34 @@ pub fn eval_build_command(
 
     eval_command.stdout(Stdio::piped());
 
-    let build_child = eval_command.spawn()?;
+    let build_child = eval_command
+        .spawn()
+        .wrap_err_with(|| format!("Failed to spawn `{}`", program))?;
 
-    let build_output = build_child.wait_with_output()?;
+    let build_output = build_child
+        .wait_with_output()
+        .wrap_err_with(|| format!("Failed to run `{}`", program))?;
 
     match build_output.status.code() {
         Some(0_i32) => (),
-        _exit_code => {
-            bail!("Failed to retrieve manifest");
+        exit_code => {
+            bail!(
+                "Failed to build the manifest (exit code: {})",
+                exit_code.unwrap_or(-1)
+            );
         }
     }
 
     let output = String::from_utf8(build_output.stdout)
-        .wrap_err("Failed to convert output stdout to a string")?;
+        .wrap_err("Failed to convert the build command output to a string")?;
 
     Ok(output)
 }
 
 pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> {
     info!("Evaluating flake: {}", args.flake);
-    let (flake, hostname) =
-        utils::parse_flake(&args.flake, true).ok_or_eyre("Failed to parse flake")?;
+    let (flake, hostname) = utils::parse_flake(&args.flake, true)
+        .ok_or_else(|| eyre!("Failed to parse the flake `{}`", args.flake))?;
 
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
@@ -131,14 +140,14 @@ pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> 
     trace!("Got contents: {}", contents);
 
     let mut manifest = parse_manifest(&contents)?;
-    trace!("Retrived manifest for {flake}#{hostname}");
+    trace!("Retrieved manifest for {flake}#{hostname}");
 
     utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
     trace!("Cached manifest");
 
     manifest.identity_paths.extend(args.identity.clone());
     trace!(
-        "Extended manifest identiies with {} new ones",
+        "Extended manifest identities with {} extra identities",
         args.identity.len()
     );
 
