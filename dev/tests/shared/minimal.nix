@@ -17,7 +17,7 @@
       ssh = builtins.readFile ./recipients/id_ed25519.pub;
     };
 
-    nixBuildCommand = "${config.security.nix-secrets.manifest { withAllGenerators = true; }}";
+    nixBuildCommand = "echo ${config.security.nix-secrets.manifest { withAllGenerators = true; }}";
     defaultRecipients = [ "first" ];
 
     checks = {
