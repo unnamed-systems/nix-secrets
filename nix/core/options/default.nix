@@ -60,7 +60,8 @@ in
         This is primarily intended for age plugins such as `pkgs.age-plugin-yubikey`.
       '';
       type = lib.types.listOf lib.types.package;
-      default = [ ];
+      # TODO: https://github.com/unnamed-systems/nix-secrets/issues/40
+      default = [ pkgs.age ];
       example = lib.literalExpression "[ pkgs.age-plugin-yubikey ]";
     };
 
