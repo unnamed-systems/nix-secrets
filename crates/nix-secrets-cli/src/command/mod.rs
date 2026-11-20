@@ -16,7 +16,7 @@ mod regenerate;
 mod rekey;
 
 #[derive(Parser, PartialEq, Debug)]
-#[command(author, version, long_about = None)]
+#[command(author, version, long_about = None, bin_name = "nix-secrets")]
 /// A postmodern secrets manager for NixOS
 pub struct Args {
     #[command(subcommand)]
