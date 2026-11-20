@@ -57,7 +57,7 @@ impl CommandTrait for KeygenCommand {
             writeln!(output, "{}", sk.to_string().expose_secret())?;
 
             if !output.is_terminal() {
-                println!("Public key: {pk}");
+                eprintln!("Public key: {pk}");
             }
         }
         Ok(())
