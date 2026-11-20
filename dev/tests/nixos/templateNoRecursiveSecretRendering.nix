@@ -42,20 +42,18 @@ pkgs.testers.runNixOSTest (_: {
     };
   };
 
-  testScript =
-    { nodes, ... }:
-    ''
-      import shlex
+  testScript = { nodes, ... }: ''
+    import shlex
 
-      template_path = ${builtins.toJSON nodes.machine.security.nix-secrets.templates.onlySecret.path}
-      expected = ${
-        with nodes.machine.security.nix-secrets.secrets;
-        builtins.toJSON "${_1unusedSecret}${_3unusedSecret}"
-      }
+    template_path = ${builtins.toJSON nodes.machine.security.nix-secrets.templates.onlySecret.path}
+    expected = ${
+      with nodes.machine.security.nix-secrets.secrets;
+      builtins.toJSON "${_1unusedSecret}${_3unusedSecret}"
+    }
 
-      machine.succeed(f"test -f {shlex.quote(template_path)}")
+    machine.succeed(f"test -f {shlex.quote(template_path)}")
 
-      actual = machine.succeed(f"cat {shlex.quote(template_path)}")
-      assert actual == expected, f"unexpected template content: {actual!r}, expected: {expected!r}"
-    '';
+    actual = machine.succeed(f"cat {shlex.quote(template_path)}")
+    assert actual == expected, f"unexpected template content: {actual!r}, expected: {expected!r}"
+  '';
 })

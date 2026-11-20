@@ -1,9 +1,4 @@
-{
-  lib,
-  config,
-  ...
-}:
-{
+{ lib, config, ... }: {
   imports = [
     ./activationScripts.nix
     ./systemd.nix

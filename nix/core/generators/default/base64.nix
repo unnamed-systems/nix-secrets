@@ -1,9 +1,4 @@
-{
-  lib,
-  pkgs,
-  ...
-}:
-{
+{ lib, pkgs, ... }: {
   /**
     Generate a random Base64 string.
 

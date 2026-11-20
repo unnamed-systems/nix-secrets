@@ -5,9 +5,7 @@
   ...
 }:
 {
-  imports = [
-    ./minimal.nix
-  ];
+  imports = [ ./minimal.nix ];
 
   security.nix-secrets = {
     secrets = {

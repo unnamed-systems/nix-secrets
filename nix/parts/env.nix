@@ -8,18 +8,10 @@ in
 {
   config = lib.mkIf cfg.enable (
     if moduleSystem == "home-manager" then
-      {
-        home = {
-          inherit packages;
-        };
-      }
+      { home = { inherit packages; }; }
     else if moduleSystem == "hjem" then
-      {
-        inherit packages;
-      }
+      { inherit packages; }
     else
-      {
-        environment.systemPackages = packages;
-      }
+      { environment.systemPackages = packages; }
   );
 }

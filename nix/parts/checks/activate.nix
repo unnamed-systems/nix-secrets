@@ -1,10 +1,6 @@
 { moduleSystem }:
 assert builtins.elem moduleSystem [ "nixos" ];
-{
-  lib,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 let
   cfg = config.security.nix-secrets;
 
@@ -23,10 +19,12 @@ in
     default = true;
   };
 
-  config = lib.mkIf (cfg.enable && cfg.checks.activate.enable) {
-      nixos = {
-        system.preSwitchChecks.nix-secrets-activate-check = script;
-      };
-    }
-    .${moduleSystem};
+  config =
+    lib.mkIf (cfg.enable && cfg.checks.activate.enable)
+      {
+        nixos = {
+          system.preSwitchChecks.nix-secrets-activate-check = script;
+        };
+      }
+      .${moduleSystem};
 }

@@ -8,8 +8,7 @@ let
   cfg = config.security.nix-secrets;
 
   secretSubmodule = lib.types.submodule (
-    { name, config, ... }:
-    {
+    { name, config, ... }: {
       options = {
         enable = lib.mkOption {
           description = ''

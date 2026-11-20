@@ -5,8 +5,7 @@
   ...
 }:
 pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
+  { lib, ... }: {
     name = "storagePathEnvStandalone";
 
     nodes.machine = {

@@ -33,9 +33,7 @@ let
               default = false;
               example = true;
             }
-            // lib.optionalAttrs (moduleSystem != "nixos") {
-              apply = _: false;
-            }
+            // lib.optionalAttrs (moduleSystem != "nixos") { apply = _: false; }
           );
         }
       );

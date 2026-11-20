@@ -5,8 +5,7 @@
   ...
 }:
 pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
+  { lib, ... }: {
     name = "activate";
 
     nodes.machine = {

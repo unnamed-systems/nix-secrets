@@ -1,5 +1,1 @@
-{
-  imports = [
-    ./missingSecrets.nix
-  ];
-}
+{ imports = [ ./missingSecrets.nix ]; }

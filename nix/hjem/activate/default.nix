@@ -1,11 +1,5 @@
-{
-  lib,
-  ...
-}:
-{
-  imports = [
-    ./systemd.nix
-  ];
+{ lib, ... }: {
+  imports = [ ./systemd.nix ];
 
   options.security.nix-secrets.activate.method = lib.mkOption {
     description = ''

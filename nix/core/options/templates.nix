@@ -1,8 +1,7 @@
 { lib, ... }:
 let
   templateSubmodule = lib.types.submodule (
-    { name, ... }:
-    {
+    { name, ... }: {
       options = {
         enable = lib.mkOption {
           description = ''

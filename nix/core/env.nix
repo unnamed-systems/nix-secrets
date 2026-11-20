@@ -1,5 +1,4 @@
-{ lib, config, ... }:
-{
+{ lib, config, ... }: {
   options.security.nix-secrets = {
     nixBuildCommand = lib.mkOption {
       description = ''

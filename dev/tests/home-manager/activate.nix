@@ -6,14 +6,11 @@
   ...
 }:
 pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
+  { lib, ... }: {
     name = "home-manager-activate";
 
     nodes.machine = {
-      imports = [
-        inputs.home-manager.nixosModules.home-manager
-      ];
+      imports = [ inputs.home-manager.nixosModules.home-manager ];
 
       users.users.user = {
         isNormalUser = true;

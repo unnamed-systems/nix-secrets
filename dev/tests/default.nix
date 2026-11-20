@@ -25,10 +25,7 @@ in
       lib.fix (finalAttrs: {
         name = "test-${lib.removePrefix "vm-test-run-" finalAttrs.value.name}";
         value = pkgs.callPackage file {
-          inherit
-            shared
-            inputs
-            ;
+          inherit shared inputs;
 
           nixosModule = inputs.nix-secrets.nixosModules.default;
           homeManagerModule = inputs.nix-secrets.homeManagerModules.default;

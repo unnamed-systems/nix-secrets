@@ -6,11 +6,7 @@
   };
 
   outputs =
-    {
-      nixpkgs,
-      self,
-      ...
-    }:
+    { nixpkgs, self, ... }:
     let
       inherit (nixpkgs) lib;
 

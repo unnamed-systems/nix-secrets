@@ -29,15 +29,13 @@ pkgs.testers.runNixOSTest {
     };
   };
 
-  testScript =
-    { nodes, ... }:
-    ''
-      import shlex
+  testScript = { nodes, ... }: ''
+    import shlex
 
-      actual = machine.succeed(f"cat {shlex.quote(${builtins.toJSON nodes.machine.security.nix-secrets.secrets.file.path})}")
-      assert actual == "file-success", f"unexpected placeholder content: {actual!r}, expected: 'file-success'"
+    actual = machine.succeed(f"cat {shlex.quote(${builtins.toJSON nodes.machine.security.nix-secrets.secrets.file.path})}")
+    assert actual == "file-success", f"unexpected placeholder content: {actual!r}, expected: 'file-success'"
 
-      actual = machine.succeed(f"cat {shlex.quote(${builtins.toJSON nodes.machine.security.nix-secrets.secrets.derivation.path})}")
-      assert actual == "derivation-success", f"unexpected placeholder content: {actual!r}, expected: 'derivation-success'"
-    '';
+    actual = machine.succeed(f"cat {shlex.quote(${builtins.toJSON nodes.machine.security.nix-secrets.secrets.derivation.path})}")
+    assert actual == "derivation-success", f"unexpected placeholder content: {actual!r}, expected: 'derivation-success'"
+  '';
 }

@@ -6,14 +6,11 @@
   ...
 }:
 pkgs.testers.runNixOSTest (
-  { lib, ... }:
-  {
+  { lib, ... }: {
     name = "hjem-activate";
 
     nodes.machine = {
-      imports = [
-        inputs.hjem.nixosModules.default
-      ];
+      imports = [ inputs.hjem.nixosModules.default ];
 
       users.users.user = {
         isNormalUser = true;
