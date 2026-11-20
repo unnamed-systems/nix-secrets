@@ -4,6 +4,9 @@
   symlinkJoin,
   nix-secrets-unwrapped,
   nixBuildCommand ? null,
+  # TODO: https://github.com/unnamed-systems/nix-secrets/issues/40
+  age,
+  extraPackages ? [ age ],
 }:
 let
   inherit (nix-secrets-unwrapped) pname version meta;
@@ -17,6 +20,7 @@ symlinkJoin {
 
   postBuild = lib.optionalString (nixBuildCommand != null) ''
     wrapProgram "$out/bin/${pname}" \
+      --prefix PATH : ${lib.makeBinPath extraPackages}
       --set-default NIX_SECRETS_NIX_BUILD_COMMAND ${lib.escapeShellArg nixBuildCommand}
   '';
 
