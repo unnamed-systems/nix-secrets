@@ -9,6 +9,7 @@
       programs = {
         nixfmt = {
           enable = true;
+          strict = true;
           priority = 1;
         };
         deadnix = {
