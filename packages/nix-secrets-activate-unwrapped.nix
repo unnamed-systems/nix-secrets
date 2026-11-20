@@ -19,7 +19,7 @@ rustPlatform.buildRustPackage {
       ../Cargo.lock
     ];
   };
-  cargoFlags = [
+  cargoBuildFlags = [
     "-p"
     cargoFile.package.name
   ];
@@ -40,6 +40,7 @@ rustPlatform.buildRustPackage {
       lib.maintainers.bananad3v
       lib.maintainers.yunfachi
     ];
+    platforms = lib.platforms.all;
     mainProgram = (builtins.head cargoFile.bin).name;
   };
 }

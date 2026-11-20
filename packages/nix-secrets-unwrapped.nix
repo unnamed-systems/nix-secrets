@@ -8,7 +8,7 @@ let
   cargoFileWorkspace = builtins.fromTOML (builtins.readFile ../Cargo.toml);
   cargoFile = builtins.fromTOML (builtins.readFile ../crates/nix-secrets-cli/Cargo.toml);
 in
-rustPlatform.buildRustPackage {
+rustPlatform.buildRustPackage (self: {
   # `cargoFileWorkspace` is used for `pname`, since that is the default package.
   pname = cargoFileWorkspace.workspace.package.name;
   version = cargoFileWorkspace.workspace.package.version;
@@ -21,7 +21,7 @@ rustPlatform.buildRustPackage {
       ../Cargo.lock
     ];
   };
-  cargoFlags = [
+  cargoBuildFlags = [
     "-p"
     cargoFile.package.name
   ];
@@ -40,9 +40,9 @@ rustPlatform.buildRustPackage {
   ];
 
   postInstall = ''
-    local exe="$out/bin/nix-secrets"
+    local exe="$out/bin/${self.meta.mainProgram}"
 
-    installShellCompletion --cmd nix-secrets \
+    installShellCompletion --cmd ${self.meta.mainProgram} \
       --bash <(COMPLETE=bash $exe) \
       --zsh <(COMPLETE=zsh $exe)
   '';
@@ -55,6 +55,7 @@ rustPlatform.buildRustPackage {
       lib.maintainers.bananad3v
       lib.maintainers.yunfachi
     ];
+    platforms = lib.platforms.all;
     mainProgram = (builtins.head cargoFile.bin).name;
   };
-}
+})

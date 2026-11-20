@@ -18,10 +18,12 @@ symlinkJoin {
 
   nativeBuildInputs = [ makeBinaryWrapper ];
 
-  postBuild = lib.optionalString (nixBuildCommand != null) ''
+  postBuild = ''
     wrapProgram "$out/bin/${pname}" \
-      --prefix PATH : ${lib.makeBinPath extraPackages}
-      --set-default NIX_SECRETS_NIX_BUILD_COMMAND ${lib.escapeShellArg nixBuildCommand}
+      --prefix PATH : ${lib.makeBinPath extraPackages} \
+      ${lib.optionalString (
+        nixBuildCommand != null
+      ) "--set-default NIX_SECRETS_NIX_BUILD_COMMAND ${lib.escapeShellArg nixBuildCommand}"}
   '';
 
   passthru.unwrapped = nix-secrets-unwrapped;
