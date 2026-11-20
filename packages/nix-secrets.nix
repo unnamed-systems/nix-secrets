@@ -2,29 +2,54 @@
   lib,
   makeBinaryWrapper,
   symlinkJoin,
-  nix-secrets-unwrapped,
+  callPackage,
+  unwrapped ? callPackage ./nix-secrets-unwrapped.nix { },
   nixBuildCommand ? null,
   # TODO: https://github.com/unnamed-systems/nix-secrets/issues/40
   age,
   extraPackages ? [ age ],
 }:
 let
-  inherit (nix-secrets-unwrapped) pname version meta;
+  wrapperArgs =
+    lib.optionals (extraPackages != [ ]) [
+      "--prefix"
+      "PATH"
+      ":"
+      (lib.makeBinPath extraPackages)
+    ]
+    ++ lib.optionals (nixBuildCommand != null) [
+      "--set-default"
+      "NIX_SECRETS_NIX_BUILD_COMMAND"
+      nixBuildCommand
+    ];
 in
 symlinkJoin {
-  inherit pname version meta;
+  inherit (unwrapped) pname version;
+  __structuredAttrs = true;
+  strictDeps = true;
 
-  paths = [ nix-secrets-unwrapped ];
+  paths = [ unwrapped ];
 
   nativeBuildInputs = [ makeBinaryWrapper ];
 
-  postBuild = ''
-    wrapProgram "$out/bin/${pname}" \
-      --prefix PATH : ${lib.makeBinPath extraPackages} \
-      ${lib.optionalString (
-        nixBuildCommand != null
-      ) "--set-default NIX_SECRETS_NIX_BUILD_COMMAND ${lib.escapeShellArg nixBuildCommand}"}
+  postBuild = lib.optionalString (wrapperArgs != [ ]) ''
+    wrapProgram "$out/bin/${unwrapped.meta.mainProgram}" ${lib.escapeShellArgs wrapperArgs}
   '';
 
-  passthru.unwrapped = nix-secrets-unwrapped;
+  passthru = {
+    inherit unwrapped;
+  }
+  // unwrapped.passthru;
+
+  meta = {
+    # Manually inherit fields to keep `meta.position` pointing to this file.
+    inherit (unwrapped.meta)
+      description
+      homepage
+      license
+      maintainers
+      mainProgram
+      platforms
+      ;
+  };
 }

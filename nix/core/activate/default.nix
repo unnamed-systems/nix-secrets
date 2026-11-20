@@ -26,9 +26,9 @@ in
       type = lib.types.package;
       default = pkgs.callPackage ../../../packages/nix-secrets-activate.nix {
         inherit (cfg) extraPackages;
-        nix-secrets-activate-unwrapped =
-          pkgs.callPackage ../../../packages/nix-secrets-activate-unwrapped.nix
-            { debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage; };
+        unwrapped = pkgs.callPackage ../../../packages/nix-secrets-activate-unwrapped.nix {
+          debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
+        };
       };
       # example = TODO;
     };

@@ -34,16 +34,14 @@ rustPlatform.buildRustPackage (self: {
 
   buildType = if debugBuild then "debug" else "release";
 
-  nativeBuildInputs = [
-    installShellFiles
-    rustPlatform.bindgenHook
-  ];
+  nativeBuildInputs = [ installShellFiles ];
 
   postInstall = ''
-    local exe="$out/bin/${self.meta.mainProgram}"
+    exe="$out/bin/${self.meta.mainProgram}"
 
     installShellCompletion --cmd ${self.meta.mainProgram} \
       --bash <(COMPLETE=bash $exe) \
+      --fish <(COMPLETE=fish $exe) \
       --zsh <(COMPLETE=zsh $exe)
   '';
 

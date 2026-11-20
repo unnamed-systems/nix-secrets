@@ -62,12 +62,8 @@
           nix-secrets-unwrapped = pkgs.callPackage ./packages/nix-secrets-unwrapped.nix { };
           nix-secrets-activate-unwrapped = pkgs.callPackage ./packages/nix-secrets-activate-unwrapped.nix { };
 
-          nix-secrets = pkgs.callPackage ./packages/nix-secrets.nix {
-            inherit (self.packages.${system}) nix-secrets-unwrapped;
-          };
-          nix-secrets-activate = pkgs.callPackage ./packages/nix-secrets-activate.nix {
-            inherit (self.packages.${system}) nix-secrets-activate-unwrapped;
-          };
+          nix-secrets = pkgs.callPackage ./packages/nix-secrets.nix { };
+          nix-secrets-activate = pkgs.callPackage ./packages/nix-secrets-activate.nix { };
 
           docs = pkgs.callPackage ./docs { inherit self; };
 

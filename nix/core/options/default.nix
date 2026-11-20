@@ -46,7 +46,7 @@ in
       type = lib.types.package;
       default = pkgs.callPackage ../../../packages/nix-secrets.nix {
         inherit (cfg) nixBuildCommand extraPackages;
-        nix-secrets-unwrapped = pkgs.callPackage ../../../packages/nix-secrets-unwrapped.nix {
+        unwrapped = pkgs.callPackage ../../../packages/nix-secrets-unwrapped.nix {
           debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
         };
       };

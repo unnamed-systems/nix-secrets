@@ -15,7 +15,6 @@
         strictDeps = true;
         nativeBuildInputs = [
           pkg-config
-          rustPlatform.bindgenHook
 
           rustc
           cargo
