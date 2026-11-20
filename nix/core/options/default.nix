@@ -53,17 +53,6 @@ in
       # example = TODO;
     };
 
-    activationPackage = lib.mkOption {
-      description = ''
-        nix-secrets package used by activation scripts.
-      '';
-      type = lib.types.package;
-      default = pkgs.callPackage ../../../packages/nix-secrets-activate.nix {
-        debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
-      };
-      # example = TODO;
-    };
-
     extraPackages = lib.mkOption {
       description = ''
         Additional packages made available to nix-secrets during activation scripts and services.
