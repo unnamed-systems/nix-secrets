@@ -1,44 +1,26 @@
 {
   lib,
-  rustPlatform,
-  debugBuild ? false,
+  makeBinaryWrapper,
+  symlinkJoin,
+  nix-secrets-activate-unwrapped,
+  # TODO: https://github.com/unnamed-systems/nix-secrets/issues/40
+  age,
+  extraPackages ? [ age ],
 }:
 let
-  cargoFile = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  inherit (nix-secrets-activate-unwrapped) pname version meta;
 in
-rustPlatform.buildRustPackage {
-  pname = "nix-secrets-activate";
-  version = cargoFile.workspace.package.version;
+symlinkJoin {
+  inherit pname version meta;
 
-  src = lib.fileset.toSource {
-    root = ../.;
-    fileset = lib.fileset.unions [
-      ../crates
-      ../Cargo.toml
-      ../Cargo.lock
-    ];
-  };
-  cargoFlags = [
-    "-p"
-    "nix-secrets-activate"
-  ];
-  cargoTestFlags = [
-    "-p"
-    "nix-secrets-activate"
-  ];
+  paths = [ nix-secrets-activate-unwrapped ];
 
-  cargoLock.lockFile = ../Cargo.lock;
+  nativeBuildInputs = [ makeBinaryWrapper ];
 
-  buildType = if debugBuild then "debug" else "release";
+  postBuild = lib.optionalString (extraPackages != [ ]) ''
+    wrapProgram "$out/bin/${pname}" \
+      --prefix PATH : ${lib.makeBinPath extraPackages}
+  '';
 
-  meta = {
-    description = "Postmodern secrets manager for NixOS, activation stage";
-    homepage = "https://github.com/unnamed-systems/nix-secrets";
-    license = lib.licenses.eupl12;
-    maintainers = [
-      lib.maintainers.bananad3v
-      lib.maintainers.yunfachi
-    ];
-    mainProgram = "nix-secrets-activate";
-  };
+  passthru.unwrapped = nix-secrets-activate-unwrapped;
 }

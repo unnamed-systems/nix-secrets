@@ -3,7 +3,6 @@ let
   cfg = config.security.nix-secrets;
   getActivationCommand = finalCommand: ''
     (
-      export PATH=${lib.escapeShellArg (lib.makeBinPath cfg.extraPackages)};
       ${finalCommand} $([ "$NIXOS_ACTION" = "dry-activate" ] && echo "--dry")
     )
   '';

@@ -55,10 +55,9 @@ in
 
     extraPackages = lib.mkOption {
       description = ''
-        Additional packages that the default value of the `security.nix-secrets.package`
-        option makes available to the nix-secrets CLI. They are also added to the `PATH`
-        used by `security.nix-secrets.activate.command` during activation scripts and
-        services.
+        Additional packages added to `PATH` by the default values of the
+        `security.nix-secrets.package` and `security.nix-secrets.activate.package`
+        options.
 
         This is primarily intended for age plugins such as `pkgs.age-plugin-yubikey`.
       '';

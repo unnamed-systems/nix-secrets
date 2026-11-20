@@ -6,7 +6,6 @@ let
 
   script = ''
     (
-      export PATH=${lib.escapeShellArg (lib.makeBinPath cfg.extraPackages)};
       ${cfg.activate.command true} --dry
       ${cfg.activate.command false} --dry
     )

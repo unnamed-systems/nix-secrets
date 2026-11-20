@@ -12,7 +12,6 @@ in
         Service = {
           Type = "oneshot";
           ExecStart = cfg.activate.command false;
-          Environment = [ "PATH=${lib.makeBinPath cfg.extraPackages}" ];
           RemainAfterExit = true;
         };
         Install.WantedBy = [ "default.target" ];

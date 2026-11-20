@@ -9,7 +9,6 @@ in
         enable = true;
         config = {
           Program = cfg.activate.command false;
-          EnvironmentVariables.PATH = lib.makeBinPath cfg.extraPackages;
           RunAtLoad = true;
           KeepAlive.SuccessfulExit = false;
         };
