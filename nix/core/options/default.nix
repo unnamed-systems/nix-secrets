@@ -45,7 +45,7 @@ in
       '';
       type = lib.types.package;
       default = pkgs.callPackage ../../../packages/nix-secrets.nix {
-        inherit (cfg) nixBuildCommand;
+        inherit (cfg) nixBuildCommand extraPackages;
         nix-secrets-unwrapped = pkgs.callPackage ../../../packages/nix-secrets-unwrapped.nix {
           debugBuild = cfg.ciMode.enableDangerously && cfg.ciMode.debugPackage;
         };
@@ -55,7 +55,10 @@ in
 
     extraPackages = lib.mkOption {
       description = ''
-        Additional packages made available to nix-secrets during activation scripts and services.
+        Additional packages that the default value of the `security.nix-secrets.package`
+        option makes available to the nix-secrets CLI. They are also added to the `PATH`
+        used by `security.nix-secrets.activate.command` during activation scripts and
+        services.
 
         This is primarily intended for age plugins such as `pkgs.age-plugin-yubikey`.
       '';
