@@ -5,11 +5,13 @@
   debugBuild ? false,
 }:
 let
-  cargoFile = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  cargoFileWorkspace = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  cargoFile = builtins.fromTOML (builtins.readFile ../crates/nix-secrets-cli/Cargo.toml);
 in
 rustPlatform.buildRustPackage {
-  pname = cargoFile.workspace.package.name;
-  version = cargoFile.workspace.package.version;
+  # `cargoFileWorkspace` is used for `pname`, since that is the default package.
+  pname = cargoFileWorkspace.workspace.package.name;
+  version = cargoFileWorkspace.workspace.package.version;
 
   src = lib.fileset.toSource {
     root = ../.;
@@ -19,6 +21,14 @@ rustPlatform.buildRustPackage {
       ../Cargo.lock
     ];
   };
+  cargoFlags = [
+    "-p"
+    cargoFile.package.name
+  ];
+  cargoTestFlags = [
+    "-p"
+    cargoFile.package.name
+  ];
 
   cargoLock.lockFile = ../Cargo.lock;
 
@@ -45,6 +55,6 @@ rustPlatform.buildRustPackage {
       lib.maintainers.bananad3v
       lib.maintainers.yunfachi
     ];
-    mainProgram = cargoFile.workspace.package.name;
+    mainProgram = (builtins.head cargoFile.bin).name;
   };
 }

@@ -4,11 +4,12 @@
   debugBuild ? false,
 }:
 let
-  cargoFile = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  cargoFileWorkspace = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  cargoFile = builtins.fromTOML (builtins.readFile ../crates/nix-secrets-activate/Cargo.toml);
 in
 rustPlatform.buildRustPackage {
-  pname = "nix-secrets-activate";
-  version = cargoFile.workspace.package.version;
+  pname = cargoFile.package.name;
+  version = cargoFileWorkspace.workspace.package.version;
 
   src = lib.fileset.toSource {
     root = ../.;
@@ -20,11 +21,11 @@ rustPlatform.buildRustPackage {
   };
   cargoFlags = [
     "-p"
-    "nix-secrets-activate"
+    cargoFile.package.name
   ];
   cargoTestFlags = [
     "-p"
-    "nix-secrets-activate"
+    cargoFile.package.name
   ];
 
   cargoLock.lockFile = ../Cargo.lock;
@@ -39,6 +40,6 @@ rustPlatform.buildRustPackage {
       lib.maintainers.bananad3v
       lib.maintainers.yunfachi
     ];
-    mainProgram = "nix-secrets-activate";
+    mainProgram = (builtins.head cargoFile.bin).name;
   };
 }
