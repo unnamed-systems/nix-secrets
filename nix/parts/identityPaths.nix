@@ -47,7 +47,7 @@ in
 
         For security reasons, identity files are kept outside of the Nix store.
 
-        Defaults to the identity path `${defaultPath true}`${lib.optionalString sshHostKeysSupported "and the RSA and ED25519 SSH keys from the `services.openssh.hostKeys`"}.
+        Defaults to the identity path `${defaultPath true}`${lib.optionalString sshHostKeysSupported " and the RSA and ED25519 SSH keys from the `services.openssh.hostKeys`"}.
       '';
       type = lib.types.listOf (
         lib.types.pathWith {
