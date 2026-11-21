@@ -1,7 +1,7 @@
 use crate::Result;
 use std::{
-    fs::File,
-    io::{self, BufReader, Read, Write},
+    fs,
+    io::{self, BufReader, Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -12,9 +12,50 @@ use age::{
         UiCallbacks,
         file_io::{InputReader, OutputFormat, OutputWriter},
     },
-    plugin, ssh, x25519,
+    plugin,
+    secrecy::zeroize::Zeroizing,
+    ssh, x25519,
 };
 use eyre::{Context as _, eyre};
+
+fn zeroizing_copy<R: Read, W: Write>(reader: &mut R, writer: &mut W) -> io::Result<()> {
+    let mut buf = Zeroizing::new([0u8; 8192]);
+
+    loop {
+        let len = match reader.read(buf.as_mut_slice()) {
+            Ok(0) => return Ok(()),
+            Ok(len) => len,
+            Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e),
+        };
+        writer.write_all(&buf[..len])?;
+    }
+}
+
+fn get_writer<W: Write>(
+    output: W,
+    public_keys: &[String],
+) -> Result<age::stream::StreamWriter<ArmoredWriter<W>>> {
+    let mut recipients: Vec<Box<dyn age::Recipient + Send>> = vec![];
+    let mut plugin_recipients: Vec<plugin::Recipient> = vec![];
+
+    for pubkey in public_keys {
+        parse_recipient(pubkey, &mut recipients, &mut plugin_recipients)?;
+    }
+
+    merge_plugin_recipients_and_recipients(&mut recipients, &plugin_recipients)?;
+    trace!("Merged plugin recipients");
+
+    let recipient_refs = recipients.iter().map(|r| r.as_ref() as &dyn age::Recipient);
+    let encryptor = age::Encryptor::with_recipients(recipient_refs).wrap_err(
+        "Failed to initialize encryptor (Are you mixing post-quantum and classic recipient types?)",
+    )?;
+
+    let armored = ArmoredWriter::wrap_output(output, Format::AsciiArmor)
+        .wrap_err("Failed to wrap output with age::ArmoredWriter")?;
+
+    encryptor.wrap_output(armored).map_err(|err| eyre!(err))
+}
 
 fn get_age_decryptor<R>(read: R) -> Result<Decryptor<ArmoredReader<BufReader<R>>>>
 where
@@ -30,11 +71,11 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
     paths
         .iter()
         .filter(|path| path.is_file())
-        .filter_map(|path| File::open(path).map(BufReader::new).ok())
-        .try_fold(Vec::new(), |mut acc, mut reader| {
+        .filter_map(|path| fs::read(path).map(Zeroizing::new).ok())
+        .try_fold(Vec::new(), |mut acc, contents| {
             // Parses both age native identities and plugins
-            if let Ok(file) =
-                IdentityFile::from_buffer(&mut reader).map(|i| i.with_callbacks(UiCallbacks))
+            if let Ok(file) = IdentityFile::from_buffer(Cursor::new(contents.as_slice()))
+                .map(|i| i.with_callbacks(UiCallbacks))
             {
                 acc.extend(
                     file.into_identities()
@@ -42,13 +83,11 @@ pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + S
                 );
                 trace!("Parsed a native age identity");
             } else {
-                use std::io::Seek;
                 trace!("Failed to parse a native identity, trying ssh");
-                reader
-                    .rewind()
-                    .wrap_err("Failed to rewind identity file buffer")?;
 
-                if let Ok(identity) = ssh::Identity::from_buffer(reader, None) {
+                if let Ok(identity) =
+                    ssh::Identity::from_buffer(Cursor::new(contents.as_slice()), None)
+                {
                     trace!("Parsed an ssh identity");
                     acc.push(Box::new(identity.with_callbacks(UiCallbacks)));
                 } else {
@@ -68,14 +107,10 @@ where
     R: Read,
     W: Write,
 {
-    #[expect(
-        clippy::as_conversions,
-        reason = "dyn Identity + Send + Sync -> dyn Identity"
-    )]
     let mut plaintext_reader = get_age_decryptor(input)?
         .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))
         .wrap_err("Failed to decrypt secret")?;
-    io::copy(&mut plaintext_reader, &mut output)?;
+    zeroizing_copy(&mut plaintext_reader, &mut output)?;
     Ok(())
 }
 
@@ -106,33 +141,9 @@ where
     R: Read,
     W: Write,
 {
-    let mut recipients: Vec<Box<dyn age::Recipient + Send>> = vec![];
-    let mut plugin_recipients: Vec<plugin::Recipient> = vec![];
-
-    for pubkey in public_keys {
-        parse_recipient(pubkey, &mut recipients, &mut plugin_recipients)?;
-    }
-
-    merge_plugin_recipients_and_recipients(&mut recipients, &plugin_recipients)?;
-    trace!("Merged plugin recipients");
-
-    #[expect(
-        clippy::as_conversions,
-        reason = "dyn Recipient + Send -> dyn Recipient"
-    )]
-    let recipient_refs = recipients.iter().map(|r| r.as_ref() as &dyn age::Recipient);
-    let encryptor = age::Encryptor::with_recipients(recipient_refs)?; // TODO: can't combine pq and non-pq
-
-    let mut output_writer = encryptor
-        .wrap_output(
-            ArmoredWriter::wrap_output(output, Format::AsciiArmor)
-                .wrap_err("Failed to wrap output with age::ArmoredWriter")?,
-        )
-        .map_err(|err| eyre!(err))?;
-
-    io::copy(&mut input, &mut output_writer)?;
+    let mut output_writer = get_writer(output, public_keys)?;
+    zeroizing_copy(&mut input, &mut output_writer)?;
     output_writer.finish().and_then(ArmoredWriter::finish)?;
-
     Ok(())
 }
 
@@ -146,14 +157,16 @@ where
     R: Read,
     W: Write,
 {
-    let mut plaintext_buffer = Vec::new();
+    let mut plaintext_reader = get_age_decryptor(input)?
+        .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))
+        .wrap_err("Failed to decrypt secret")?;
 
-    decrypt_stream(input, &mut plaintext_buffer, identities)
-        .wrap_err("Failed to decrypt stream")?;
+    let mut output_writer = get_writer(output, recipients)?;
 
-    encrypt_stream(&*plaintext_buffer, output, recipients)
-        .wrap_err("Failed to encrypt stream with new recipients")?;
+    zeroizing_copy(&mut plaintext_reader, &mut output_writer)
+        .wrap_err("Failed to re-encrypt stream")?;
 
+    output_writer.finish().and_then(ArmoredWriter::finish)?;
     Ok(())
 }
 
@@ -168,9 +181,9 @@ where
     let input = InputReader::new(input_file.as_ref().to_str().map(str::to_owned))?;
 
     let output = output_file.as_ref().to_str().map(str::to_owned);
-    let ciphertext_writer = OutputWriter::new(output, true, OutputFormat::Unknown, 0o600, false)?;
+    let plaintext_writer = OutputWriter::new(output, true, OutputFormat::Unknown, 0o600, false)?;
 
-    decrypt_stream(input, ciphertext_writer, identities)
+    decrypt_stream(input, plaintext_writer, identities)
 }
 
 pub fn encrypt<P>(input_file: P, output_file: P, recipients: &[String]) -> Result<()>
