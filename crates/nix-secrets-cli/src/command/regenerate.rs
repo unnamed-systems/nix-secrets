@@ -6,11 +6,16 @@ use nix_secrets_core::{
     model::{ManifestOptions, Secret},
 };
 
-use std::{collections::HashMap, io::Write as _, path::PathBuf, process::Command};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Write as _,
+    path::PathBuf,
+    process::Command,
+};
 
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
-use eyre::{Context as _, Ok, OptionExt as _, bail, eyre};
+use eyre::{Context as _, Ok, OptionExt as _, bail, ensure, eyre};
 
 use crate::{
     command::{Args, CommandTrait},
@@ -64,21 +69,35 @@ impl CommandTrait for RegenerateCommand {
             );
         }
 
+        let mut requested: HashSet<&String> = HashSet::from_iter(self.secrets.iter());
+
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
             .filter(|s| {
-                (self.secrets.contains(&s.name)
-                    || self.all
-                    || (self.missing
-                        && !storage_path
-                            .join(&s.name)
-                            .append_extension(SECRETS_EXTENSION)
-                            .try_exists()
-                            .unwrap_or(false)))
-                    && s.generator.is_some()
+                requested.remove(&s.name)
+                    || s.generator.is_some()
+                        && (self.all
+                            || (self.missing
+                                && !storage_path
+                                    .join(&s.name)
+                                    .with_added_extension(SECRETS_EXTENSION)
+                                    .try_exists()
+                                    .unwrap_or(false)))
             })
-            .collect();
+            .map(|s| {
+                ensure!(
+                    s.generator.is_some(),
+                    "Secret `{}` has no generator",
+                    s.name
+                );
+                Ok(s)
+            })
+            .collect::<eyre::Result<_>>()?;
+
+        if let Some(missing) = requested.into_iter().next() {
+            bail!("Secret `{missing}` is not present in the Nix configuration");
+        }
 
         if secrets.is_empty() {
             bail!("No secrets to regenerate");

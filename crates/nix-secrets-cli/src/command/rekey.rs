@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io::Write as _, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Write as _,
+    path::PathBuf,
+};
 
 use age::cli_common::file_io::{InputReader, OutputFormat, OutputWriter};
 use clap_complete::ArgValueCompleter;
@@ -46,11 +50,16 @@ impl CommandTrait for RekeyCommand {
             );
         }
 
+        let mut requested: HashSet<&String> = HashSet::from_iter(self.secrets.iter());
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()
-            .filter(|s| self.secrets.contains(&s.name) || self.secrets.is_empty())
+            .filter(|s| requested.remove(&s.name) || self.secrets.is_empty())
             .collect();
+
+        if let Some(missing) = self.secrets.iter().find(|name| requested.contains(name)) {
+            bail!("Secret `{missing}` is not present in the Nix configuration");
+        }
 
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
