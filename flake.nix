@@ -2,7 +2,7 @@
   description = "A postmodern secrets manager for NixOS";
 
   inputs = {
-    nixpkgs.url = "https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz";
+    nixpkgs.url = "https://nixos.org/channels/nixos-unstable/nixexprs.tar.zst";
   };
 
   outputs =
