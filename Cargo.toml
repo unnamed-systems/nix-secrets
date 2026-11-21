@@ -18,7 +18,7 @@ serde_json = "1.0.151"
 
 age = { version = "0.12.1", default-features = false, features = ["cli-common", "ssh", "armor", "plugin"] }
 eyre = { version = "0.6.12", features = ["track-caller"] }
-nix = { version = "0.31.3", features = ["user", "hostname", "fs", "mount"] }
+nix = { version = "0.31.3", features = ["user", "hostname", "fs", "mount", "signal"] }
 thiserror = "2.0.19"
 tracing = { version = "0.1.44", features = ["max_level_trace"] }
 tracing-error = "0.2.1"

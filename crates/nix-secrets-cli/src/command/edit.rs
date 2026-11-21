@@ -15,6 +15,7 @@ use crate::{
 use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, OptionExt as _, bail, eyre};
+use nix::{errno::Errno, sys::signal::kill, unistd::Pid};
 use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _};
 use nix_secrets_core::{
     age::{decrypt, encrypt, get_identities},
@@ -70,6 +71,10 @@ pub struct EditCommand {
     /// Name of the secret to edit
     #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
+
+    /// Forcefully edit secret even if another process is using it
+    #[arg(long)]
+    force: bool,
 }
 
 impl CommandTrait for EditCommand {
@@ -118,12 +123,42 @@ impl CommandTrait for EditCommand {
         fs::create_dir_all(&dir)
             .wrap_err_with(|| eyre!("Failed to create temporary directory ({dir:?})"))?;
 
-        let input_path = dir.join(format!("secret_input_{}", self.name.replace('/', "_")));
-        trace!("Calculated the input file path: {input_path:?}");
+        let path_prefix = format!("secret_input_{}", self.name.replace('/', "_"));
+        let existing_files = fs::read_dir(&dir)
+            .wrap_err_with(|| eyre!("Failed to read temporary directory ({dir:?})"))?;
 
-        if input_path.exists() {
-            bail!("The secret `{}` is already being edited", secret.name);
+        for entry in existing_files {
+            let path = entry?.path();
+
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+
+            if !path.is_file() || !name.starts_with(&path_prefix) {
+                continue;
+            }
+
+            let pid = name
+                .rsplit_once('_')
+                .and_then(|(_, pid_str)| pid_str.parse::<i32>().ok())
+                .ok_or_eyre("No PID in secret name")?;
+
+            let is_being_edited =
+                matches!(kill(Pid::from_raw(pid), None), Ok(()) | Err(Errno::EPERM));
+
+            if is_being_edited && !self.force {
+                bail!("The secret `{}` is already being edited", secret.name);
+            }
+
+            let _ = fs::remove_file(&path);
         }
+
+        let input_path = dir.join(format!(
+            "secret_input_{}_{}",
+            self.name.replace('/', "_"),
+            process::id()
+        ));
+        trace!("Calculated the input file path: {input_path:?}");
 
         defer! {
             #[expect(clippy::let_underscore_must_use, reason = "Cleanup")]
