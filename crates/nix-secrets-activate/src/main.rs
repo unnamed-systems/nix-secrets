@@ -310,7 +310,13 @@ fn main() -> Result<()> {
 
                 let atomic_dir = base_dir
                     .parent()
-                    .map(|p| p.join(".nix-secrets"))
+                    .map(|p| {
+                        p.join(if args.needed_for_users {
+                            ".nix-secrets-for-users"
+                        } else {
+                            ".nix-secrets"
+                        })
+                    })
                     .wrap_err("Failed to create atomic linking path")?;
                 for (from, (to, is_symlink)) in main_links {
                     let atomic_path = Path::new(&atomic_dir).join(to.strip_prefix(&base_dir)?);
