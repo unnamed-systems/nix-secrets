@@ -72,7 +72,6 @@ enum ActivationStage<'a> {
         generation_dir: PathBuf,
         hashes: HashMap<&'a str, Zeroizing<String>>,
     },
-    LinkIdentitySecrets,
     LinkMainDirectory,
     LinkIndividualLinkables,
     DeleteOldGenerations,
@@ -289,12 +288,8 @@ fn main() -> Result<()> {
                 if args.dry {
                     stage = ActivationStage::Exit
                 } else {
-                    stage = ActivationStage::LinkIdentitySecrets;
+                    stage = ActivationStage::LinkMainDirectory;
                 }
-            }
-            ActivationStage::LinkIdentitySecrets => {
-                // TODO
-                stage = ActivationStage::LinkMainDirectory;
             }
             ActivationStage::LinkMainDirectory => {
                 let base_dir = PathBuf::from(if args.needed_for_users {
