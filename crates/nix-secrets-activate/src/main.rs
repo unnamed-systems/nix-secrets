@@ -150,7 +150,12 @@ fn main() -> Result<()> {
                         .templates
                         .retain(|t| t.needed_for_users == args.needed_for_users);
 
-                    stage = ActivationStage::InitializeGenerationDir;
+                    if manifest.secrets.len() + manifest.templates.len() == 0 {
+                        info!("Nothing to deploy");
+                        stage = ActivationStage::Exit;
+                    } else {
+                        stage = ActivationStage::InitializeGenerationDir;
+                    }
                 } else {
                     stage = ActivationStage::ParseIdentitySecrets {
                         previous: identities.len(),
