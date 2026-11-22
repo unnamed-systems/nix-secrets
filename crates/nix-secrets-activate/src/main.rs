@@ -16,18 +16,22 @@ use std::{
     result, time,
 };
 
-use age::cli_common::file_io::InputReader;
+use age::{Identity, cli_common::file_io::InputReader, secrecy::zeroize::Zeroizing};
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
-use eyre::{Context as _, ContextCompat as _, Ok, OptionExt as _, eyre};
-use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _, log::init_logger};
+use eyre::{Context as _, ContextCompat as _, OptionExt as _, eyre};
+use nix::fcntl::{AT_FDCWD, RenameFlags, renameat2};
+use nix_secrets_core::{
+    SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _, log::init_logger,
+    model::Manifest,
+};
 
 #[cfg(target_os = "linux")]
 use nix::sys::statfs::FsType;
 use nix_secrets_core::{
     Result,
     age::{decrypt_stream, get_identities},
-    model::{ModuleSystem, OwnerOrGroup, Secret, Template, parse_manifest},
+    model::{ModuleSystem, OwnerOrGroup, Secret, parse_manifest},
 };
 
 use crate::utils::set_owner_and_group;
@@ -54,6 +58,27 @@ pub struct Args {
     pub needed_for_users: bool,
 }
 
+enum ActivationStage<'a> {
+    Initialize,
+    ParseIdentitySecrets {
+        previous: usize,
+        remaining: Vec<&'a Secret>,
+    },
+    InitializeGenerationDir,
+    DecryptSecrets {
+        generation_dir: PathBuf,
+    },
+    BuildTemplates {
+        generation_dir: PathBuf,
+        hashes: HashMap<&'a str, Zeroizing<String>>,
+    },
+    LinkIdentitySecrets,
+    LinkMainDirectory,
+    LinkIndividualLinkables,
+    DeleteOldGenerations,
+    Exit,
+}
+
 #[allow(clippy::too_many_lines)]
 fn main() -> Result<()> {
     init_logger();
@@ -64,225 +89,305 @@ fn main() -> Result<()> {
     trace!("Manifest argument: {}", args.manifest.display());
     let contents =
         fs::read_to_string(&args.manifest).wrap_err("Failed to read manifest content")?;
-    let manifest = parse_manifest(&contents)?;
+    let mut manifest: Manifest = parse_manifest(&contents).wrap_err("Failed to parse manifest")?;
+    let mut identities = Vec::new();
+    let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
+    let mut cleanup: Vec<PathBuf> = Vec::new();
 
-    let secrets: Vec<Secret> = manifest
-        .secrets
-        .into_iter()
-        .filter(|i| i.needed_for_users == args.needed_for_users)
-        .collect();
-    trace!("Filtered secrets ({})", secrets.len());
+    let mut stage = ActivationStage::Initialize;
 
-    let templates: Vec<Template> = manifest
-        .templates
-        .into_iter()
-        .filter(|i| i.needed_for_users == args.needed_for_users)
-        .collect();
-    trace!("Filtered templates ({})", templates.len());
+    while !matches!(stage, ActivationStage::Exit) {
+        match stage {
+            ActivationStage::Initialize => {
+                let identity_paths: Vec<PathBuf> =
+                    manifest.identity_paths.iter().map(PathBuf::from).collect();
 
-    if secrets.is_empty() && templates.is_empty() {
-        info!("Nothing to deploy");
-        return Ok(());
-    }
+                identities = get_identities_paths(&identity_paths)
+                    .wrap_err("Failed to parse initial identities")?;
 
-    // TODO: isIdentity
-    let identity_paths: Vec<PathBuf> = manifest.identity_paths.iter().map(PathBuf::from).collect();
-    let identities = get_identities(&identity_paths)?;
-    trace!("Found identities ({})", identities.len());
+                let remaining_identities: Vec<&Secret> =
+                    manifest.secrets.iter().filter(|s| s.is_identity).collect();
 
-    let plain: HashMap<&Secret, String> = secrets
-        .iter()
-        .map(|s| {
-            if manifest.use_placeholders {
-                trace!(
-                    "Using placeholder for secret `{}` ({:?})",
-                    s.name, s.placeholder
+                stage = ActivationStage::ParseIdentitySecrets {
+                    previous: identities.len(),
+                    remaining: remaining_identities,
+                }
+            }
+            ActivationStage::ParseIdentitySecrets {
+                previous,
+                mut remaining,
+            } => {
+                let mut res: Result<()> = Ok(());
+                remaining.retain_mut(|s| {
+                    let mut step = || -> Result<bool> {
+                        let decrypted = decrypt_secret(s, &manifest.storage, &identities)?;
+                        let new_identities = get_identities(decrypted.as_slice())
+                            .wrap_err("Failed to parse extra identities")?;
+
+                        drop(decrypted);
+
+                        identities.extend(new_identities);
+                        Ok(false)
+                    };
+
+                    match step() {
+                        Ok(keep) => keep,
+                        Err(err) => {
+                            res = Err(err);
+                            true
+                        }
+                    }
+                });
+
+                if identities.len() == previous {
+                    res.wrap_err("Failed to parse identity secrets")?;
+
+                    manifest
+                        .secrets
+                        .retain(|s| s.needed_for_users == args.needed_for_users);
+                    manifest
+                        .templates
+                        .retain(|t| t.needed_for_users == args.needed_for_users);
+
+                    stage = ActivationStage::InitializeGenerationDir
+                } else {
+                    stage = ActivationStage::ParseIdentitySecrets {
+                        previous: identities.len(),
+                        remaining,
+                    }
+                }
+            }
+            ActivationStage::InitializeGenerationDir => {
+                let gen_dir = get_generation_directory(
+                    &manifest.module_system,
+                    if args.needed_for_users {
+                        &manifest.generations_for_users_dir
+                    } else {
+                        &manifest.generations_dir
+                    },
+                )
+                .wrap_err("Failed to get generation directory")?;
+
+                trace!("Base generation directory: `{}`", gen_dir.display());
+
+                let secret_dir_exists = check_generation_dir_existence(&gen_dir)
+                    .wrap_err("Failed to check for secret generation existence")?;
+
+                if !secret_dir_exists {
+                    mount_secret_fs(&gen_dir, &manifest.module_system)
+                        .wrap_err("Failed to create generation directory")?;
+                }
+
+                trace!("Base generation directory exists, creating new generation");
+
+                let generation_dir = fs::read_dir(&gen_dir)
+                    .wrap_err_with(|| {
+                        format!("Failed to read base generation directory: {gen_dir:?}")
+                    })?
+                    .map(|entry| {
+                        let entry =
+                            entry.wrap_err("Failed to read a generation directory entry")?;
+                        let file_name = entry.file_name();
+                        let name = file_name.to_str().ok_or_else(|| {
+                            eyre!("Invalid UTF-8 in directory entry: {file_name:?}")
+                        })?;
+
+                        let generation: usize = name.parse().wrap_err_with(|| {
+                            format!("Failed to parse generation from '{name}'")
+                        })?;
+
+                        trace!("Found existing generation {generation} in {gen_dir:?}");
+                        Ok((generation, entry.path()))
+                    })
+                    .try_fold(
+                        (0, Vec::new()),
+                        |(next, mut entries), res: Result<(usize, PathBuf)>| {
+                            let (generation, path) = res?;
+                            entries.push((generation, path));
+                            Ok::<_, eyre::Report>((next.max(generation.saturating_add(1)), entries))
+                        },
+                    )
+                    .map(|(num, entries)| {
+                        cleanup.extend(
+                            entries
+                                .into_iter()
+                                .filter(|(generation, _)| num.saturating_sub(*generation) > 1)
+                                .map(|(_, path)| path),
+                        );
+                        gen_dir.join(num.to_string())
+                    })
+                    .wrap_err("Failed to read the generation directory")?;
+
+                stage = ActivationStage::DecryptSecrets { generation_dir }
+            }
+            ActivationStage::DecryptSecrets { generation_dir } => {
+                let secret_generation_dir = generation_dir.join("secrets");
+                let mut hashes = HashMap::new();
+
+                for secret in &manifest.secrets {
+                    let decrypted = decrypt_secret(secret, &manifest.storage, &identities)?;
+
+                    if !secret.template_key.is_empty() {
+                        let as_string = Zeroizing::new(String::from_utf8(decrypted.to_vec())?);
+                        hashes.insert(secret.template_key.as_str(), as_string);
+                    }
+
+                    let generation_dst_location = deploy_linkable_ramfs(
+                        &secret_generation_dir,
+                        decrypted,
+                        &secret.name,
+                        &secret.mode,
+                        &secret.owner,
+                        &secret.group,
+                        secret.needed_for_users,
+                    )?;
+
+                    links.insert(
+                        generation_dst_location,
+                        (secret.path.to_path_buf(), secret.is_symlink),
+                    );
+                }
+
+                stage = ActivationStage::BuildTemplates {
+                    generation_dir,
+                    hashes,
+                }
+            }
+            ActivationStage::BuildTemplates {
+                generation_dir,
+                hashes,
+            } => {
+                let templates_generation_dir = generation_dir.join("templates");
+
+                for template in &manifest.templates {
+                    trace!("Reading template content from {:?}", template.content);
+                    let content = fs::read_to_string(&template.content).wrap_err_with(|| {
+                        format!(
+                            "Failed to read template content: `{}`",
+                            template.content.display()
+                        )
+                    })?;
+                    trace!("Replacing secret hashes");
+                    let raw_content = replace_template_keys(&hashes, &content)?;
+
+                    let generation_dst_location = deploy_linkable_ramfs(
+                        &templates_generation_dir,
+                        raw_content,
+                        &template.name,
+                        &template.mode,
+                        &template.owner,
+                        &template.group,
+                        template.needed_for_users,
+                    )?;
+
+                    links.insert(
+                        generation_dst_location,
+                        (template.path.to_path_buf(), template.is_symlink),
+                    );
+                }
+
+                if args.dry {
+                    stage = ActivationStage::Exit
+                } else {
+                    stage = ActivationStage::LinkIdentitySecrets;
+                }
+            }
+            ActivationStage::LinkIdentitySecrets => {
+                // TODO
+                stage = ActivationStage::LinkMainDirectory;
+            }
+            ActivationStage::LinkMainDirectory => {
+                let base_dir = PathBuf::from(if args.needed_for_users {
+                    &manifest.base_for_users_dir
+                } else {
+                    &manifest.base_dir
+                });
+                let main_links =
+                    links.extract_if(|_from, (to, _is_symlink)| to.starts_with(&base_dir));
+
+                let atomic_dir = base_dir
+                    .parent()
+                    .map(|p| p.join(".nix-secrets"))
+                    .wrap_err("Failed to create atomic linking path")?;
+                for (from, (to, is_symlink)) in main_links {
+                    let atomic_path = Path::new(&atomic_dir).join(to.strip_prefix(&base_dir)?);
+                    deploy_linkable(&from, &atomic_path, is_symlink)?;
+                }
+
+                info!(
+                    "Atomically moving temporary directory to target ({atomic_dir:?} -> {base_dir:?})"
+                );
+                let res = renameat2(
+                    AT_FDCWD,
+                    &atomic_dir,
+                    AT_FDCWD,
+                    &base_dir,
+                    RenameFlags::RENAME_EXCHANGE,
                 );
 
-                let placeholder = fs::read_to_string(&s.placeholder)
-                    .wrap_err("Failed to read placeholder content")?;
-                return Ok((s, placeholder));
+                if let Err(cleanup_err) = std::fs::remove_dir_all(&atomic_dir)
+                    && cleanup_err.kind() != std::io::ErrorKind::NotFound
+                {
+                    error!(
+                        "Warning: failed to clean up {}: {cleanup_err}",
+                        atomic_dir.display()
+                    );
+                }
+
+                res.wrap_err("Failed to atomically replace base directory")?;
+
+                info!("Linked everything in the main directory");
+
+                stage = ActivationStage::LinkIndividualLinkables;
             }
+            ActivationStage::LinkIndividualLinkables => {
+                for (from, (to, is_symlink)) in &links {
+                    deploy_linkable(from, to, *is_symlink)?;
+                }
+                info!("Linked everything in the different directories");
 
-            let path_str = manifest
-                .storage
-                .join(&s.name)
-                .append_extension(SECRETS_EXTENSION)
-                .into_os_string()
-                .into_string()
-                .map_err(|e| eyre!("Secret path contains invalid Unicode: {e:?}"))?;
-            trace!("Reading secret `{}` ({})", &s.name, path_str);
-
-            let input_reader = InputReader::new(Some(path_str))
-                .wrap_err_with(|| format!("Failed to open the secret `{}`", s.name))?;
-            let mut decrypted = Vec::new();
-            decrypt_stream(input_reader, &mut decrypted, &identities)
-                .wrap_err_with(|| format!("Failed to decrypt the secret `{}`", s.name))?;
-            trace!("Successfully decrypted secret `{}`", &s.name);
-
-            Ok((s, String::from_utf8(decrypted)?))
-        })
-        .collect::<eyre::Result<_>>()?;
-
-    let (generation_dir, cleanup) = init_generation_dir(
-        &manifest.module_system,
-        if args.needed_for_users {
-            &manifest.generations_for_users_dir
-        } else {
-            &manifest.generations_dir
-        },
-    )?;
-    let secret_generation_dir = generation_dir.join("secrets");
-    trace!("Initialized generation directory {generation_dir:?}");
-
-    let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
-
-    for secret in &secrets {
-        let raw_content = plain
-            .get(secret)
-            .wrap_err_with(|| eyre!("Decrypted content not found"))?;
-
-        let generation_dst_location = secret_generation_dir.join(&secret.name);
-        let generation_dst_parent = generation_dst_location
-            .parent()
-            .ok_or_eyre("Path to secret has no parent")?;
-
-        trace!(
-            "Ensuring secret directory {generation_dst_parent:?} inside generation directory exists"
-        );
-        fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-            eyre!(
-                "Failed to create secret generation directory `{}`",
-                generation_dst_parent.display()
-            )
-        })?;
-
-        info!(
-            "Secret `{}` -> {}",
-            secret.name,
-            generation_dst_location.display()
-        );
-        let mut the_file = get_linkable_file(
-            &generation_dst_location,
-            &secret.name,
-            &secret.mode,
-            &secret.owner,
-            &secret.group,
-            &manifest.module_system,
-            secret.needed_for_users,
-        )?;
-
-        trace!("Writing secret content `{}`", secret.name);
-        the_file
-            .write_all(raw_content.as_bytes())
-            .wrap_err_with(|| {
-                format!(
-                    "Failed to write secret content: `{}`",
-                    generation_dst_location.display()
-                )
-            })?;
-
-        let final_directory = get_linkable_directory(&secret.name, &secret.path)?;
-
-        links.insert(
-            generation_dst_location,
-            (final_directory, secret.is_symlink),
-        );
-    }
-
-    let templates_generation_dir = generation_dir.join("templates");
-    trace!("Initialized generation directory {generation_dir:?}");
-
-    let hashes: HashMap<&str, &String> = plain.iter().map(|(k, v)| (&*k.template_key, v)).collect();
-
-    for template in templates {
-        trace!("Reading template content from {:?}", template.content);
-        let content = fs::read_to_string(&template.content).wrap_err_with(|| {
-            format!(
-                "Failed to read template content: `{}`",
-                template.content.display()
-            )
-        })?;
-        trace!("Replacing secret hashes");
-        let raw_content = replace_template_keys(&hashes, &content)?;
-
-        let generation_dst_location = templates_generation_dir.join(&template.name);
-        let generation_dst_parent = generation_dst_location
-            .parent()
-            .ok_or_eyre("Path to template has no parent")?;
-
-        trace!(
-            "Ensuring template directory {generation_dst_parent:?} inside generation directory exists"
-        );
-        fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
-            eyre!("Failed to create template generation directory ({generation_dst_parent:?})")
-        })?;
-
-        info!(
-            "Template `{}` -> {}",
-            template.name,
-            generation_dst_location.display()
-        );
-        let mut the_file = get_linkable_file(
-            &generation_dst_location,
-            &template.name,
-            &template.mode,
-            &template.owner,
-            &template.group,
-            &manifest.module_system,
-            template.needed_for_users,
-        )?;
-
-        trace!("Writing template content `{}`", template.name);
-        the_file
-            .write_all(raw_content.as_bytes())
-            .wrap_err_with(|| {
-                format!(
-                    "Failed to write template content: `{}`",
-                    generation_dst_location.display()
-                )
-            })?;
-
-        let final_directory = get_linkable_directory(&template.name, &template.path)?;
-
-        links.insert(
-            generation_dst_location,
-            (final_directory, template.is_symlink),
-        );
-    }
-
-    info!("Finished linkable creation, linking");
-
-    #[expect(clippy::iter_over_hash_type, reason = "We don't care about order here")]
-    for (from, (to, link)) in links {
-        if args.dry {
-            trace!("Dry, skipping linking ({from:?} -> {to:?})");
-            continue;
-        }
-        deploy_linkable(&from, &to, link)?;
-    }
-    info!("Linked everything, cleaning up");
-
-    for directory in cleanup {
-        trace!(
-            "{} old generation ({directory:?})",
-            if args.dry {
-                "Would delete (dry)"
-            } else {
-                "Deleting"
+                stage = ActivationStage::DeleteOldGenerations;
             }
-        );
-        if !args.dry {
-            fs::remove_dir_all(&directory).wrap_err_with(|| {
-                format!(
-                    "Failed to remove old generation directory: `{}`",
-                    directory.display()
-                )
-            })?;
+            ActivationStage::DeleteOldGenerations => {
+                for directory in &cleanup {
+                    trace!("Deleting old generation ({directory:?})",);
+                    fs::remove_dir_all(directory).wrap_err_with(|| {
+                        format!(
+                            "Failed to remove old generation directory: `{}`",
+                            directory.display()
+                        )
+                    })?;
+                }
+
+                stage = ActivationStage::Exit;
+            }
+            ActivationStage::Exit => {}
         }
     }
 
     Ok(())
+}
+
+fn decrypt_secret(
+    secret: &Secret,
+    storage: &Path,
+    identities: &[Box<dyn Identity + Send + Sync>],
+) -> Result<Zeroizing<Vec<u8>>> {
+    let path_str = storage
+        .join(&secret.name)
+        .append_extension(SECRETS_EXTENSION)
+        .into_os_string()
+        .into_string()
+        .map_err(|e| eyre!("Identity secret path contains invalid Unicode: {e:?}"))?;
+    trace!("Reading secret `{}` ({})", &secret.name, path_str);
+
+    let input_reader = InputReader::new(Some(path_str))
+        .wrap_err_with(|| format!("Failed to open the identity secret `{}`", secret.name))?;
+    let mut decrypted = Zeroizing::new(Vec::new());
+    decrypt_stream(input_reader, &mut *decrypted, identities)
+        .wrap_err_with(|| format!("Failed to decrypt the identity secret `{}`", secret.name))?;
+
+    Ok(decrypted)
 }
 
 #[cfg(target_os = "linux")]
@@ -324,32 +429,73 @@ fn get_generation_directory(module_system: &ModuleSystem, base_dir: &str) -> Res
     }
 }
 
-fn replace_template_keys(hashes: &HashMap<&str, &String>, content: &str) -> Result<String> {
+fn replace_template_keys(
+    hashes: &HashMap<&str, Zeroizing<String>>,
+    content: &str,
+) -> Result<Zeroizing<Vec<u8>>> {
     let keys: Vec<&&str> = hashes.keys().collect();
-    let mut result = String::with_capacity(content.len());
+    let mut result = Zeroizing::new(Vec::with_capacity(content.len()));
 
     let ac = AhoCorasick::builder()
         .match_kind(MatchKind::LeftmostFirst)
         .build(&keys)?;
 
-    ac.replace_all_with(content, &mut result, |mat, _, dst| {
+    ac.replace_all_with_bytes(content.as_bytes(), &mut result, |mat, _, dst| {
         let pat = mat.pattern().as_usize();
         keys.get(pat)
             .and_then(|key| hashes.get(*key))
-            .map(|value| dst.push_str(value.trim_end_matches('\n')))
+            .map(|value| dst.extend_from_slice(value.trim_end_matches('\n').as_bytes()))
             .is_some()
     });
 
     Ok(result)
 }
 
-fn get_linkable_directory(name: &str, path: &Path) -> Result<PathBuf> {
+fn deploy_linkable_ramfs(
+    generation_dir: &Path,
+    raw_content: Zeroizing<Vec<u8>>,
+    name: &str,
+    mode: &str,
+    owner: &OwnerOrGroup,
+    group: &OwnerOrGroup,
+    needed_for_users: bool,
+) -> Result<PathBuf> {
+    let generation_dst_location = generation_dir.join(name);
+    let generation_dst_parent = generation_dst_location
+        .parent()
+        .ok_or_eyre("Path to linkable has no parent")?;
+
     trace!(
-        "Using specified path for linkable `{}` ({})",
-        name,
-        path.display()
+        "Ensuring linkable directory {generation_dst_parent:?} inside generation directory exists"
     );
-    Ok(path.to_path_buf())
+    fs::create_dir_all(generation_dst_parent).wrap_err_with(|| {
+        eyre!("Failed to create linkable generation directory ({generation_dst_parent:?})")
+    })?;
+
+    info!(
+        "Linkable `{}` -> {}",
+        name,
+        generation_dst_location.display()
+    );
+    let mut file = get_linkable_file(
+        &generation_dst_location,
+        name,
+        mode,
+        owner,
+        group,
+        needed_for_users,
+    )?;
+
+    trace!("Writing linkable content `{}`", name);
+    file.write_all(&raw_content).wrap_err_with(|| {
+        format!(
+            "Failed to write template content: `{}`",
+            generation_dst_location.display()
+        )
+    })?;
+    drop(raw_content);
+
+    Ok(generation_dst_location)
 }
 
 fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
@@ -408,7 +554,6 @@ fn get_linkable_file(
     mode: &str,
     owner: &OwnerOrGroup,
     group: &OwnerOrGroup,
-    _module_system: &ModuleSystem,
     needed_for_users: bool,
 ) -> Result<File> {
     let parsed_mode = utils::parse_permissions_str(mode).wrap_err("Failed to parse permissions")?;
@@ -582,57 +727,4 @@ fn check_generation_dir_existence(mountpoint: &Path) -> Result<bool> {
             }
         }
     }
-}
-
-fn init_generation_dir(
-    module_system: &ModuleSystem,
-    base_dir: &str,
-) -> eyre::Result<(PathBuf, Vec<PathBuf>)> {
-    let mut max = 0;
-
-    let gen_dir = get_generation_directory(module_system, base_dir)
-        .wrap_err("Failed to get generation directory")?;
-
-    let mut cleanup: Vec<PathBuf> = Vec::new();
-
-    trace!("Base generation directory: `{}`", gen_dir.display());
-
-    let secret_dir_exists = check_generation_dir_existence(&gen_dir)
-        .wrap_err("Failed to check for secret generation existence")?;
-
-    if !secret_dir_exists {
-        mount_secret_fs(&gen_dir, module_system)
-            .wrap_err("Failed to create generation directory")?;
-    }
-
-    trace!("Base generation directory exists, creating new generation");
-
-    fs::read_dir(&gen_dir)
-        .wrap_err_with(|| eyre!("Failed to read base generation directory: {gen_dir:?}"))
-        .and_then(|mut o| {
-            o.try_for_each(|en| {
-                let d =
-                    en.wrap_err_with(|| eyre!("Failed to read a generation directory entry"))?;
-                match str::parse::<usize>(d.file_name().to_string_lossy().to_string().as_str()) {
-                    Err(e) => Err(eyre!("Failed to parse generation: {e}")),
-                    result::Result::Ok(res) => {
-                        trace!("Found existing generation {res} in {gen_dir:?}");
-                        if res >= max {
-                            max = res.checked_add(1).unwrap_or_default();
-                        }
-
-                        if max.checked_sub(res).is_some_and(|d| d > 1) {
-                            cleanup.push(d.path());
-                        }
-                        Ok(())
-                    }
-                }
-            })
-        })
-        .wrap_err("Failed to read the generation directory")?;
-
-    trace!("Calculated new generation id: {}", max);
-    trace!("{} old generation directories to remove", cleanup.len());
-
-    Ok((gen_dir.join(max.to_string()), cleanup))
 }

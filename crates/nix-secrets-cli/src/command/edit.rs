@@ -16,9 +16,9 @@ use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, OptionExt as _, bail, eyre};
 use nix::{errno::Errno, sys::signal::kill, unistd::Pid};
-use nix_secrets_core::{SECRETS_EXTENSION, file::PathBufExt as _};
+use nix_secrets_core::{SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _};
 use nix_secrets_core::{
-    age::{decrypt, encrypt, get_identities},
+    age::{decrypt, encrypt},
     file::check_secret_name,
 };
 use scopeguard::defer;
@@ -169,7 +169,7 @@ impl CommandTrait for EditCommand {
             trace!("Secret already exists, editing");
             let identity_paths: Vec<PathBuf> =
                 manifest.identity_paths.iter().map(PathBuf::from).collect();
-            let identities = get_identities(&identity_paths)?;
+            let identities = get_identities_paths(&identity_paths)?;
             trace!(
                 "Decrypting the secret at {resulting_path:?} with {} identities",
                 identities.len()

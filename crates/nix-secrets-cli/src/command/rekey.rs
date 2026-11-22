@@ -9,7 +9,7 @@ use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, Ok, OptionExt as _, bail};
 use nix_secrets_core::{
     SECRETS_EXTENSION,
-    age::{get_identities, rekey_stream},
+    age::{get_identities_paths, rekey_stream},
     file::{PathBufExt as _, check_secret_name},
     model::Secret,
 };
@@ -63,7 +63,7 @@ impl CommandTrait for RekeyCommand {
 
         let identity_paths: Vec<PathBuf> =
             manifest.identity_paths.iter().map(PathBuf::from).collect();
-        let identities = get_identities(&identity_paths)?;
+        let identities = get_identities_paths(&identity_paths)?;
 
         let rekeyed: HashMap<&Secret, Vec<u8>> = secrets
             .iter()

@@ -16,7 +16,7 @@ use age::{
     secrecy::zeroize::Zeroizing,
     ssh, x25519,
 };
-use eyre::{Context as _, eyre};
+use eyre::{Context as _, bail, eyre};
 
 fn zeroizing_copy<R: Read, W: Write>(reader: &mut R, writer: &mut W) -> io::Result<()> {
     let mut buf = Zeroizing::new([0u8; 8192]);
@@ -67,33 +67,45 @@ where
     Ok(decryptor)
 }
 
-pub fn get_identities(paths: &[PathBuf]) -> Result<Vec<Box<dyn age::Identity + Send + Sync>>> {
+pub fn get_identities<R>(mut read: R) -> Result<Vec<Box<dyn age::Identity + Send + Sync>>>
+where
+    R: io::BufRead,
+{
+    let mut buf = Zeroizing::new(Vec::new());
+    read.read_to_end(&mut buf)?;
+
+    let mut identities = Vec::new();
+    if let Ok(file) =
+        IdentityFile::from_buffer(buf.as_slice()).map(|i| i.with_callbacks(UiCallbacks))
+    {
+        trace!("Parsed a native age identity");
+        identities.extend(
+            file.into_identities()
+                .wrap_err("Failed to read identities from file")?,
+        );
+    } else {
+        trace!("Failed to parse a native identity, trying ssh");
+
+        if let Ok(identity) = ssh::Identity::from_buffer(buf.as_slice(), None) {
+            trace!("Parsed an ssh identity");
+            identities.push(Box::new(identity.with_callbacks(UiCallbacks)))
+        } else {
+            bail!("Failed to parse the identity");
+        }
+    };
+
+    Ok(identities)
+}
+
+pub fn get_identities_paths(
+    paths: &[PathBuf],
+) -> Result<Vec<Box<dyn age::Identity + Send + Sync>>> {
     paths
         .iter()
         .filter(|path| path.is_file())
         .filter_map(|path| fs::read(path).map(Zeroizing::new).ok())
         .try_fold(Vec::new(), |mut acc, contents| {
-            // Parses both age native identities and plugins
-            if let Ok(file) = IdentityFile::from_buffer(Cursor::new(contents.as_slice()))
-                .map(|i| i.with_callbacks(UiCallbacks))
-            {
-                acc.extend(
-                    file.into_identities()
-                        .wrap_err("Failed to read identities from file")?,
-                );
-                trace!("Parsed a native age identity");
-            } else {
-                trace!("Failed to parse a native identity, trying ssh");
-
-                if let Ok(identity) =
-                    ssh::Identity::from_buffer(Cursor::new(contents.as_slice()), None)
-                {
-                    trace!("Parsed an ssh identity");
-                    acc.push(Box::new(identity.with_callbacks(UiCallbacks)));
-                } else {
-                    trace!("Failed to parse the identity");
-                }
-            }
+            acc.extend(get_identities(Cursor::new(contents.as_slice()))?);
             Ok(acc)
         })
 }

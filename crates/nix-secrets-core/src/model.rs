@@ -16,6 +16,8 @@ pub struct Manifest {
     pub module_system: ModuleSystem,
     pub generations_dir: String,
     pub generations_for_users_dir: String,
+    pub base_dir: String,
+    pub base_for_users_dir: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -110,6 +112,7 @@ pub struct Secret {
     pub template_key: String,
     pub needed_for_users: bool,
     pub is_symlink: bool,
+    pub is_identity: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
