@@ -35,6 +35,8 @@ in
             storagePath
             generationsDir
             generationsForUsersDir
+            baseDir
+            baseForUsersDir
             ;
 
           inherit moduleSystem;
