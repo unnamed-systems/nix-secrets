@@ -25,6 +25,11 @@ nix.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 clap.workspace = true 
-clap_complete.workspace = true
 
 aho-corasick = "1.1.5"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
+[lints]
+workspace = true

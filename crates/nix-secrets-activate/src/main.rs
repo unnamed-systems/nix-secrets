@@ -7,10 +7,12 @@ pub mod utils;
 use std::io::{BufRead as _, BufReader};
 use std::{
     collections::HashMap,
-    env,
     fs::{self, File, OpenOptions},
     io::{ErrorKind, Write as _},
-    os::unix::fs::{self as unix_fs, OpenOptionsExt},
+    os::{
+        fd::AsFd,
+        unix::fs::{self as unix_fs, OpenOptionsExt},
+    },
     path::{Path, PathBuf},
     process::{self},
     result, time,
@@ -20,7 +22,7 @@ use age::{Identity, cli_common::file_io::InputReader, secrecy::zeroize::Zeroizin
 use aho_corasick::{AhoCorasick, MatchKind};
 use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, OptionExt as _, eyre};
-use nix::fcntl::{AT_FDCWD, RenameFlags, renameat2};
+use nix::fcntl::AT_FDCWD;
 use nix_secrets_core::{
     SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _, log::init_logger,
     model::Manifest,
@@ -312,13 +314,7 @@ fn main() -> Result<()> {
                 info!(
                     "Atomically moving temporary directory to target ({atomic_dir:?} -> {base_dir:?})"
                 );
-                let res = renameat2(
-                    AT_FDCWD,
-                    &atomic_dir,
-                    AT_FDCWD,
-                    &base_dir,
-                    RenameFlags::RENAME_EXCHANGE,
-                );
+                let res = rename_exchange(AT_FDCWD, &atomic_dir, AT_FDCWD, &base_dir);
 
                 if let Err(cleanup_err) = std::fs::remove_dir_all(&atomic_dir)
                     && cleanup_err.kind() != std::io::ErrorKind::NotFound
@@ -363,6 +359,45 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+pub fn rename_exchange<Fd: AsFd>(
+    old_dirfd: Fd,
+    old_path: &Path,
+    new_dirfd: Fd,
+    new_path: &Path,
+) -> nix::Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        use nix::fcntl::{RenameFlags, renameat2};
+        renameat2(
+            old_dirfd,
+            old_path,
+            new_dirfd,
+            new_path,
+            RenameFlags::RENAME_EXCHANGE,
+        )
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use nix::NixPath;
+        use std::os::fd::AsRawFd as _;
+        let res = old_path.with_nix_path(|c_old| {
+            new_path.with_nix_path(|c_new| unsafe {
+                libc::renameatx_np(
+                    old_dirfd.as_fd().as_raw_fd(),
+                    c_old.as_ptr(),
+                    new_dirfd.as_fd().as_raw_fd(),
+                    c_new.as_ptr(),
+                    libc::RENAME_SWAP,
+                )
+            })
+        })??;
+
+        nix::errno::Errno::result(res)?;
+        Ok(())
+    }
+}
+
 fn decrypt_secret(
     secret: &Secret,
     storage: &Path,
@@ -387,6 +422,8 @@ fn decrypt_secret(
 
 #[cfg(target_os = "linux")]
 fn runtime_directory() -> Result<String> {
+    use std::env;
+
     env::var("XDG_RUNTIME_DIR").wrap_err("$XDG_RUNTIME_DIR is not set")
 }
 
