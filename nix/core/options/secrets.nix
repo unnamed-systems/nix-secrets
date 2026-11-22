@@ -132,6 +132,16 @@ let
           # example = TODO;
         };
 
+        isIdentity = lib.mkOption {
+          description = ''
+            Whether to use the decrypted secret content as an identity for decrypting other
+            secrets.
+          '';
+          type = lib.types.bool;
+          default = false;
+          example = true;
+        };
+
         # Templating
         templateKey = lib.mkOption {
           description = ''

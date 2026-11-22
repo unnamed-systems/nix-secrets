@@ -45,6 +45,7 @@ in
             inherit (value)
               name
               recipients
+              isIdentity
               placeholder
               neededForUsers
               path
