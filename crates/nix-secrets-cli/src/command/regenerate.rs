@@ -55,7 +55,7 @@ impl CommandTrait for RegenerateCommand {
             ManifestOptions::WithGenerators(self.secrets.clone())
         };
 
-        let manifest = utils::eval_manifest(root, manifest_options)?;
+        let manifest = utils::eval_manifest(root, &manifest_options)?;
         let storage_path = self
             .storage
             .as_ref()
@@ -113,7 +113,7 @@ impl CommandTrait for RegenerateCommand {
                         s.name,
                         s.generator
                             .and_then(|p| p.into_os_string().into_string().ok())
-                            .unwrap_or(String::from("Secret generator is undefined"))
+                            .unwrap_or_else(|| String::from("Secret generator is undefined"))
                     ))
                     .collect::<Vec<String>>()
                     .join("\n")

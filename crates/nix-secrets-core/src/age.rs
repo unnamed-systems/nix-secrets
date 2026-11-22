@@ -22,13 +22,16 @@ fn zeroizing_copy<R: Read, W: Write>(reader: &mut R, writer: &mut W) -> io::Resu
     let mut buf = Zeroizing::new([0u8; 8192]);
 
     loop {
-        let len = match reader.read(buf.as_mut_slice()) {
+        let len = match reader.read(&mut *buf) {
             Ok(0) => return Ok(()),
             Ok(len) => len,
             Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
         };
-        writer.write_all(&buf[..len])?;
+        let chunk = buf
+            .get(..len)
+            .ok_or_else(|| io::Error::other("Invalid reader length"))?;
+        writer.write_all(chunk)?;
     }
 }
 
@@ -46,6 +49,7 @@ fn get_writer<W: Write>(
     merge_plugin_recipients_and_recipients(&mut recipients, &plugin_recipients)?;
     trace!("Merged plugin recipients");
 
+    #[allow(clippy::as_conversions)]
     let recipient_refs = recipients.iter().map(|r| r.as_ref() as &dyn age::Recipient);
     let encryptor = age::Encryptor::with_recipients(recipient_refs).wrap_err(
         "Failed to initialize encryptor (Are you mixing post-quantum and classic recipient types?)",
@@ -88,11 +92,11 @@ where
 
         if let Ok(identity) = ssh::Identity::from_buffer(buf.as_slice(), None) {
             trace!("Parsed an ssh identity");
-            identities.push(Box::new(identity.with_callbacks(UiCallbacks)))
+            identities.push(Box::new(identity.with_callbacks(UiCallbacks)));
         } else {
             bail!("Failed to parse the identity");
         }
-    };
+    }
 
     Ok(identities)
 }
@@ -119,6 +123,7 @@ where
     R: Read,
     W: Write,
 {
+    #[allow(clippy::as_conversions)]
     let mut plaintext_reader = get_age_decryptor(input)?
         .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))
         .wrap_err("Failed to decrypt secret")?;
@@ -169,6 +174,7 @@ where
     R: Read,
     W: Write,
 {
+    #[allow(clippy::as_conversions)]
     let mut plaintext_reader = get_age_decryptor(input)?
         .decrypt(identities.iter().map(|i| i.as_ref() as &dyn age::Identity))
         .wrap_err("Failed to decrypt secret")?;

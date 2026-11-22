@@ -11,7 +11,7 @@ use nix_secrets_core::{
     SECRETS_EXTENSION,
     age::{get_identities_paths, rekey_stream},
     file::{PathBufExt as _, check_secret_name},
-    model::Secret,
+    model::{ManifestOptions, Secret},
 };
 
 use crate::{
@@ -36,7 +36,7 @@ pub struct RekeyCommand {
 
 impl CommandTrait for RekeyCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        let manifest = utils::eval_manifest(root, Default::default())?;
+        let manifest = utils::eval_manifest(root, &ManifestOptions::default())?;
         let storage_path = self
             .storage
             .as_ref()

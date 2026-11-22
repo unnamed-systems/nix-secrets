@@ -60,14 +60,11 @@ enum Command {
 impl CommandTrait for Command {
     fn execute(&self, root: &Args) -> eyre::Result<()> {
         match self {
+            Self::Edit(cmd) => cmd.execute(root)?,
+            Self::Decrypt(cmd) => cmd.execute(root)?,
+            Self::Rekey(cmd) => cmd.execute(root)?,
+            Self::Regenerate(cmd) => cmd.execute(root)?,
             Self::Keygen(cmd) => cmd.execute(root)?,
-            _ => match self {
-                Self::Edit(cmd) => cmd.execute(root)?,
-                Self::Decrypt(cmd) => cmd.execute(root)?,
-                Self::Rekey(cmd) => cmd.execute(root)?,
-                Self::Regenerate(cmd) => cmd.execute(root)?,
-                _ => {}
-            },
         }
         Ok(())
     }

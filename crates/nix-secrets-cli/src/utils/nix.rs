@@ -44,7 +44,7 @@ pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> 
     let hostname = uname()
         .ok()
         .and_then(|v| v.nodename().to_str().map(String::from));
-    let fallback = hostname.unwrap_or(String::from("default"));
+    let fallback = hostname.unwrap_or_else(|| String::from("default"));
 
     parse_flake_fallback(flake, &fallback, canonicalize)
 }
@@ -85,11 +85,11 @@ pub fn eval_build_command(
 
     let build_child = eval_command
         .spawn()
-        .wrap_err_with(|| format!("Failed to spawn `{}`", program))?;
+        .wrap_err_with(|| format!("Failed to spawn `{program}`"))?;
 
     let build_output = build_child
         .wait_with_output()
-        .wrap_err_with(|| format!("Failed to run `{}`", program))?;
+        .wrap_err_with(|| format!("Failed to run `{program}`"))?;
 
     match build_output.status.code() {
         Some(0_i32) => (),
@@ -107,7 +107,7 @@ pub fn eval_build_command(
     Ok(output)
 }
 
-pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> {
+pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest> {
     info!("Evaluating flake: {}", args.flake);
     let (flake, hostname) = utils::parse_flake(&args.flake, true)
         .ok_or_else(|| eyre!("Failed to parse the flake `{}`", args.flake))?;
@@ -115,17 +115,18 @@ pub fn eval_manifest(args: &Args, options: ManifestOptions) -> Result<Manifest> 
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
 
-    let manifest_path = if let Some(user) = &args.home_manager {
-        format!("home-manager.users.{user}.security.nix-secrets.manifest")
-    } else if let Some(user) = &args.hjem {
-        format!("hjem.users.{user}.security.nix-secrets.manifest")
-    } else {
-        String::from("security.nix-secrets.manifest")
-    };
-
+    let manifest_path = args.home_manager.as_ref().map_or_else(
+        || {
+            args.hjem.as_ref().map_or_else(
+                || String::from("security.nix-secrets.manifest"),
+                |user| format!("hjem.users.{user}.security.nix-secrets.manifest"),
+            )
+        },
+        |user| format!("home-manager.users.{user}.security.nix-secrets.manifest"),
+    );
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
-        r#"nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}"#,
+        r"nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}",
         &flake,
         &args.module_system,
         &hostname,

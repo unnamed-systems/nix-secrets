@@ -4,6 +4,7 @@ use std::{
 };
 
 pub trait PathBufExt {
+    #[must_use]
     fn append_extension(self, ext: impl AsRef<OsStr>) -> Self;
 }
 
@@ -16,6 +17,7 @@ impl PathBufExt for PathBuf {
     }
 }
 
+#[must_use]
 pub fn check_secret_name(name: &str) -> bool {
     !name
         .split('/')

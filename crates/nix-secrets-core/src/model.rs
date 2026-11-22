@@ -34,17 +34,17 @@ impl Serialize for ManifestOptions {
         S: Serializer,
     {
         match self {
-            ManifestOptions::WithAllGenerators => {
+            Self::WithAllGenerators => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("withAllGenerators", &true)?;
                 map.end()
             }
-            ManifestOptions::WithGenerators(vec) => {
+            Self::WithGenerators(vec) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("withGenerators", vec)?;
                 map.end()
             }
-            ManifestOptions::Default => {
+            Self::Default => {
                 let map = serializer.serialize_map(Some(0))?;
                 map.end()
             }

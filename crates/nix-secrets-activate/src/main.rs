@@ -150,12 +150,12 @@ fn main() -> Result<()> {
                         .templates
                         .retain(|t| t.needed_for_users == args.needed_for_users);
 
-                    stage = ActivationStage::InitializeGenerationDir
+                    stage = ActivationStage::InitializeGenerationDir;
                 } else {
                     stage = ActivationStage::ParseIdentitySecrets {
                         previous: identities.len(),
                         remaining,
-                    }
+                    };
                 }
             }
             ActivationStage::InitializeGenerationDir => {
@@ -183,7 +183,10 @@ fn main() -> Result<()> {
 
                 let generation_dir = fs::read_dir(&gen_dir)
                     .wrap_err_with(|| {
-                        format!("Failed to read base generation directory: {gen_dir:?}")
+                        format!(
+                            "Failed to read base generation directory: {}",
+                            gen_dir.display()
+                        )
                     })?
                     .map(|entry| {
                         let entry =
@@ -197,7 +200,10 @@ fn main() -> Result<()> {
                             format!("Failed to parse generation from '{name}'")
                         })?;
 
-                        trace!("Found existing generation {generation} in {gen_dir:?}");
+                        trace!(
+                            "Found existing generation {generation} in {}",
+                            gen_dir.display()
+                        );
                         Ok((generation, entry.path()))
                     })
                     .try_fold(
@@ -245,7 +251,7 @@ fn main() -> Result<()> {
 
                     links.insert(
                         generation_dst_location,
-                        (secret.path.to_path_buf(), secret.is_symlink),
+                        (secret.path.clone(), secret.is_symlink),
                     );
                 }
 
@@ -283,12 +289,12 @@ fn main() -> Result<()> {
 
                     links.insert(
                         generation_dst_location,
-                        (template.path.to_path_buf(), template.is_symlink),
+                        (template.path.clone(), template.is_symlink),
                     );
                 }
 
                 if args.dry {
-                    stage = ActivationStage::Exit
+                    stage = ActivationStage::Exit;
                 } else {
                     stage = ActivationStage::LinkMainDirectory;
                 }

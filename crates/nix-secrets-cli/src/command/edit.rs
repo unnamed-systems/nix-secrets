@@ -16,7 +16,9 @@ use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, OptionExt as _, bail, eyre};
 use nix::{errno::Errno, sys::signal::kill, unistd::Pid};
-use nix_secrets_core::{SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _};
+use nix_secrets_core::{
+    SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _, model::ManifestOptions,
+};
 use nix_secrets_core::{
     age::{decrypt, encrypt},
     file::check_secret_name,
@@ -82,7 +84,7 @@ impl CommandTrait for EditCommand {
         let editor = env::var("EDITOR").wrap_err(eyre!("$EDITOR is not set"))?;
         trace!("Using editor: {}", editor);
 
-        let manifest = utils::eval_manifest(root, Default::default())?;
+        let manifest = utils::eval_manifest(root, &ManifestOptions::default())?;
         let storage_path = self
             .storage
             .as_ref()

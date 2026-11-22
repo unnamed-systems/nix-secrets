@@ -6,7 +6,9 @@ use age::cli_common::file_io::InputReader;
 use clap::{Parser, ValueHint};
 use clap_complete::ArgValueCompleter;
 use eyre::{Ok, OptionExt as _, bail, eyre};
-use nix_secrets_core::{SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _};
+use nix_secrets_core::{
+    SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _, model::ManifestOptions,
+};
 use nix_secrets_core::{
     age::{decrypt, decrypt_stream},
     file::check_secret_name,
@@ -35,7 +37,7 @@ pub struct DecryptCommand {
 
 impl CommandTrait for DecryptCommand {
     fn execute(&self, root: &Args) -> eyre::Result<()> {
-        let manifest = utils::eval_manifest(root, Default::default())?;
+        let manifest = utils::eval_manifest(root, &ManifestOptions::default())?;
         let storage_path = self
             .storage
             .as_ref()
