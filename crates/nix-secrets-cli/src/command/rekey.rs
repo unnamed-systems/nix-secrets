@@ -50,7 +50,7 @@ impl CommandTrait for RekeyCommand {
             );
         }
 
-        let mut requested: HashSet<&String> = HashSet::from_iter(self.secrets.iter());
+        let mut requested = self.secrets.iter().collect::<HashSet<_>>();
         let secrets: Vec<Secret> = manifest
             .secrets
             .into_iter()

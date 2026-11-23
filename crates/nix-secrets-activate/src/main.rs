@@ -150,7 +150,12 @@ fn main() -> Result<()> {
                         .templates
                         .retain(|t| t.needed_for_users == args.needed_for_users);
 
-                    if manifest.secrets.len() + manifest.templates.len() == 0 {
+                    if manifest
+                        .secrets
+                        .len()
+                        .saturating_add(manifest.templates.len())
+                        == 0
+                    {
                         info!("Nothing to deploy");
                         stage = ActivationStage::Exit;
                     } else {
