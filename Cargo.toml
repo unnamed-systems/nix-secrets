@@ -1,6 +1,6 @@
 [workspace.package]
 name = "nix-secrets"
-version = "0.6.2"
+version = "0.6.3"
 rust-version = "1.94.0"
 license = "EUPL-1.2"
 edition = "2024"
