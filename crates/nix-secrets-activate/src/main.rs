@@ -121,7 +121,12 @@ fn main() -> Result<()> {
                 let mut res: Result<()> = Ok(());
                 remaining.retain_mut(|s| {
                     let mut step = || -> Result<bool> {
-                        let decrypted = decrypt_secret(s, &manifest.storage, &identities)?;
+                        let decrypted = decrypt_secret(
+                            s,
+                            &manifest.storage,
+                            &identities,
+                            manifest.use_placeholders,
+                        )?;
                         let new_identities = get_identities(decrypted.as_slice())
                             .wrap_err("Failed to parse extra identities")?;
 
@@ -242,7 +247,12 @@ fn main() -> Result<()> {
                 let mut hashes = HashMap::new();
 
                 for secret in &manifest.secrets {
-                    let decrypted = decrypt_secret(secret, &manifest.storage, &identities)?;
+                    let decrypted = decrypt_secret(
+                        secret,
+                        &manifest.storage,
+                        &identities,
+                        manifest.use_placeholders,
+                    )?;
 
                     if !secret.template_key.is_empty() {
                         let as_string = Zeroizing::new(String::from_utf8(decrypted.to_vec())?);
@@ -433,7 +443,17 @@ fn decrypt_secret(
     secret: &Secret,
     storage: &Path,
     identities: &[Box<dyn Identity + Send + Sync>],
+    use_placeholders: bool,
 ) -> Result<Zeroizing<Vec<u8>>> {
+    if use_placeholders {
+        trace!("Reading placeholder: {}", secret.placeholder);
+
+        let placeholder_contents = fs::read_to_string(&secret.placeholder)
+            .wrap_err("Failed to read placeholder contents")?;
+
+        return Ok(Zeroizing::new(placeholder_contents.into_bytes()));
+    }
+
     let path_str = storage
         .join(&secret.name)
         .append_extension(SECRETS_EXTENSION)
