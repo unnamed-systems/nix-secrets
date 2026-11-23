@@ -325,13 +325,17 @@ fn main() -> Result<()> {
                     .wrap_err("Failed to create atomic linking path")?;
 
                 fs::create_dir_all(&atomic_dir).wrap_err_with(|| {
-                    eyre!("Failed to atomic linkable directory ({atomic_dir:?})")
+                    eyre!("Failed to ensure atomic linkable directory existence ({atomic_dir:?})")
                 })?;
 
                 for (from, (to, is_symlink)) in main_links {
                     let atomic_path = Path::new(&atomic_dir).join(to.strip_prefix(&base_dir)?);
                     deploy_linkable(&from, &atomic_path, is_symlink)?;
                 }
+
+                fs::create_dir_all(&base_dir).wrap_err_with(|| {
+                    eyre!("Failed to ensure linkable directory existence ({base_dir:?})")
+                })?;
 
                 info!(
                     "Atomically moving temporary directory to target ({atomic_dir:?} -> {base_dir:?})"
