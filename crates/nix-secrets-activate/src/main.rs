@@ -323,6 +323,11 @@ fn main() -> Result<()> {
                         })
                     })
                     .wrap_err("Failed to create atomic linking path")?;
+
+                fs::create_dir_all(&atomic_dir).wrap_err_with(|| {
+                    eyre!("Failed to atomic linkable directory ({atomic_dir:?})")
+                })?;
+
                 for (from, (to, is_symlink)) in main_links {
                     let atomic_path = Path::new(&atomic_dir).join(to.strip_prefix(&base_dir)?);
                     deploy_linkable(&from, &atomic_path, is_symlink)?;
@@ -548,7 +553,7 @@ fn deploy_linkable_ramfs(
 }
 
 fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
-    trace!("Creating a temporary directory for linkable");
+    info!("Creating a temporary directory for linkable");
     let parent = to
         .parent()
         .ok_or_eyre("Path to the linkable has no parent")?;
@@ -562,11 +567,11 @@ fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
     );
     let temp_path = parent.join(temp_name);
 
-    trace!("Ensuring parent directory {parent:?} exists");
+    info!("Ensuring parent directory {parent:?} exists");
     fs::create_dir_all(parent)
         .wrap_err_with(|| eyre!("Failed to create secret parent directory ({parent:?})"))?;
 
-    trace!("Linking {from:?} -> {to:?} ({temp_path:?})");
+    info!("Linking {from:?} -> {to:?} ({temp_path:?})");
     if link {
         unix_fs::symlink(from, &temp_path).wrap_err_with(|| {
             format!(
@@ -592,7 +597,7 @@ fn deploy_linkable(from: &Path, to: &Path, link: bool) -> Result<()> {
         )
     })?;
 
-    trace!("Successfully deployed linkable");
+    info!("Successfully deployed linkable");
 
     Ok(())
 }
