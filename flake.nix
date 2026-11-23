@@ -70,6 +70,8 @@
           # nix eval --impure --raw .#debug.flake.packages.x86_64-linux --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'
           inherit (devOutputs.packages.${system})
             test-activate
+            test-activateOnlyAfterUsers
+            test-activateOnlyBeforeUsers
             test-decrypt
             test-decryptRejectsUnmanagedSecrets
             test-edit
