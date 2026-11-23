@@ -66,26 +66,6 @@
           nix-secrets-activate = pkgs.callPackage ./packages/nix-secrets-activate.nix { };
 
           docs = pkgs.callPackage ./docs { inherit self; };
-
-          # nix eval --impure --raw .#debug.flake.packages.x86_64-linux --apply 'x: builtins.concatStringsSep " " (builtins.attrNames x)'
-          inherit (devOutputs.packages.${system})
-            test-activate
-            test-activateOnlyAfterUsers
-            test-activateOnlyBeforeUsers
-            test-decrypt
-            test-decryptRejectsUnmanagedSecrets
-            test-edit
-            test-generator
-            test-hjem-activate
-            test-home-manager-activate
-            test-installPackageFalse
-            test-installPackageTrue
-            test-keygen
-            test-placeholder
-            test-rekey
-            test-storagePathEnvStandalone
-            test-templateNoRecursiveSecretRendering
-            ;
         }
       );
     };

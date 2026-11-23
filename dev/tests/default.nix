@@ -20,7 +20,7 @@ let
 in
 {
   perSystem = { pkgs, system, ... }: {
-    packages = lib.genAttrs' files (
+    checks = lib.genAttrs' files (
       file:
       lib.fix (finalAttrs: {
         name = "test-${lib.removePrefix "vm-test-run-" finalAttrs.value.name}";
