@@ -5,7 +5,7 @@ use std::{
 
 use clap_complete::{CompletionCandidate, PathCompleter, engine::ValueCompleter};
 
-use crate::FLAKE_CONFIGURATION_PREFIX;
+use crate::DEFAULT_MODULE_SYSTEM;
 use crate::utils;
 
 // Can't get access to other arguments in the completion function
@@ -29,7 +29,7 @@ pub fn complete_secrets(current: &OsStr, regenerate: bool) -> Vec<CompletionCand
     let (flake, hostname) = utils::parse_flake(&f, true).unwrap_or_default();
 
     let manifest =
-        utils::get_cached_manifest(&format!("{flake}-{FLAKE_CONFIGURATION_PREFIX}-{hostname}"));
+        utils::get_cached_manifest(&format!("{flake}-{DEFAULT_MODULE_SYSTEM}-{hostname}"));
 
     if let Ok(m) = manifest {
         let filter = current.to_str();
@@ -49,7 +49,7 @@ pub fn complete_flake(current: &OsStr) -> Vec<CompletionCandidate> {
     let cur = current.to_str().unwrap_or(".");
     let (flake, hostname) = utils::parse_flake_fallback(cur, "", false).unwrap_or_default();
 
-    let flake_str = format!("{flake}#{FLAKE_CONFIGURATION_PREFIX}.");
+    let flake_str = format!("{flake}#{DEFAULT_MODULE_SYSTEM}.");
 
     let output = Command::new("nix") // TODO: add ability to customize command?
         .args(["eval", &flake_str])

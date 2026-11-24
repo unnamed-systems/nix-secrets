@@ -13,10 +13,10 @@ pub(crate) mod command;
 pub(crate) mod utils;
 
 #[cfg(target_os = "macos")]
-pub static FLAKE_CONFIGURATION_PREFIX: &str = "darwinConfigurations";
+pub static DEFAULT_MODULE_SYSTEM: &str = "nix-darwin";
 
 #[cfg(target_os = "linux")]
-pub static FLAKE_CONFIGURATION_PREFIX: &str = "nixosConfigurations";
+pub static DEFAULT_MODULE_SYSTEM: &str = "nixos";
 
 fn main() -> Result<()> {
     CompleteEnv::with_factory(Args::command).complete();

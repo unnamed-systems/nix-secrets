@@ -3,7 +3,10 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{command::Args, utils};
+use crate::{
+    command::{Args, Source},
+    utils,
+};
 use eyre::{Context, OptionExt, bail, eyre};
 use nix::sys::utsname::uname;
 
@@ -11,6 +14,8 @@ use nix_secrets_core::{
     Result,
     model::{Manifest, ManifestOptions, parse_manifest},
 };
+
+const MANIFEST_NIX: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../manifest.nix"));
 
 pub fn parse_flake_fallback(
     flake: &str,
@@ -50,25 +55,34 @@ pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> 
 }
 
 pub fn eval_build_command(
+    is_flake: bool,
     var: &str,
     default: &str,
-    flake_path: &str,
-    output_name: &str,
+    path: &str,
+    module_system: Option<&str>,
+    output_name: Option<&str>,
     configuration_name: &str,
     manifest_args: &str,
     manifest_path: &str,
+    attr: Option<&str>,
 ) -> Result<String> {
-    let flake = shlex::try_quote(flake_path)?;
-    let output = shlex::try_quote(output_name)?;
-    let configuration = shlex::try_quote(configuration_name)?;
-    let manifest = shlex::try_quote(manifest_args)?;
+    let path = shlex::try_quote(path)?;
+    let output = shlex::try_quote(output_name.unwrap_or_default())?;
+    let manifest_path = shlex::try_quote(manifest_path)?;
+    let configuration_name = shlex::try_quote(configuration_name)?;
+    let manifest_args = shlex::try_quote(manifest_args)?;
+    let module_system = shlex::try_quote(module_system.unwrap_or_default())?;
+    let attr = shlex::try_quote(attr.unwrap_or_default())?;
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
-        .replace("{{flakePath}}", &flake)
+        .replace("{{path}}", &path)
         .replace("{{outputName}}", &output)
-        .replace("{{manifestPath}}", manifest_path)
-        .replace("{{configurationName}}", &configuration)
-        .replace("{{manifestArgs}}", &manifest);
+        .replace("{{manifestPath}}", &manifest_path)
+        .replace("{{configurationName}}", &configuration_name)
+        .replace("{{manifestArgs}}", &manifest_args)
+        .replace("{{isFlake}}", &is_flake.to_string())
+        .replace("{{moduleSystem}}", &module_system)
+        .replace("{{attr}}", &attr);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse the nix build command")?;
@@ -108,10 +122,14 @@ pub fn eval_build_command(
 }
 
 pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest> {
-    info!("Evaluating flake: {}", args.flake);
-    let (flake, hostname) = utils::parse_flake(&args.flake, true)
-        .ok_or_else(|| eyre!("Failed to parse the flake `{}`", args.flake))?;
+    let source = args.source();
+    let is_flake = matches!(source, Source::Flake(_));
 
+    let (path, hostname) = match source {
+        Source::Flake(flake) => utils::parse_flake(&flake, true)
+            .ok_or_else(|| eyre!("Failed to parse the flake `{}`", flake))?,
+        Source::File(path) => (path.to_string(), String::new()),
+    };
     let options_json =
         serde_json::to_string(&options).wrap_err("Failed to serialize manifest options")?;
 
@@ -124,14 +142,28 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
         },
         |user| format!("home-manager.users.{user}.security.nix-secrets.manifest"),
     );
+
+    let quoted_manifest = shlex::try_quote(MANIFEST_NIX)?;
+
     let build_output = eval_build_command(
+        is_flake,
         "NIX_SECRETS_NIX_BUILD_COMMAND",
-        r"nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).${outputName}.${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}",
-        &flake,
-        &args.module_system,
+        &format!(
+            r#"nix-build --expr {} {} --no-out-link --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}"#,
+            quoted_manifest,
+            if is_flake {
+                "--extra-experimental-features flakes"
+            } else {
+                ""
+            }
+        ),
+        &path,
+        args.module_system.as_deref(),
+        args.output.as_deref(),
         &hostname,
         &options_json,
         &manifest_path,
+        args.attr.as_deref(),
     )?;
 
     trace!("Evaluating manifest from: {}", build_output.trim());
@@ -141,9 +173,9 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
     trace!("Got contents: {}", contents);
 
     let mut manifest = parse_manifest(&contents)?;
-    trace!("Retrieved manifest for {flake}#{hostname}");
+    trace!("Retrieved manifest for {path}#{hostname}");
 
-    utils::save_manifest(&format!("{flake}#{hostname}"), &manifest)?;
+    utils::save_manifest(&format!("{path}#{hostname}"), &manifest)?;
     trace!("Cached manifest");
 
     manifest.identity_paths.extend(args.identity.clone());
