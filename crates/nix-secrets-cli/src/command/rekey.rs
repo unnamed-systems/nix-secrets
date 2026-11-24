@@ -25,12 +25,11 @@ use clap::{Parser, ValueHint};
 /// Rekey all or selected encrypted secrets
 pub struct RekeyCommand {
     /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short, long)]
-    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
+    #[arg(short = 's', long, value_name = "PATH", value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
     /// Secrets to rekey (rekeys all secrets when empty)
-    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
+    #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     secrets: Vec<String>,
 }
 

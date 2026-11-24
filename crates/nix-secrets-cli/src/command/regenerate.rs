@@ -26,20 +26,19 @@ use crate::{
 /// Regenerate all or selected encrypted secrets with generators
 pub struct RegenerateCommand {
     /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short, long)]
-    #[arg(value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
+    #[arg(short = 's', long, value_name = "PATH", value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
     /// Secrets to regenerate
-    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)), conflicts_with_all = ["missing", "all"])]
+    #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)), conflicts_with_all = ["missing", "all"])]
     secrets: Vec<String>,
 
     /// Regenerate all secrets with generators
-    #[arg(short, long, conflicts_with = "missing")]
+    #[arg(short = 'a', long, conflicts_with = "missing")]
     all: bool,
 
     /// Regenerate only secrets that don't exist yet
-    #[arg(long)]
+    #[arg(short = 'M', long)]
     missing: bool,
 
     /// Show which secrets would be regenerated without writing anything

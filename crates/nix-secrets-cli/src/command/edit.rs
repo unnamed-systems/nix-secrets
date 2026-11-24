@@ -67,11 +67,11 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
 /// Edit an encrypted secret in $EDITOR
 pub struct EditCommand {
     /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
+    #[arg(short = 's', long, value_name = "PATH", action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
     /// Name of the secret to edit
-    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
+    #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
 
     /// Forcefully edit secret even if another process is using it

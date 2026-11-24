@@ -22,16 +22,15 @@ use std::{
 /// Decrypt a secret and print it to stdout
 pub struct DecryptCommand {
     /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short, long, action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
+    #[arg(short = 's', long, value_name = "PATH", action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
     storage: Option<PathBuf>,
 
     /// Name of the secret to decrypt
-    #[arg(add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
+    #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
 
     /// Write the decrypted secret to this file instead of stdout
-    #[arg(short, long)]
-    #[arg(value_hint = ValueHint::FilePath)]
+    #[arg(short, long, value_name = "PATH", value_hint = ValueHint::FilePath)]
     output: Option<PathBuf>,
 }
 

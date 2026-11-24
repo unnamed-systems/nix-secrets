@@ -67,7 +67,7 @@ pub fn eval_build_command(
     attr: Option<&str>,
 ) -> Result<String> {
     let path = shlex::try_quote(path)?;
-    let output = shlex::try_quote(output_name.unwrap_or_default())?;
+    let output_name = shlex::try_quote(output_name.unwrap_or_default())?;
     let manifest_path = shlex::try_quote(manifest_path)?;
     let configuration_name = shlex::try_quote(configuration_name)?;
     let manifest_args = shlex::try_quote(manifest_args)?;
@@ -76,7 +76,7 @@ pub fn eval_build_command(
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
         .replace("{{path}}", &path)
-        .replace("{{outputName}}", &output)
+        .replace("{{outputName}}", &output_name)
         .replace("{{manifestPath}}", &manifest_path)
         .replace("{{configurationName}}", &configuration_name)
         .replace("{{manifestArgs}}", &manifest_args)
@@ -159,7 +159,7 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
         ),
         &path,
         args.module_system.as_deref(),
-        args.output.as_deref(),
+        args.output_name.as_deref(),
         &hostname,
         &options_json,
         &manifest_path,

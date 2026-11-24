@@ -8,13 +8,11 @@ use std::io::Write as _;
 /// Generate an age keypair
 pub struct KeygenCommand {
     /// Write the key to this file instead of stdout
-    #[arg(short, long)]
-    #[arg(value_hint = ValueHint::FilePath)]
+    #[arg(short = 'o', long, value_name = "PATH", value_hint = ValueHint::FilePath)]
     output: Option<String>,
 
     /// Convert the given identity file to a recipients file instead of generating a new keypair
-    #[arg(value_hint = ValueHint::FilePath)]
-    #[arg(short = 'y', long = "convert")]
+    #[arg(short = 'y', long = "convert", value_name = "PATH", value_hint = ValueHint::FilePath)]
     #[expect(
         clippy::option_option,
         reason = "Allows for providing just the argument"

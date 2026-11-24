@@ -22,40 +22,54 @@ pub struct Args {
     #[command(subcommand)]
     command: Command,
 
-    /// Path to a flake containing the configuration
-    #[arg(long, global = true, add = ArgValueCompleter::new(utils::complete_flake), conflicts_with_all = ["file", "attr"])]
+    /// Flake reference containing the configuration
+    #[arg(short = 'F', long, global = true, value_name = "FLAKE-URI[#NAME]", add = ArgValueCompleter::new(utils::complete_flake), conflicts_with_all = ["file", "attr"])]
     pub(crate) flake: Option<String>,
 
-    /// Path to a file containing the configuration
-    #[arg(long, global = true, conflicts_with = "flake")]
+    /// Path to the file containing the configuration
+    #[arg(
+        short = 'f',
+        long,
+        global = true,
+        value_name = "PATH",
+        conflicts_with = "flake"
+    )]
     pub(crate) file: Option<String>,
 
-    /// Flake module system name containing the host (e.g. nixos)
-    #[clap(short, long)]
-    #[arg(global = true)]
+    /// Module system name of the configuration
+    #[arg(short = 'm', long, global = true, value_name = "SYSTEM")]
     pub(crate) module_system: Option<String>,
 
-    /// Flake output containing the host (e.g. nixosConfigurations)
-    #[arg(short, long, global = true, conflicts_with = "module_system")]
-    pub(crate) output: Option<String>,
+    /// Flake output containing the configuration (e.g. nixosConfigurations)
+    #[arg(
+        short = 'O',
+        long,
+        global = true,
+        value_name = "OUTPUT-NAME",
+        conflicts_with = "module_system"
+    )]
+    pub(crate) output_name: Option<String>,
 
-    /// Attribute in `path` to evaluate
-    #[arg(short, long, global = true)]
+    /// Attribute path in the file given by `--file` containing the configuration
+    #[arg(short = 'A', long, global = true, value_name = "ATTR-PATH")]
     pub(crate) attr: Option<String>,
 
     /// Use the home-manager profile of the given user inside the host configuration
-    #[clap(long, conflicts_with = "hjem", value_name = "user")]
-    #[arg(global = true, visible_alias = "hm")]
+    #[arg(
+        long,
+        global = true,
+        value_name = "USER",
+        visible_alias = "hm",
+        conflicts_with = "hjem"
+    )]
     pub(crate) home_manager: Option<String>,
 
     /// Use the hjem profile of the given user inside the host configuration
-    #[clap(long, value_name = "user")]
-    #[arg(global = true, visible_alias = "hj")]
+    #[arg(long, global = true, value_name = "USER", visible_alias = "hj")]
     pub(crate) hjem: Option<String>,
 
     /// Extra paths to identity files used to decrypt secrets
-    #[clap(long, short, value_name = "path")]
-    #[arg(global = true, value_hint = clap::ValueHint::FilePath)]
+    #[arg(short = 'i', long, global = true, value_name = "PATH", value_hint = clap::ValueHint::FilePath)]
     pub(crate) identity: Vec<String>,
 }
 
@@ -105,7 +119,7 @@ impl Args {
         let mut args = Self::parse();
 
         // https://github.com/clap-rs/clap/issues/5234
-        if args.module_system.is_none() && args.output.is_none() {
+        if args.module_system.is_none() && args.output_name.is_none() {
             args.module_system = Some(DEFAULT_MODULE_SYSTEM.to_string());
         }
 
