@@ -69,8 +69,8 @@ let
     in
     if moduleSystem == "nixos" then
       import <nixpkgs/nixos> { inherit configuration; }
-    # https://github.com/nix-community/home-manager/blob/3b8140d21fa0a70b1b38c2ed29853dfe686234a6/home-manager/home-manager#L234
     else if moduleSystem == "home-manager" then
+      # https://github.com/nix-community/home-manager/blob/3b8140d21fa0a70b1b38c2ed29853dfe686234a6/home-manager/home-manager#L234
       import <home-manager/modules> {
         inherit configuration;
         pkgs = import <nixpkgs> { };
