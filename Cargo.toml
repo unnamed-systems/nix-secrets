@@ -34,7 +34,7 @@ panic = "unwind"
 [profile.release]
 opt-level = "z"
 strip = true
-lto = true
+lto = "thin"
 codegen-units = 1
 panic = "abort"
 
