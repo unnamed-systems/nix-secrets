@@ -6,17 +6,24 @@
         `security.nix-secrets.manifest` option.
 
         The placeholders listed below are replaced by the CLI and escaped as shell arguments:
-        - `{{flakePath}}` - absolute path to the flake passed into `--flake`,
-        - `{{outputName}}` - name of the output, e.g. `"nixosConfigurations"`,
-        - `{{configurationName}}` - name of the configuration in `outputName` passed after `"#"` in the `--flake` argument,
+        - `{{isFlake}}` - `true` if `--flake` was passed, `false` otherwise,
+        - `{{path}}` - absolute path to the flake (for `--flake`) or to the configuration file (for `--file`),
+        - `{{moduleSystem}}` - `"nixos"`, `"home-manager"` or `"nix-darwin"`; empty when `{{outputName}}` is set,
         - `{{manifestPath}}` - path to the `manifest` option in `config`, e.g. `"security.nix-secrets.manifest"` or `home-manager.users.<--home-manager>.security.nix-secrets.manifest`,
-        - `{{manifestArgs}}` - JSON-string with arguments for generating the manifest.
+        - `{{manifestArgs}}` - JSON-string with arguments for generating the manifest,
+        - `{{attr}}` - attribute in `{{path}}` to evaluate (for `--file` only, empty for `--flake`),
+        - `{{outputName}}` - name of the flake output, e.g. `"nixosConfigurations"` (for `--flake` only, empty for `--file`),
+        - `{{configurationName}}` - name of the configuration in `{{outputName}}`, i.e. the part after `"#"` in `--flake` (for `--flake` only, empty for `--file`).
       '';
       type = lib.types.nullOr lib.types.str;
-      default = "${
+      default = ''${
         lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"
-      }nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).\${outputName}.\${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}";
-      defaultText = lib.literalExpression ''"''${lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"}/bin/nix-build --extra-experimental-features 'flakes' --no-out-link --expr '{flakePath, outputName, configurationName, manifestArgs}: (builtins.getFlake flakePath).\''${outputName}.\''${configurationName}.config.{{manifestPath}} (builtins.fromJSON manifestArgs)' --argstr flakePath {{flakePath}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}} --argstr manifestArgs {{manifestArgs}}"'';
+      }nix-build ${../../manifest.nix} $([[ "{{isFlake}}" == "true" ]] && echo "--extra-experimental-features flakes") --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}'';
+      # Yes, quote escapes are correct.
+      defaultText = lib.literalExpression ''
+        '''''${
+          lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"
+        }nix-build ''${../../manifest.nix} $([[ "{{isFlake}}" == "true" ]] && echo "--extra-experimental-features flakes") --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}''''';
       # example = TODO;
     };
 
