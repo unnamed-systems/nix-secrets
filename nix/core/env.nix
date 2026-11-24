@@ -16,14 +16,13 @@
         - `{{configurationName}}` - name of the configuration in `{{outputName}}`, i.e. the part after `"#"` in `--flake` (for `--flake` only, empty for `--file`).
       '';
       type = lib.types.nullOr lib.types.str;
-      default = ''${
+      default = "${
         lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"
-      }nix-build ${../../manifest.nix} $([[ "{{isFlake}}" == "true" ]] && echo "--extra-experimental-features flakes") --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}'';
-      # Yes, quote escapes are correct.
+      }nix-build ${../../manifest.nix} --extra-experimental-features flakes --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}";
       defaultText = lib.literalExpression ''
-        '''''${
+        "''${
           lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"
-        }nix-build ''${../../manifest.nix} $([[ "{{isFlake}}" == "true" ]] && echo "--extra-experimental-features flakes") --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}''''';
+        }nix-build ''${../../manifest.nix} --extra-experimental-features flakes --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}"'';
       # example = TODO;
     };
 
