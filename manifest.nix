@@ -39,16 +39,17 @@ assert
   )
   || throw "Unknown module system: ${builtins.toJSON moduleSystem}";
 # flakes
-assert (isFlake -> (attr == "")) || throw "Flakes do not support `attr`";
-assert (isFlake -> (configurationName != "")) || throw "Flakes require `configurationName`";
+assert isFlake -> attr == "" || throw "Flakes do not support `attr`";
+assert isFlake -> configurationName != "" || throw "Flakes require `configurationName`";
 assert
-  (isFlake -> ((moduleSystem != "") != (outputName != "")))
-  || throw "Flakes require either `moduleSystem` or `outputName`, but not both";
+  isFlake
+  ->
+    ((moduleSystem != "") != (outputName != ""))
+    || throw "Flakes require either `moduleSystem` or `outputName`, but not both";
 # non-flakes
-assert (!isFlake -> (moduleSystem != "")) || throw "Non-flakes require `moduleSystem`";
-assert (!isFlake -> (outputName == "")) || throw "Non-flakes do not support `outputName`";
-assert
-  (!isFlake -> (configurationName == "")) || throw "Non-flakes do not support `configurationName`";
+assert !isFlake -> moduleSystem != "" || throw "Non-flakes require `moduleSystem`";
+assert !isFlake -> outputName == "" || throw "Non-flakes do not support `outputName`";
+assert !isFlake -> configurationName == "" || throw "Non-flakes do not support `configurationName`";
 let
   flakeConfiguration =
     (builtins.getFlake path).${
