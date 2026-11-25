@@ -6,6 +6,7 @@
         `security.nix-secrets.manifest` option.
 
         The placeholders listed below are replaced by the CLI and escaped as shell arguments:
+        - `{{version}}` - version of the CLI, e.g. `"1.0.0"`,
         - `{{isFlake}}` - `true` if `--flake` was passed, `false` otherwise,
         - `{{path}}` - absolute path to the flake (for `--flake`) or to the configuration file (for `--file`),
         - `{{moduleSystem}}` - `"nixos"`, `"home-manager"` or `"nix-darwin"`; empty when `{{outputName}}` is set,
@@ -18,11 +19,11 @@
       type = lib.types.nullOr lib.types.str;
       default = "${
         lib.optionalString (config.nix.package or null != null) "${config.nix.package}/bin/"
-      }nix-build ${../../manifest.nix} --extra-experimental-features flakes --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}";
+      }nix-build ${../../manifest.nix} --extra-experimental-features flakes --no-out-link --argstr version {{version}} --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}";
       defaultText = lib.literalExpression ''
         "''${
           lib.optionalString (config.nix.package or null != null) "''${config.nix.package}/bin/"
-        }nix-build ''${../../manifest.nix} --extra-experimental-features flakes --no-out-link --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}"'';
+        }nix-build ''${../../manifest.nix} --extra-experimental-features flakes --no-out-link --argstr version {{version}} --arg isFlake {{isFlake}} --argstr path {{path}} --argstr moduleSystem {{moduleSystem}} --argstr manifestPath {{manifestPath}} --argstr manifestArgs {{manifestArgs}} --argstr attr {{attr}} --argstr outputName {{outputName}} --argstr configurationName {{configurationName}}"'';
       # example = TODO;
     };
 
