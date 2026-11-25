@@ -48,7 +48,8 @@ pub struct RegenerateCommand {
 
 impl CommandTrait for RegenerateCommand {
     fn execute(&self, root: &Args) -> Result<()> {
-        let manifest_options = if self.all {
+        // TODO: Pass only missing secrets when `--missing` is set.
+        let manifest_options = if self.all || self.missing {
             ManifestOptions::WithAllGenerators
         } else {
             ManifestOptions::WithGenerators(self.secrets.clone())
