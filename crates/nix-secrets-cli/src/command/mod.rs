@@ -125,6 +125,10 @@ impl Args {
     pub(crate) fn run() -> eyre::Result<()> {
         let mut args = Self::parse();
 
+        if let Command::Keygen(ref cmd) = args.command {
+            return Ok(cmd.execute(&args)?);
+        }
+
         // https://github.com/clap-rs/clap/issues/5234
         if args.module_system.is_none() && args.output_name.is_none() {
             args.module_system = Some(DEFAULT_MODULE_SYSTEM.clone());
