@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{CommandFactory as _, Parser, Subcommand, error::ErrorKind};
 use clap_complete::ArgValueCompleter;
 use eyre::Ok;
@@ -71,6 +73,10 @@ pub struct Args {
     /// Extra paths to identity files used to decrypt secrets
     #[arg(short = 'i', long, global = true, value_name = "PATH", value_hint = clap::ValueHint::FilePath)]
     pub(crate) identity: Vec<String>,
+
+    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
+    #[arg(short = 's', long, global = true, value_name = "PATH", action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
+    pub(crate) storage: Option<PathBuf>,
 }
 
 impl Args {

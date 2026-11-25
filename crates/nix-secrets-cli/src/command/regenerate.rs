@@ -25,10 +25,6 @@ use crate::{
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Regenerate all or selected encrypted secrets with generators
 pub struct RegenerateCommand {
-    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short = 's', long, value_name = "PATH", value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
-    storage: Option<PathBuf>,
-
     /// Secrets to regenerate
     #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, true)), conflicts_with_all = ["missing", "all"])]
     secrets: Vec<String>,
@@ -56,7 +52,7 @@ impl CommandTrait for RegenerateCommand {
         };
 
         let manifest = utils::eval_manifest(root, &manifest_options)?;
-        let storage_path = self
+        let storage_path = root
             .storage
             .as_ref()
             .or(manifest.storage_path.as_ref())

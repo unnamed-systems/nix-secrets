@@ -66,10 +66,6 @@ fn editor_hook(path: &Path, editor: &str) -> eyre::Result<()> {
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Edit an encrypted secret in $EDITOR
 pub struct EditCommand {
-    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short = 's', long, value_name = "PATH", action = clap::ArgAction::Set, env = "NIX_SECRETS_STORAGE_PATH")]
-    storage: Option<PathBuf>,
-
     /// Name of the secret to edit
     #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     name: String,
@@ -85,7 +81,7 @@ impl CommandTrait for EditCommand {
         trace!("Using editor: {}", editor);
 
         let manifest = utils::eval_manifest(root, &ManifestOptions::default())?;
-        let storage_path = self
+        let storage_path = root
             .storage
             .as_ref()
             .or(manifest.storage_path.as_ref())

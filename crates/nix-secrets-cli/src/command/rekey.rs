@@ -24,10 +24,6 @@ use clap::{Parser, ValueHint};
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Rekey all or selected encrypted secrets
 pub struct RekeyCommand {
-    /// Path to the nix-secrets storage (overrides the manifest `storagePath`)
-    #[arg(short = 's', long, value_name = "PATH", value_hint = ValueHint::DirPath, env = "NIX_SECRETS_STORAGE_PATH")]
-    storage: Option<PathBuf>,
-
     /// Secrets to rekey (rekeys all secrets when empty)
     #[arg(value_name = "SECRET", add = ArgValueCompleter::new(|v: &std::ffi::OsStr| utils::complete_secrets(v, false)))]
     secrets: Vec<String>,
@@ -36,7 +32,7 @@ pub struct RekeyCommand {
 impl CommandTrait for RekeyCommand {
     fn execute(&self, root: &Args) -> Result<()> {
         let manifest = utils::eval_manifest(root, &ManifestOptions::default())?;
-        let storage_path = self
+        let storage_path = root
             .storage
             .as_ref()
             .or(manifest.storage_path.as_ref())
