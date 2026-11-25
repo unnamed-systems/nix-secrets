@@ -19,7 +19,7 @@ use crate::{
     command::{Args, CommandTrait},
     utils::{self},
 };
-use clap::{Parser, ValueHint};
+use clap::Parser;
 
 #[derive(Parser, PartialEq, Eq, Debug)]
 /// Rekey all or selected encrypted secrets

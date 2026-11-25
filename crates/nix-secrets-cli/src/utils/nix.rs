@@ -12,7 +12,7 @@ use nix::sys::utsname::uname;
 
 use nix_secrets_core::{
     Result,
-    model::{Manifest, ManifestOptions, parse_manifest},
+    model::{Manifest, ManifestOptions, ModuleSystem, parse_manifest},
 };
 
 const MANIFEST_NIX: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../manifest.nix"));
@@ -59,7 +59,7 @@ pub fn eval_build_command(
     default: &str,
     is_flake: bool,
     path: &str,
-    module_system: Option<&str>,
+    module_system: Option<&ModuleSystem>,
     manifest_path: &str,
     manifest_args: &str,
     attr: Option<&str>,
@@ -68,7 +68,10 @@ pub fn eval_build_command(
 ) -> Result<String> {
     let version = shlex::try_quote(env!("CARGO_PKG_VERSION"))?;
     let path = shlex::try_quote(path)?;
-    let module_system = shlex::try_quote(module_system.unwrap_or_default())?;
+    let module_system_string = module_system
+        .map(std::string::ToString::to_string)
+        .unwrap_or_default();
+    let module_system = shlex::try_quote(&module_system_string)?;
     let manifest_path = shlex::try_quote(manifest_path)?;
     let attr = shlex::try_quote(attr.unwrap_or_default())?;
     let output_name = shlex::try_quote(output_name.unwrap_or_default())?;
@@ -80,7 +83,7 @@ pub fn eval_build_command(
         .replace("{{path}}", &path)
         .replace("{{moduleSystem}}", &module_system)
         .replace("{{manifestPath}}", &manifest_path)
-        .replace("{{manifestArgs}}", &manifest_args)
+        .replace("{{manifestArgs}}", manifest_args)
         .replace("{{attr}}", &attr)
         .replace("{{outputName}}", &output_name)
         .replace("{{configurationName}}", &configuration_name);
@@ -127,7 +130,7 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
     let is_flake = matches!(source, Source::Flake(_));
 
     let (path, hostname) = match source {
-        Source::Flake(flake) => utils::parse_flake(&flake, true)
+        Source::Flake(flake) => utils::parse_flake(flake, true)
             .ok_or_else(|| eyre!("Failed to parse the flake `{}`", flake))?,
         Source::File(path) => (path.to_string(), String::new()),
     };
@@ -149,7 +152,7 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
         &format!(
-            r#"nix-build --expr {} {} --no-out-link --argstr version {{{{version}}}} --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}"#,
+            r"nix-build --expr {} {} --no-out-link --argstr version {{{{version}}}} --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}",
             quoted_manifest,
             if is_flake {
                 "--extra-experimental-features flakes"
@@ -159,7 +162,7 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
         ),
         is_flake,
         &path,
-        args.module_system.as_deref(),
+        args.module_system.as_ref(),
         &manifest_path,
         &options_json,
         args.attr.as_deref(),

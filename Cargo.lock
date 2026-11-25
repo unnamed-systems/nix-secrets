@@ -1364,6 +1364,7 @@ name = "nix-secrets-core"
 version = "0.6.4"
 dependencies = [
  "age",
+ "clap",
  "color-eyre",
  "eyre",
  "nix",

@@ -6,6 +6,7 @@ use eyre::Ok;
 
 use edit::EditCommand;
 use keygen::KeygenCommand;
+use nix_secrets_core::model::ModuleSystem;
 use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
 
@@ -40,7 +41,7 @@ pub struct Args {
 
     /// Module system name of the configuration
     #[arg(short = 'm', long, global = true, value_name = "SYSTEM")]
-    pub(crate) module_system: Option<String>,
+    pub(crate) module_system: Option<ModuleSystem>,
 
     /// Flake output containing the configuration (e.g. nixosConfigurations)
     #[arg(
@@ -89,7 +90,7 @@ impl Args {
     }
 }
 
-pub(crate) enum Source<'a> {
+pub enum Source<'a> {
     Flake(&'a str),
     File(&'a str),
 }
@@ -126,13 +127,13 @@ impl Args {
 
         // https://github.com/clap-rs/clap/issues/5234
         if args.module_system.is_none() && args.output_name.is_none() {
-            args.module_system = Some(DEFAULT_MODULE_SYSTEM.to_string());
+            args.module_system = Some(DEFAULT_MODULE_SYSTEM.clone());
         }
 
         if args.flake.is_some() && args.file.is_some()
             || args.flake.is_some() && args.attr.is_some()
         {
-            Args::command()
+            Self::command()
                 .error(
                     ErrorKind::ArgumentConflict,
                     "the argument '--flake <FLAKE>' cannot be used with '--file <FILE>' or '--attr <ATTR>'",
@@ -141,7 +142,7 @@ impl Args {
         }
 
         if args.flake.is_none() && args.file.is_none() {
-            Args::command()
+            Self::command()
                 .error(
                     ErrorKind::ArgumentConflict,
                     "the arguments '--flake <FLAKE>' or '--file <FILE>' or are required",

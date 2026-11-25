@@ -1,8 +1,12 @@
 use crate::Result;
+use clap::ValueEnum;
 use eyre::Context;
 use nix::unistd::{Gid, Group, Uid, User};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
-use std::{fmt, path::PathBuf};
+use std::{
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
@@ -52,13 +56,24 @@ impl Serialize for ManifestOptions {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum ModuleSystem {
     HomeManager,
-    Hjem,
     Nixos,
     NixDarwin,
+}
+
+impl Display for ModuleSystem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::HomeManager => "home-manager".to_owned(),
+            Self::Nixos => "nixos".to_owned(),
+            Self::NixDarwin => "nix-darwin".to_owned(),
+        };
+
+        write!(f, "{s}")
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]

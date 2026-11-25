@@ -9,11 +9,10 @@ use nix_secrets_core::{
 use std::{
     collections::{HashMap, HashSet},
     io::Write as _,
-    path::PathBuf,
     process::Command,
 };
 
-use clap::{Parser, ValueHint};
+use clap::Parser;
 use clap_complete::ArgValueCompleter;
 use eyre::{Context as _, Ok, OptionExt as _, bail, ensure, eyre};
 
