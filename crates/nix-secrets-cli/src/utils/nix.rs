@@ -55,34 +55,33 @@ pub fn parse_flake(flake: &str, canonicalize: bool) -> Option<(String, String)> 
 }
 
 pub fn eval_build_command(
-    is_flake: bool,
     var: &str,
     default: &str,
+    is_flake: bool,
     path: &str,
     module_system: Option<&str>,
+    manifest_path: &str,
+    manifest_args: &str,
+    attr: Option<&str>,
     output_name: Option<&str>,
     configuration_name: &str,
-    manifest_args: &str,
-    manifest_path: &str,
-    attr: Option<&str>,
 ) -> Result<String> {
     let path = shlex::try_quote(path)?;
-    let output_name = shlex::try_quote(output_name.unwrap_or_default())?;
-    let manifest_path = shlex::try_quote(manifest_path)?;
-    let configuration_name = shlex::try_quote(configuration_name)?;
-    let manifest_args = shlex::try_quote(manifest_args)?;
     let module_system = shlex::try_quote(module_system.unwrap_or_default())?;
+    let manifest_path = shlex::try_quote(manifest_path)?;
     let attr = shlex::try_quote(attr.unwrap_or_default())?;
+    let output_name = shlex::try_quote(output_name.unwrap_or_default())?;
+    let configuration_name = shlex::try_quote(configuration_name)?;
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
-        .replace("{{path}}", &path)
-        .replace("{{outputName}}", &output_name)
-        .replace("{{manifestPath}}", &manifest_path)
-        .replace("{{configurationName}}", &configuration_name)
-        .replace("{{manifestArgs}}", &manifest_args)
         .replace("{{isFlake}}", &is_flake.to_string())
+        .replace("{{path}}", &path)
         .replace("{{moduleSystem}}", &module_system)
-        .replace("{{attr}}", &attr);
+        .replace("{{manifestPath}}", &manifest_path)
+        .replace("{{manifestArgs}}", &manifest_args)
+        .replace("{{attr}}", &attr)
+        .replace("{{outputName}}", &output_name)
+        .replace("{{configurationName}}", &configuration_name);
     trace!("Parsed base eval command: {env_cmd_str:?}");
 
     let cmd = shlex::split(&env_cmd_str).ok_or_eyre("Failed to parse the nix build command")?;
@@ -146,7 +145,6 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
     let quoted_manifest = shlex::try_quote(MANIFEST_NIX)?;
 
     let build_output = eval_build_command(
-        is_flake,
         "NIX_SECRETS_NIX_BUILD_COMMAND",
         &format!(
             r#"nix-build --expr {} {} --no-out-link --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}"#,
@@ -157,13 +155,14 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
                 ""
             }
         ),
+        is_flake,
         &path,
         args.module_system.as_deref(),
+        &manifest_path,
+        &options_json,
+        args.attr.as_deref(),
         args.output_name.as_deref(),
         &hostname,
-        &options_json,
-        &manifest_path,
-        args.attr.as_deref(),
     )?;
 
     trace!("Evaluating manifest from: {}", build_output.trim());
