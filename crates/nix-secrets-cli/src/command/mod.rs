@@ -1,12 +1,14 @@
-use std::path::PathBuf;
+use std::{
+    fmt::{self, Display},
+    path::PathBuf,
+};
 
-use clap::{CommandFactory as _, Parser, Subcommand, error::ErrorKind};
+use clap::{CommandFactory as _, Parser, Subcommand, ValueEnum, error::ErrorKind};
 use clap_complete::ArgValueCompleter;
 use eyre::Ok;
 
 use edit::EditCommand;
 use keygen::KeygenCommand;
-use nix_secrets_core::model::ModuleSystem;
 use regenerate::RegenerateCommand;
 use rekey::RekeyCommand;
 
@@ -41,7 +43,7 @@ pub struct Args {
 
     /// Module system name of the configuration
     #[arg(short = 'm', long, global = true, value_name = "SYSTEM")]
-    pub(crate) module_system: Option<ModuleSystem>,
+    pub(crate) module_system: Option<ModuleSystemArg>,
 
     /// Flake output containing the configuration (e.g. nixosConfigurations)
     #[arg(
@@ -87,6 +89,25 @@ impl Args {
             (None, Some(file)) => Source::File(file),
             _ => unreachable!("Enforced by clap"),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, ValueEnum)]
+pub enum ModuleSystemArg {
+    HomeManager,
+    Nixos,
+    NixDarwin,
+}
+
+impl Display for ModuleSystemArg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::HomeManager => "home-manager".to_owned(),
+            Self::Nixos => "nixos".to_owned(),
+            Self::NixDarwin => "nix-darwin".to_owned(),
+        };
+
+        write!(f, "{s}")
     }
 }
 

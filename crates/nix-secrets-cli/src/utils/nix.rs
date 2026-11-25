@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    command::{Args, Source},
+    command::{Args, ModuleSystemArg, Source},
     utils,
 };
 use eyre::{Context, OptionExt, bail, eyre};
@@ -12,7 +12,7 @@ use nix::sys::utsname::uname;
 
 use nix_secrets_core::{
     Result,
-    model::{Manifest, ManifestOptions, ModuleSystem, parse_manifest},
+    model::{Manifest, ManifestOptions, parse_manifest},
 };
 
 const MANIFEST_NIX: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../manifest.nix"));
@@ -59,7 +59,7 @@ pub fn eval_build_command(
     default: &str,
     is_flake: bool,
     path: &str,
-    module_system: Option<&ModuleSystem>,
+    module_system: Option<&ModuleSystemArg>,
     manifest_path: &str,
     manifest_args: &str,
     attr: Option<&str>,

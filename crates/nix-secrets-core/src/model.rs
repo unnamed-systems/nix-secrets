@@ -4,7 +4,7 @@ use eyre::Context;
 use nix::unistd::{Gid, Group, Uid, User};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use std::{
-    fmt::{self, Display},
+    fmt::{self},
     path::PathBuf,
 };
 
@@ -62,18 +62,7 @@ pub enum ModuleSystem {
     HomeManager,
     Nixos,
     NixDarwin,
-}
-
-impl Display for ModuleSystem {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::HomeManager => "home-manager".to_owned(),
-            Self::Nixos => "nixos".to_owned(),
-            Self::NixDarwin => "nix-darwin".to_owned(),
-        };
-
-        write!(f, "{s}")
-    }
+    Hjem,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
