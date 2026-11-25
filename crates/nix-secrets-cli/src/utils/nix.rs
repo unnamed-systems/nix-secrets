@@ -66,6 +66,7 @@ pub fn eval_build_command(
     output_name: Option<&str>,
     configuration_name: &str,
 ) -> Result<String> {
+    let version = shlex::try_quote(env!("CARGO_PKG_VERSION"))?;
     let path = shlex::try_quote(path)?;
     let module_system = shlex::try_quote(module_system.unwrap_or_default())?;
     let manifest_path = shlex::try_quote(manifest_path)?;
@@ -74,6 +75,7 @@ pub fn eval_build_command(
     let configuration_name = shlex::try_quote(configuration_name)?;
     let env_cmd_str = env::var(var)
         .unwrap_or_else(|_| default.to_owned())
+        .replace("{{version}}", &version)
         .replace("{{isFlake}}", &is_flake.to_string())
         .replace("{{path}}", &path)
         .replace("{{moduleSystem}}", &module_system)
@@ -147,7 +149,7 @@ pub fn eval_manifest(args: &Args, options: &ManifestOptions) -> Result<Manifest>
     let build_output = eval_build_command(
         "NIX_SECRETS_NIX_BUILD_COMMAND",
         &format!(
-            r#"nix-build --expr {} {} --no-out-link --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}"#,
+            r#"nix-build --expr {} {} --no-out-link --argstr version {{{{version}}}} --arg isFlake {{{{isFlake}}}} --argstr path {{{{path}}}} --argstr moduleSystem {{{{moduleSystem}}}} --argstr manifestPath {{{{manifestPath}}}} --argstr manifestArgs {{{{manifestArgs}}}} --argstr attr {{{{attr}}}} --argstr outputName {{{{outputName}}}} --argstr configurationName {{{{configurationName}}}}"#,
             quoted_manifest,
             if is_flake {
                 "--extra-experimental-features flakes"
