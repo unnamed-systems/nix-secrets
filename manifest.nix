@@ -121,13 +121,24 @@ in
       version ? null,
       ...
     }@args:
+    let
+      majorMinor =
+        v:
+        let
+          parts = builtins.splitVersion v;
+        in
+        [
+          (builtins.elemAt parts 0)
+          (builtins.elemAt parts 1)
+        ];
+    in
     assert
       # Ignore assertion if `version` is not passed or is null.
-      (version != null -> version == cargoVersion)
+      (version != null -> majorMinor version == majorMinor cargoVersion)
       || throw ''
         Version mismatch between CLI and Nix module.
         Nix module is `${cargoVersion}`, but CLI is `${version}`.
-        Update CLI to the same version as the module.
+        Update CLI to the same minor version as the module.
       '';
     call (builtins.removeAttrs args [ "version" ]);
   __functionArgs = builtins.functionArgs call // {
