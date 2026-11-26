@@ -73,6 +73,7 @@ pub fn eval_build_command(
         .unwrap_or_default();
     let module_system = shlex::try_quote(&module_system_string)?;
     let manifest_path = shlex::try_quote(manifest_path)?;
+    let manifest_args = shlex::try_quote(manifest_args)?;
     let attr = shlex::try_quote(attr.unwrap_or_default())?;
     let output_name = shlex::try_quote(output_name.unwrap_or_default())?;
     let configuration_name = shlex::try_quote(configuration_name)?;
@@ -83,7 +84,7 @@ pub fn eval_build_command(
         .replace("{{path}}", &path)
         .replace("{{moduleSystem}}", &module_system)
         .replace("{{manifestPath}}", &manifest_path)
-        .replace("{{manifestArgs}}", manifest_args)
+        .replace("{{manifestArgs}}", &manifest_args)
         .replace("{{attr}}", &attr)
         .replace("{{outputName}}", &output_name)
         .replace("{{configurationName}}", &configuration_name);
