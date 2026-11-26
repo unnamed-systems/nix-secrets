@@ -111,14 +111,13 @@ let
       '') config;
     in
     manifest (builtins.fromJSON manifestArgs);
-
-  cargoVersion = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
 in
 {
   __functor =
     _self:
     {
-      version ? null,
+      versionCli ? null,
+      versionNix ? null,
       ...
     }@args:
     let
@@ -133,14 +132,19 @@ in
         ];
     in
     assert
-      # Ignore assertion if `version` is not passed or is null.
-      (version != null -> majorMinor version == majorMinor cargoVersion)
+      # Skip check unless both versions are provided.
+      (versionCli != null && versionNix != null -> majorMinor versionCli == majorMinor versionNix)
       || throw ''
         Version mismatch between CLI and Nix module.
-        Nix module is `${cargoVersion}`, but CLI is `${version}`.
+        Nix module is `${toString versionNix}`, but CLI is `${toString versionCli}`.
         Update CLI to the same minor version as the module.
       '';
-    call (builtins.removeAttrs args [ "version" ]);
+    call (
+      builtins.removeAttrs args [
+        "versionCli"
+        "versionNix"
+      ]
+    );
   __functionArgs = builtins.functionArgs call // {
     version = true;
   };
