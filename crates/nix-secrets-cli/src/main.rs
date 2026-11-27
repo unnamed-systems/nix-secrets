@@ -26,7 +26,20 @@ fn main() -> Result<()> {
         init_logger();
     }
 
-    Args::run()?;
+    if let Err(err) = Args::run() {
+        #[cfg(debug_assertions)]
+        {
+            eprintln!("{err:?}");
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            for cause in err.chain() {
+                error!("{cause}");
+            }
+        }
+        std::process::exit(1);
+    }
 
     Ok(())
 }

@@ -5,7 +5,9 @@ use tracing_subscriber::{
 };
 
 pub fn init_logger() {
-    let _ = color_eyre::install();
+    let _ = color_eyre::config::HookBuilder::default()
+        .display_env_section(false)
+        .install();
     let is_debug = cfg!(debug_assertions);
     let default_level = if is_debug {
         LevelFilter::TRACE
