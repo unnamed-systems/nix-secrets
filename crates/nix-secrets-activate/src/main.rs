@@ -467,7 +467,7 @@ fn secret_changed(
     new_contents: &Zeroizing<Vec<u8>>,
     old_path: &Path,
 ) -> Result<bool> {
-    let meta = match fs::metadata(old_path) {
+    let link_meta = match fs::symlink_metadata(old_path) {
         Ok(m) => m,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(true),
         Err(e) => {
@@ -476,11 +476,13 @@ fn secret_changed(
         }
     };
 
-    let old_is_symlink = meta.file_type().is_symlink();
+    let old_is_symlink = link_meta.file_type().is_symlink();
     if new_secret.is_symlink != old_is_symlink {
         return Ok(true);
     }
 
+    let meta = fs::metadata(old_path)
+        .wrap_err_with(|| format!("Failed to get metadata: `{}`", old_path.display()))?;
     let expected_user_id = new_secret.owner.get_uid()?.as_raw();
     let expected_group_id = new_secret.group.get_gid()?.as_raw();
     if meta.uid() != expected_user_id || meta.gid() != expected_group_id {
