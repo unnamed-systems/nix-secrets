@@ -56,6 +56,7 @@ in
               mode
               templateKey
               isSymlink
+              isVar
               ;
 
             generator =
