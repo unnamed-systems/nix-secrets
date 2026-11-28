@@ -28,6 +28,15 @@ pub fn run_systemctl<S: ::std::hash::BuildHasher>(
         Verb::TryRestart => "try-restart",
         Verb::TryReloadOrRestart => "try-reload-or-restart",
     };
+
+    info!(
+        "Executing {verb_str} using systemctl for units: `{}`",
+        units
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     let status = Command::new("systemctl")
         .arg("--no-block")
         .arg(verb_str)
@@ -51,6 +60,15 @@ pub fn append_units<S: ::std::hash::BuildHasher>(
         return Ok(());
     }
 
+    info!(
+        "Appending to {} using activation scripts: `{}`",
+        path.display(),
+        units
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     if let Some(parent) = path.parent() {
         match fs::metadata(parent) {
             Ok(_) => {}

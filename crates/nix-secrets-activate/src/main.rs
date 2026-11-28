@@ -392,11 +392,9 @@ fn main() -> Result<()> {
             }
             ActivationStage::Units => {
                 if matches!(manifest.activation_method, ActivationMethod::Systemd) {
-                    info!("Restarting units using systemctl");
                     run_systemctl(Verb::TryRestart, &restart)?;
                     run_systemctl(Verb::TryReloadOrRestart, &reload)?;
                 } else {
-                    info!("Restarting units using activation scripts");
                     let base_dir = Path::new("/run/nixos/activation");
                     append_units(&restart, &base_dir.join("activation-restart-list"))?;
                     append_units(&restart, &base_dir.join("activation-reload-list"))?;
@@ -467,8 +465,8 @@ fn secret_changed(
     new_contents: &Zeroizing<Vec<u8>>,
     old_path: &Path,
 ) -> Result<bool> {
-    let link_meta = match fs::symlink_metadata(old_path) {
-        Ok(m) => m,
+    let old_is_symlink = match fs::symlink_metadata(old_path) {
+        Ok(m) => m.file_type().is_symlink(),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(true),
         Err(e) => {
             return Err(e)
@@ -476,13 +474,13 @@ fn secret_changed(
         }
     };
 
-    let old_is_symlink = link_meta.file_type().is_symlink();
     if new_secret.is_symlink != old_is_symlink {
         return Ok(true);
     }
 
     let meta = fs::metadata(old_path)
         .wrap_err_with(|| format!("Failed to get metadata: `{}`", old_path.display()))?;
+
     let expected_user_id = new_secret.owner.get_uid()?.as_raw();
     let expected_group_id = new_secret.group.get_gid()?.as_raw();
     if meta.uid() != expected_user_id || meta.gid() != expected_group_id {
