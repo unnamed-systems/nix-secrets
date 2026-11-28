@@ -15,6 +15,7 @@ pkgs.testers.runNixOSTest {
 
     security.nix-secrets = {
       ciMode.usePlaceholders = true;
+      activate.method = "systemd";
 
       secrets.password = {
         placeholder = "password";
