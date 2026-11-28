@@ -10,19 +10,28 @@
   <img align="right" src="./.github/assets/badges/human.png" alt="Created by a human with a heart">
 </p>
 
-`nix-secrets` is a lightweight and simple to use secret management solution for NixOS, Home Manager, nix-darwin, and Hjem. It provides a module that automatically installs the `nix-secrets` CLI, allowing you to manage encrypted secrets directly through the Nix module system.
+`nix-secrets` is a lightweight and simple to use secret management solution for
+NixOS, Home Manager, nix-darwin, and Hjem. It provides a module that
+automatically installs the `nix-secrets` CLI, allowing you to manage encrypted
+secrets directly through the Nix module system.
 
-Secrets are encrypted using [age](https://age-encryption.org/v1), a modern and simple encryption format.
+Secrets are encrypted using [age](https://age-encryption.org/v1), a modern and
+simple encryption format.
 
 ## Advantages
 
-Compared to existing solutions such as `sops-nix` and `agenix`, `nix-secrets` offers several advantages:
+Compared to existing solutions such as `sops-nix` and `agenix`, `nix-secrets`
+offers several advantages:
 
-- Entirely managed in the nix module system. No need for `.sops.yaml` or standalone `secrets.nix`.
+- Entirely managed in the nix module system. No need for `.sops.yaml` or
+  standalone `secrets.nix`.
 - Supports templates, placeholders and generators.
-- Aims to be as atomic as possible with no intermediate state. No imperative bash scripts.
-- Utilizes built-in age asymmetrical encryption, resulting in no public key leakage in encrypted files unlike `sops-nix` or `agenix`. This means you can have your secrets managed in a private repository without ever showing your public keys.
-- Small binary and closure size. The `nix-secrets` binary is less than 2 Mb, compared to `sops` being over 50 Mb, for example.
+- Aims to be as atomic as possible with no intermediate state. No imperative
+  bash scripts.
+- Utilizes built-in age asymmetrical encryption, resulting in no public keys
+  being present in encrypted files unlike `sops-nix` or `agenix`.
+- Small binary and closure size. The `nix-secrets` binary is less than 2 Mb,
+  compared to `sops` being over 50 Mb, for example.
 
 ## Quick Installation
 
@@ -41,7 +50,8 @@ imports = [
 ];
 ```
 
-The module automatically adds the `nix-secrets` CLI to `environment.systemPackages`.
+The module automatically adds the `nix-secrets` CLI to
+`environment.systemPackages`.
 
 ### Key Generation
 
@@ -51,13 +61,17 @@ Generate a new age identity using the provided CLI:
 nix-secrets keygen [-o <output>]
 ```
 
-Alternatively, you can use any age-compatible key generation tool, such as `age-keygen` or `rage-keygen`.
+Alternatively, you can use any age-compatible key generation tool, such as
+`age-keygen` or `rage-keygen`.
 
-For more information about CLI commands, see the [CLI documentation](https://nix-secrets.unnamed.systems/usage) or consult the man pages.
+For more information about CLI commands, see the
+[CLI documentation](https://nix-secrets.unnamed.systems/usage) or consult the
+man pages.
 
 ### Configuration
 
-To enable secret management, create a `secrets` directory in your configuration repository and configure the module:
+To enable secret management, create a `secrets` directory in your configuration
+repository and configure the module:
 
 ```nix
 { lib, ... }: {
@@ -117,11 +131,15 @@ After declaring a secret in your configuration, create or edit it using:
 nix-secrets edit <secret-name> --storage ./secrets
 ```
 
- You can set the `security.nix-secrets.storagePath` to an absolute path (e.g. `/etc/nixos/configurations/secrets`) to eliminate the need to pass the `storage` argument.
+You can set the `security.nix-secrets.storagePath` to an absolute path (e.g.
+`/etc/nixos/configurations/secrets`) to eliminate the need to pass the `storage`
+argument.
 
 ### Further Configuration
 
-For advanced configuration options, templates, placeholders, and generators, refer to the [configuration documentation](https://nix-secrets.unnamed.systems/configure).
+For advanced configuration options, templates, placeholders, and generators,
+refer to the
+[configuration documentation](https://nix-secrets.unnamed.systems/configure).
 
 ## Reference
 
