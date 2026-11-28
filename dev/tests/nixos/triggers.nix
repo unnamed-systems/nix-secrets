@@ -43,23 +43,25 @@ pkgs.testers.runNixOSTest {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "touch /tmp/reload-triggered";
-        ExecReload = "touch /tmp/reload-triggered";
+        ExecStart = "${pkgs.coreutils}/bin/touch /tmp/reload-triggered";
+        ExecReload = "${pkgs.coreutils}/bin/touch /tmp/reload-triggered";
       };
     };
 
     systemd.services.trigger-restart = {
+      startLimitIntervalSec = 0;
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "touch /tmp/restart-triggered";
+        ExecStart = "${pkgs.coreutils}/bin/touch /tmp/restart-triggered";
       };
     };
   };
 
   testScript = { nodes, ... }: ''
     import shlex
+    import time
 
     activate = ${builtins.toJSON (nodes.machine.security.nix-secrets.activate.command false)}
 
@@ -71,6 +73,7 @@ pkgs.testers.runNixOSTest {
       machine.succeed("rm -f /tmp/reload-triggered /tmp/restart-triggered")
 
     def assert_triggers(expected, label):
+      time.sleep(0.1)
       reload_triggered = machine.succeed("test -f /tmp/reload-triggered && echo yes || echo no").strip() == "yes"
       restart_triggered = machine.succeed("test -f /tmp/restart-triggered && echo yes || echo no").strip() == "yes"
       assert reload_triggered == expected, f"{label}: unexpected reload trigger"
