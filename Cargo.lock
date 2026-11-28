@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "nix-secrets-activate"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "age",
  "aho-corasick",
@@ -1338,7 +1338,7 @@ dependencies = [
 
 [[package]]
 name = "nix-secrets-cli"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "age",
  "chrono",
@@ -1361,7 +1361,7 @@ dependencies = [
 
 [[package]]
 name = "nix-secrets-core"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "age",
  "clap",
