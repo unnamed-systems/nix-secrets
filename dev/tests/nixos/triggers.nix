@@ -61,7 +61,6 @@ pkgs.testers.runNixOSTest {
 
   testScript = { nodes, ... }: ''
     import shlex
-    import time
 
     activate = ${builtins.toJSON (nodes.machine.security.nix-secrets.activate.command false)}
 
@@ -72,8 +71,12 @@ pkgs.testers.runNixOSTest {
     def clear_triggers():
       machine.succeed("rm -f /tmp/reload-triggered /tmp/restart-triggered")
 
+    def wait_for_trigger_jobs():
+      machine.wait_for_unit("trigger-reload.service")
+      machine.wait_for_unit("trigger-restart.service")
+
     def assert_triggers(expected, label):
-      time.sleep(0.1)
+      wait_for_trigger_jobs()
       reload_triggered = machine.succeed("test -f /tmp/reload-triggered && echo yes || echo no").strip() == "yes"
       restart_triggered = machine.succeed("test -f /tmp/restart-triggered && echo yes || echo no").strip() == "yes"
       assert reload_triggered == expected, f"{label}: unexpected reload trigger"
