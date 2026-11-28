@@ -41,6 +41,7 @@ in
 
           inherit moduleSystem;
 
+          activationMethod = cfg.activate.method;
           usePlaceholders = cfg.ciMode.enableDangerously && cfg.ciMode.usePlaceholders;
 
           secrets = lib.mapAttrsToList (_name: value: {
