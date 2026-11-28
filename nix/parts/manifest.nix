@@ -56,6 +56,8 @@ in
               mode
               templateKey
               isSymlink
+              reloadUnits
+              restartUnits
               ;
 
             generator =
@@ -75,6 +77,8 @@ in
               group
               mode
               isSymlink
+              reloadUnits
+              restartUnits
               ;
           }) enabledTemplates;
         }
