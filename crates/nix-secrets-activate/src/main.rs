@@ -1,17 +1,18 @@
 #[macro_use]
 extern crate tracing;
 
+pub mod units;
 pub mod utils;
 
 #[cfg(target_os = "linux")]
 use std::io::{BufRead as _, BufReader};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::{self, File, OpenOptions},
     io::{ErrorKind, Write as _},
     os::{
         fd::AsFd,
-        unix::fs::{self as unix_fs, OpenOptionsExt},
+        unix::fs::{self as unix_fs, MetadataExt as _, OpenOptionsExt, PermissionsExt as _},
     },
     path::{Path, PathBuf},
     process::{self},
@@ -24,8 +25,11 @@ use clap::{Parser, ValueHint};
 use eyre::{Context as _, ContextCompat as _, OptionExt as _, eyre};
 use nix::fcntl::AT_FDCWD;
 use nix_secrets_core::{
-    SECRETS_EXTENSION, age::get_identities_paths, file::PathBufExt as _, log::init_logger,
-    model::Manifest,
+    SECRETS_EXTENSION,
+    age::get_identities_paths,
+    file::PathBufExt as _,
+    log::init_logger,
+    model::{ActivationMethod, Manifest},
 };
 
 #[cfg(target_os = "linux")]
@@ -36,7 +40,10 @@ use nix_secrets_core::{
     model::{ModuleSystem, OwnerOrGroup, Secret, parse_manifest},
 };
 
-use crate::utils::set_owner_and_group;
+use crate::{
+    units::{Verb, append_units, run_systemctl},
+    utils::set_owner_and_group,
+};
 
 #[cfg(target_os = "linux")]
 const RAMFS_MAGIC: FsType = FsType(0x8584_58f6);
@@ -76,6 +83,7 @@ enum ActivationStage<'a> {
     },
     LinkMainDirectory,
     LinkIndividualLinkables,
+    Units,
     DeleteOldGenerations,
     Exit,
 }
@@ -93,7 +101,9 @@ fn main() -> Result<()> {
     let mut manifest: Manifest = parse_manifest(&contents).wrap_err("Failed to parse manifest")?;
     let mut identities = Vec::new();
     let mut links: HashMap<PathBuf, (PathBuf, bool)> = HashMap::new();
-    let mut cleanup: Vec<PathBuf> = Vec::new();
+    let mut reload: HashSet<String> = HashSet::new();
+    let mut restart: HashSet<String> = HashSet::new();
+    let mut cleanup: HashSet<PathBuf> = HashSet::new();
 
     let mut stage = ActivationStage::Initialize;
 
@@ -249,6 +259,11 @@ fn main() -> Result<()> {
                         manifest.use_placeholders,
                     )?;
 
+                    if secret_changed(secret, &decrypted, &secret.path).unwrap_or(true) {
+                        reload.extend(secret.reload_units.clone());
+                        restart.extend(secret.restart_units.clone());
+                    }
+
                     if !secret.template_key.is_empty() {
                         let as_string = Zeroizing::new(String::from_utf8(decrypted.to_vec())?);
                         hashes.insert(secret.template_key.as_str(), as_string);
@@ -373,6 +388,19 @@ fn main() -> Result<()> {
                 }
                 info!("Linked everything in the different directories");
 
+                stage = ActivationStage::Units;
+            }
+            ActivationStage::Units => {
+                if matches!(manifest.activation_method, ActivationMethod::Systemd) {
+                    info!("Restarting units using systemctl");
+                    run_systemctl(Verb::TryRestart, &restart)?;
+                    run_systemctl(Verb::TryReloadOrRestart, &reload)?;
+                } else {
+                    info!("Restarting units using activation scripts");
+                    let base_dir = Path::new("/run/nixos/activation");
+                    append_units(&restart, &base_dir.join("activation-restart-list"))?;
+                    append_units(&restart, &base_dir.join("activation-reload-list"))?;
+                }
                 stage = ActivationStage::DeleteOldGenerations;
             }
             ActivationStage::DeleteOldGenerations => {
@@ -432,6 +460,47 @@ pub fn rename_exchange<Fd: AsFd>(
         nix::errno::Errno::result(res)?;
         Ok(())
     }
+}
+
+fn secret_changed(
+    new_secret: &Secret,
+    new_contents: &Zeroizing<Vec<u8>>,
+    old_path: &Path,
+) -> Result<bool> {
+    let meta = match fs::metadata(old_path) {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(true),
+        Err(e) => {
+            return Err(e)
+                .wrap_err_with(|| format!("Failed to get metadata: `{}`", old_path.display()));
+        }
+    };
+
+    let old_is_symlink = meta.file_type().is_symlink();
+    if new_secret.is_symlink != old_is_symlink {
+        return Ok(true);
+    }
+
+    let expected_user_id = new_secret.owner.get_uid()?.as_raw();
+    let expected_group_id = new_secret.group.get_gid()?.as_raw();
+    if meta.uid() != expected_user_id || meta.gid() != expected_group_id {
+        return Ok(true);
+    }
+
+    if !old_is_symlink {
+        let expected_mode = u32::from_str_radix(new_secret.mode.trim_start_matches("0o"), 8)
+            .wrap_err_with(|| format!("Invalid secret mode: `{}`", new_secret.mode))?;
+        let old_mode = meta.permissions().mode() & 0o7777;
+        if old_mode != expected_mode {
+            return Ok(true);
+        }
+    }
+
+    let old_contents = Zeroizing::new(
+        fs::read(old_path)
+            .wrap_err_with(|| format!("Failed to read secret: `{}`", old_path.display()))?,
+    );
+    Ok(old_contents != *new_contents)
 }
 
 fn decrypt_secret(

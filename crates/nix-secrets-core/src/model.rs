@@ -22,6 +22,15 @@ pub struct Manifest {
     pub generations_for_users_dir: String,
     pub base_dir: String,
     pub base_for_users_dir: String,
+    pub activation_method: ActivationMethod,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
+pub enum ActivationMethod {
+    ActivationScripts,
+    Launchd,
+    Systemd,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -117,6 +126,8 @@ pub struct Secret {
     pub needed_for_users: bool,
     pub is_symlink: bool,
     pub is_identity: bool,
+    pub restart_units: Vec<String>,
+    pub reload_units: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
@@ -130,6 +141,8 @@ pub struct Template {
     pub needed_for_users: bool,
     pub content: PathBuf,
     pub is_symlink: bool,
+    pub restart_units: Vec<String>,
+    pub reload_units: Vec<String>,
 }
 
 pub fn parse_manifest(input: &str) -> eyre::Result<Manifest> {
