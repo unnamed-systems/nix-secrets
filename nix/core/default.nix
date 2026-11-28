@@ -7,5 +7,6 @@
     ./ciMode.nix
     ./defaultRecipients.nix
     ./env.nix
+    ./triggers.nix
   ];
 }
